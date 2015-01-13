@@ -6,3 +6,5 @@ FLAGS := -g -w $(INCLUDE_PATHS)
 all: $(SRC)
 	$(COMPILER) $(FLAGS) $(SRC) -ofbin/dfmt
 
+test: bin/dfmt
+	cd tests && ./test.sh
