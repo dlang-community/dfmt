@@ -1,3 +1,5 @@
 *.o
 bin
 *.d.out
+.dub
+dfmt
