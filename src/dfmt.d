@@ -53,7 +53,7 @@ int main(string[] args)
     else
     {
         File f = File(args[1]);
-        buffer = new ubyte[](f.size);
+        buffer = new ubyte[](cast(size_t)f.size);
         f.rawRead(buffer);
     }
     LexerConfig config;
