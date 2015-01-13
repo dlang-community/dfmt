@@ -31,6 +31,7 @@ import std.stdio;
 import std.d.lexer;
 import std.d.parser;
 import std.d.formatter;
+import std.d.ast;
 import std.array;
 
 int main(string[] args)
@@ -46,19 +47,33 @@ int main(string[] args)
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
     config.whitespaceBehavior = WhitespaceBehavior.skip;
+    LexerConfig parseConfig;
+    parseConfig.stringBehavior = StringBehavior.source;
+    parseConfig.whitespaceBehavior = WhitespaceBehavior.skip;
     StringCache cache = StringCache(StringCache.defaultBucketCount);
+    ASTInformation astInformation;
+	FormatterConfig formatterConfig;
+    auto parseTokens = getTokensForParser(buffer, parseConfig, &cache);
+    auto mod = parseModule(parseTokens, args[1]);
+    auto visitor = new FormatVisitor(&astInformation);
+    visitor.visit(mod);
+    astInformation.cleanup();
     auto tokens = byToken(buffer, config, &cache).array();
-    auto tokenFormatter = TokenFormatter(tokens, stdout);
+    auto tokenFormatter = TokenFormatter(tokens, stdout, &astInformation,
+		&formatterConfig);
     tokenFormatter.format();
     return 0;
 }
 
 struct TokenFormatter
 {
-    this(const(Token)[] tokens, File output)
+    this(const(Token)[] tokens, File output, ASTInformation* astInformation,
+		FormatterConfig* config)
     {
         this.tokens = tokens;
         this.output = output;
+        this.astInformation = astInformation;
+		this.config = config;
     }
 
     void format()
@@ -74,108 +89,90 @@ struct TokenFormatter
 
     void formatStep()
     {
+        import std.range:assumeSorted;
+
         assert (index < tokens.length);
         if (current.type == tok!"comment")
         {
             writeToken();
             newline();
         }
-        else if (isStringLiteral(current.type) || isNumberLiteral(current.type))
+        else if (isStringLiteral(current.type) || isNumberLiteral(current.type)
+            || current.type == tok!"characterLiteral")
         {
             writeToken();
         }
-        else if (current.type == tok!"case" || current.type == tok!"default")
+        else if (current.type == tok!"module" || current.type == tok!"import")
         {
-            if (current.type == tok!"case")
+            auto t = current.type;
+            writeToken();
+            write(" ");
+            while (index < tokens.length)
             {
-                writeToken();
-                write(" ");
-            }
-            else
-                writeToken();
-            auto i = indentLevel;
-            int braceLevel = 0;
-            while (true)
-            {
-                if (current.type == tok!":")
+                if (current.type == tok!";")
                 {
-                    if (peekIs(tok!"case") || peekIs(tok!"default"))
-                    {
-                        indentLevel = i;
-                        writeToken();
+                    formatStep();
+                    if (!(t == tok!"import" && current.type == tok!"import"))
                         newline();
-                        break;
-                    }
-                    else
-                    {
-                        indentLevel++;
-                        writeToken();
-                        newline();
-                    }
-                }
-                else if (peekIs(tok!"case") || peekIs(tok!"default"))
-                {
-                    indentLevel = i;
                     break;
                 }
-                else if (current.type == tok!"{") braceLevel++;
-                else if (peekIs(tok!"}"))
-                {
-                    braceLevel--;
-                    if (braceLevel < 0)
-                    {
-                        indentLevel = i;
-                        break;
-                    }
-                }
-                formatStep();
+                else
+                    formatStep();
             }
         }
-        else if (current.type == tok!"if" || current.type == tok!"while" || current.type == tok!"for"
-            || current.type == tok!"foreach" || current.type == tok!"foreach_reverse")
+        else if (current.type == tok!"switch")
+            formatSwitch();
+        else if (current.type == tok!"for" || current.type == tok!"foreach"
+            || current.type == tok!"foreach_reverse" || current.type == tok!"while"
+            || current.type == tok!"if")
         {
             currentLineLength += currentTokenLength() + 1;
             writeToken();
             write(" ");
-            int parenMatch = 0;
-            do
-            {
-                if (current.type == tok!";")
-                {
-                    write("; ");
-                    currentLineLength += 2;
-                    index++;
-                    continue;
-                }
-                else if (current.type == tok!"(")
-                    parenMatch++;
-                else if (current.type == tok!")")
-                    parenMatch--;
-                formatStep();
-            }
-            while (parenMatch > 0);
+            writeParens();
             if (current.type != tok!"{" && current.type != tok!";")
             {
-                indentLevel++;
+                pushIndent();
                 newline();
-                deIndentOnNewline++;
             }
         }
         else if (isKeyword(current.type))
         {
-            if (current.type != tok!"default" && current.type != tok!"cast"
-                && !peekIs(tok!"."))
+            switch (current.type)
             {
+            case tok!"default":
+            case tok!"cast":
                 writeToken();
-                write(" ");
+                break;
+			case tok!"mixin":
+				writeToken();
+				write(" ");
+				break;
+            default:
+                if (index + 1 < tokens.length)
+                {
+                    auto next = tokens[index + 1];
+                    if (next.type == tok!";" || next.type == tok!"("
+						|| next.type == tok!")" || next.type == tok!","
+						|| next.type == tok!"{")
+					{
+                        writeToken();
+					}
+                    else
+                    {
+                        writeToken();
+                        write(" ");
+                    }
+                }
+                else
+                    writeToken();
+                break;
             }
-            else
-                writeToken();
         }
         else if (isBasicType(current.type))
         {
             writeToken();
-            if (current.type == tok!"identifier")
+            if (current.type == tok!"identifier" || isKeyword(current.type))
                 write(" ");
         }
         else if (isOperator(current.type))
@@ -183,21 +180,35 @@ struct TokenFormatter
             switch (current.type)
             {
             case tok!"*":
+                if (!assumeSorted(astInformation.spaceAfterLocations).equalRange(current.index).empty)
+                {
+                    writeToken();
+                    write(" ");
+                    break;
+                }
+                goto case;
             case tok!"~":
             case tok!"&":
             case tok!"+":
             case tok!"-":
-                // TODO: unary
+                if (!assumeSorted(astInformation.unaryLocations)
+                    .equalRange(current.index).empty)
+                {
+                    writeToken();
+                    break;
+                }
+                goto binary;
+            case tok!"(":
+                writeParens();
+                break;
             case tok!"@":
             case tok!"!":
-            case tok!".":
             case tok!"...":
-            case tok!"(":
-            case tok!")":
             case tok!"[":
             case tok!"++":
             case tok!"--":
             case tok!"$":
+            case tok!":":
                 writeToken();
                 break;
             case tok!"]":
@@ -206,38 +217,35 @@ struct TokenFormatter
                     write(" ");
                 break;
             case tok!";":
+                tempIndent = 0;
                 writeToken();
                 newline();
                 break;
             case tok!"{":
-                if (otbs)
-                    write(" {");
-                else
-                {
-                    newline();
-                    write("{");
-                }
-                index++;
-                indentLevel++;
-                newline();
+                writeBraces();
                 break;
-            case tok!"}":
-                write("}");
-                index++;
-                if (otbs && current.type == tok!"else")
-                    write(" ");
-                else
+            case tok!".":
+                if (currentLineLength + nextTokenLength() >= config.columnSoftLimit)
+                {
+                    pushIndent();
                     newline();
+                    writeToken();
+                }
+                else
+                    writeToken();
                 break;
             case tok!",":
-                if (currentLineLength + nextTokenLength() >= columnSoftLimit)
+                if (currentLineLength + nextTokenLength() >= config.columnSoftLimit)
                 {
-                    write(",");
+                    pushIndent();
+                    writeToken();
                     newline();
                 }
                 else
-                    write(", ");
-                index++;
+                {
+                    writeToken();
+                    write(" ");
+                }
                 break;
             case tok!"^^":
             case tok!"^=":
@@ -279,9 +287,12 @@ struct TokenFormatter
             case tok!"%=":
             case tok!"%":
             case tok!"+=":
-            case tok!":":
-                if (currentLineLength + nextTokenLength() >= columnSoftLimit)
+            binary:
+                if (currentLineLength + nextTokenLength() >= config.columnSoftLimit)
+                {
+                    pushIndent();
                     newline();
+                }
                 else
                     write(" ");
                 writeToken();
@@ -298,7 +309,188 @@ struct TokenFormatter
                 write(" ");
         }
         else
-            index++;
+            assert (false, str(current.type));
+    }
+
+    void pushIndent()
+    {
+        if (tempIndent == 0)
+            tempIndent++;
+    }
+
+    void popIndent()
+    {
+        if (tempIndent > 0)
+            tempIndent--;
+    }
+
+    void writeBraces()
+    {
+        import std.range : assumeSorted;
+        int depth = 0;
+        do
+        {
+            if (current.type == tok!"{")
+            {
+                depth++;
+                if (config.braceStyle == BraceStyle.otbs)
+                {
+                    write(" ");
+                    write("{");
+                }
+                else
+                {
+                    newline();
+                    write("{");
+                }
+                indentLevel++;
+                index++;
+                newline();
+            }
+            else if (current.type == tok!"}")
+            {
+                write("}");
+                depth--;
+				if (index < tokens.length &&
+					assumeSorted(astInformation.doubleNewlineLocations)
+					.equalRange(tokens[index].index).length)
+				{
+					output.write("\n");
+				}
+                if (config.braceStyle == BraceStyle.otbs)
+                {
+                    index++;
+                    if (index < tokens.length && current.type == tok!"else")
+                        write(" ");
+                    else
+					{
+						if (peekIs(tok!"case") || peekIs(tok!"default"))
+							indentLevel--;
+						newline();
+					}
+                }
+                else
+                {
+					index++;
+                    if (peekIs(tok!"case") || peekIs(tok!"default"))
+                        indentLevel--;
+                    newline();
+                }
+            }
+            else
+                formatStep();
+        }
+        while (index < tokens.length && depth > 0);
+        popIndent();
+    }
+
+    void writeParens()
+    in
+    {
+        assert (current.type == tok!"(", str(current.type));
+    }
+    body
+    {
+        immutable t = tempIndent;
+        int depth = 0;
+        do
+        {
+            if (current.type == tok!";")
+            {
+                write("; ");
+                currentLineLength += 2;
+                index++;
+                continue;
+            }
+            else if (current.type == tok!"(")
+            {
+                writeToken();
+                depth++;
+                continue;
+            }
+            else if (current.type == tok!")")
+            {
+                if (peekIs(tok!"identifier") || (index + 1 < tokens.length
+					&& isKeyword(tokens[index + 1].type)))
+                {
+                    writeToken();
+                    write(" ");
+                }
+                else
+                    writeToken();
+                depth--;
+            }
+            else
+                formatStep();
+        }
+        while (index < tokens.length && depth > 0);
+        popIndent();
+        tempIndent = t;
+    }
+
+    bool peekIsLabel()
+    {
+        return peekIs(tok!"identifier") && peek2Is(tok!":");
+    }
+
+    void formatSwitch()
+    {
+        immutable l = indentLevel;
+        writeToken(); // switch
+        write(" ");
+        writeParens();
+        if (current.type != tok!"{")
+            return;
+        if (config.braceStyle == BraceStyle.otbs)
+            write(" ");
+        else
+            newline();
+        writeToken();
+        newline();
+        while (index < tokens.length)
+        {
+            if (current.type == tok!"case")
+            {
+                writeToken();
+                write(" ");
+            }
+            else if (current.type == tok!":")
+            {
+                if (peekIs(tok!".."))
+                {
+                    writeToken();
+                    write(" ");
+                    writeToken();
+                    write(" ");
+                }
+                else
+                {
+                    if (!(peekIs(tok!"case") || peekIs(tok!"default") || peekIsLabel()))
+                        indentLevel++;
+                    formatStep();
+                    newline();
+                }
+            }
+            else
+            {
+                assert (current.type != tok!"}");
+                if (peekIs(tok!"case") || peekIs(tok!"default") || peekIsLabel())
+                {
+                    indentLevel = l;
+                    formatStep();
+                }
+                else
+                {
+                    formatStep();
+                    if (current.type == tok!"}")
+                        break;
+                }
+            }
+        }
+        indentLevel = l;
+        assert (current.type == tok!"}");
+        writeToken();
+        newline();
     }
 
     int currentTokenLength()
@@ -312,6 +504,7 @@ struct TokenFormatter
 
     int nextTokenLength()
     {
+        import std.algorithm : countUntil;
         if (index + 1 >= tokens.length)
             return INVALID_TOKEN_LENGTH;
         auto nextToken = tokens[index + 1];
@@ -321,7 +514,7 @@ struct TokenFormatter
         case tok!"stringLiteral":
         case tok!"wstringLiteral":
         case tok!"dstringLiteral":
-            return cast(int) nextToken.text.length;
+            return cast(int) nextToken.text.countUntil('\n');
         mixin (generateFixedLengthCases());
         default: return -1;
         }
@@ -342,23 +535,28 @@ struct TokenFormatter
         return (index >= 1) && tokens[index - 1].type == tokenType;
     }
 
-    bool peekIs(IdType tokenType)
+    bool peekImplementation(IdType tokenType, size_t n)
     {
-        auto i = index + 1;
+        auto i = index + n;
         while (i < tokens.length && tokens[i].type == tok!"comment")
             i++;
         return i < tokens.length && tokens[i].type == tokenType;
+    }
+
+    bool peek2Is(IdType tokenType)
+    {
+        return peekImplementation(tokenType, 2);
+    }
+
+    bool peekIs(IdType tokenType)
+    {
+        return peekImplementation(tokenType, 1);
     }
 
     void newline()
     {
         output.write("\n");
         currentLineLength = 0;
-        if (deIndentOnNewline)
-        {
-            deIndentOnNewline--;
-            indentLevel--;
-        }
         if (index < tokens.length)
         {
             if (current.type == tok!"}")
@@ -386,15 +584,15 @@ struct TokenFormatter
     void indent()
     {
         import std.range : repeat, take;
-        if (useTabs)
-            foreach (i; 0 .. indentLevel)
+        if (config.useTabs)
+            foreach (i; 0 .. indentLevel + tempIndent)
             {
-                currentLineLength += tabSize;
+                currentLineLength += config.tabSize;
                 output.write("\t");
             }
         else
-            foreach (i; 0 .. indentLevel)
-                foreach (j; 0 .. indentSize)
+            foreach (i; 0 .. indentLevel + tempIndent)
+                foreach (j; 0 .. config.indentSize)
                 {
                     output.write(" ");
                     currentLineLength++;
@@ -410,7 +608,36 @@ struct TokenFormatter
     /// Current indent level
     int indentLevel;
 
-    /// Number of spaces used for indentation
+    /// Current temproray indententation level;
+    int tempIndent;
+
+    /// Length of the current line (so far)
+    uint currentLineLength = 0;
+
+    /// File to output to
+    File output;
+
+    /// Tokens being formatted
+    const(Token)[] tokens;
+
+    /// Information about the AST
+    ASTInformation* astInformation;
+
+	/// Configuration
+	FormatterConfig* config;
+}
+
+/// The only good brace styles
+enum BraceStyle
+{
+	allman,
+	otbs
+}
+
+/// Configuration options for formatting
+struct FormatterConfig
+{
+	/// Number of spaces used for indentation
     uint indentSize = 4;
 
     /// Use tabs or spaces
@@ -425,19 +652,99 @@ struct TokenFormatter
     /// Hard line wrap limit
     uint columnHardLimit = 120;
 
-    /// Length of the current line (so far)
-    uint currentLineLength = 0;
+	/// Use the One True Brace Style
+    BraceStyle braceStyle = BraceStyle.otbs;
+}
 
-    /// Use the One True Brace Style
-    bool otbs = false;
+///
+struct ASTInformation
+{
+    /// Sorts the arrays so that binary search will work on them
+    void cleanup()
+    {
+        import std.algorithm : sort;
+        sort(doubleNewlineLocations);
+        sort(spaceAfterLocations);
+        sort(unaryLocations);
+    }
 
-    int deIndentOnNewline = 0;
+    /// Locations of end braces for struct bodies
+    size_t[] doubleNewlineLocations;
 
-    /// File to output to
-    File output;
+    /// Locations of tokens where a space is needed (such as the '*' in a type)
+    size_t[] spaceAfterLocations;
 
-    /// Tokens being formatted
-    const(Token)[] tokens;
+    /// Locations of unary operators
+    size_t[] unaryLocations;
+}
+
+/// Collects information from the AST that is useful for the formatter
+final class FormatVisitor : ASTVisitor
+{
+    ///
+    this(ASTInformation* astInformation)
+    {
+        this.astInformation = astInformation;
+    }
+
+    override void visit(const FunctionBody functionBody)
+    {
+        if (functionBody.blockStatement !is null)
+            astInformation.doubleNewlineLocations ~= functionBody.blockStatement.endLocation;
+        if (functionBody.inStatement !is null && functionBody.inStatement.blockStatement !is null)
+            astInformation.doubleNewlineLocations ~= functionBody.inStatement.blockStatement.endLocation;
+        if (functionBody.outStatement !is null && functionBody.outStatement.blockStatement !is null)
+            astInformation.doubleNewlineLocations ~= functionBody.outStatement.blockStatement.endLocation;
+        if (functionBody.bodyStatement !is null && functionBody.bodyStatement.blockStatement !is null)
+            astInformation.doubleNewlineLocations ~= functionBody.bodyStatement.blockStatement.endLocation;
+        functionBody.accept(this);
+    }
+
+    override void visit(const Unittest unittest_)
+    {
+        astInformation.doubleNewlineLocations ~= unittest_.blockStatement.endLocation;
+        unittest_.accept(this);
+    }
+
+    override void visit(const Invariant invariant_)
+    {
+        astInformation.doubleNewlineLocations ~= invariant_.blockStatement.endLocation;
+        invariant_.accept(this);
+    }
+
+    override void visit(const StructBody structBody)
+    {
+        astInformation.doubleNewlineLocations ~= structBody.endLocation;
+        structBody.accept(this);
+    }
+
+	override void visit(const TemplateDeclaration templateDeclaration)
+    {
+        astInformation.doubleNewlineLocations ~= templateDeclaration.endLocation;
+        templateDeclaration.accept(this);
+    }
+
+    override void visit(const TypeSuffix typeSuffix)
+    {
+        if (typeSuffix.star.type != tok!"")
+            astInformation.spaceAfterLocations ~= typeSuffix.star.index;
+        typeSuffix.accept(this);
+    }
+
+    override void visit(const UnaryExpression unary)
+    {
+        if (unary.prefix.type == tok!"~" || unary.prefix.type == tok!"&"
+            || unary.prefix.type == tok!"*" || unary.prefix.type == tok!"+"
+            || unary.prefix.type == tok!"-")
+        {
+            astInformation.unaryLocations ~= unary.prefix.index;
+        }
+        unary.accept(this);
+    }
+
+private:
+    ASTInformation* astInformation;
+    alias visit = ASTVisitor.visit;
 }
 
 string generateFixedLengthCases()
