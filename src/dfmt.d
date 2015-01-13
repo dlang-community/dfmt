@@ -326,7 +326,7 @@ private:
         else if (current.type == tok!"identifier")
         {
             writeToken();
-            if (current.type == tok!"identifier")
+            if (current.type == tok!"identifier" || isKeyword(current.type))
                 write(" ");
         }
         else
