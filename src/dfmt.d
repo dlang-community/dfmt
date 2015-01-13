@@ -33,9 +33,14 @@ import std.d.parser;
 import std.d.formatter;
 import std.d.ast;
 import std.array;
+import std.getopt;
 
 int main(string[] args)
 {
+    bool inplace = false;
+    getopt(args,
+      "inplace", &inplace);
+    File output = stdout;
     ubyte[] buffer;
     if (args.length == 1)
     {
@@ -55,6 +60,8 @@ int main(string[] args)
         File f = File(args[1]);
         buffer = new ubyte[](cast(size_t)f.size);
         f.rawRead(buffer);
+        if (inplace)
+            output = File(args[1], "w");
     }
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
@@ -71,7 +78,7 @@ int main(string[] args)
     visitor.visit(mod);
     astInformation.cleanup();
     auto tokens = byToken(buffer, config, &cache).array();
-    auto tokenFormatter = TokenFormatter(tokens, stdout, &astInformation,
+    auto tokenFormatter = TokenFormatter(tokens, output, &astInformation,
         &formatterConfig);
     tokenFormatter.format();
     return 0;
