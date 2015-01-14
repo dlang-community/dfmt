@@ -3,8 +3,9 @@ INCLUDE_PATHS := -Ilibdparse/src
 DMD_FLAGS := -g -w $(INCLUDE_PATHS)
 LDC_FLAGS := -g -w -oq $(INCLUDE_PATHS)
 
-dmd: $(SRC)
-	dmd $(DMD_FLAGS) $(SRC) -ofbin/dfmt
+.PHONY: dmd ldc test
+
+dmd: bin/dfmt
 
 ldc: $(SRC)
 	ldc2 $(LDC_FLAGS) $(SRC) -ofbin/dfmt
@@ -12,3 +13,7 @@ ldc: $(SRC)
 
 test: bin/dfmt
 	cd tests && ./test.sh
+
+bin/dfmt: $(SRC)
+	dmd $(DMD_FLAGS) $(SRC) -ofbin/dfmt
+
