@@ -4,4 +4,3 @@ void main()
 {
     writeln("Hello, world without explicit compilations!");
 }
-

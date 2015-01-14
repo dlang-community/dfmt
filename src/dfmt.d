@@ -383,7 +383,7 @@ private:
                     newline();
                 write("}");
                 depth--;
-                if (index < tokens.length &&
+                if (index < tokens.length-1 &&
                     assumeSorted(astInformation.doubleNewlineLocations)
                     .equalRange(tokens[index].index).length)
                 {
