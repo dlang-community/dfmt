@@ -141,6 +141,11 @@ private:
                     formatStep();
             }
         }
+        else if (current.type == tok!"return")
+        {
+            writeToken();
+            write(" ");
+        }
         else if (current.type == tok!"switch")
             formatSwitch();
         else if (current.type == tok!"for" || current.type == tok!"foreach"
