@@ -115,8 +115,25 @@ private:
         assert (index < tokens.length);
         if (current.type == tok!"comment")
         {
+            const i = index;
+            if (i > 0)
+            {
+                if (tokens[i-1].line < tokens[i].line)
+                {
+                    if (tokens[i-1].type != tok!"comment"
+                        && tokens[i-1].type != tok!"{")
+                        newline();
+                }
+                else
+                    write(" ");
+            }
             writeToken();
-            newline();
+            if (i >= tokens.length-1)
+                newline();
+            else if (tokens[i+1].line > tokens[i].line)
+                newline();
+            else if (tokens[i+1].type != tok!"{")
+                write(" ");
         }
         else if (isStringLiteral(current.type) || isNumberLiteral(current.type)
             || current.type == tok!"characterLiteral")
@@ -245,7 +262,8 @@ private:
             case tok!";":
                 tempIndent = 0;
                 writeToken();
-                newline();
+                if (current.type != tok!"comment")
+                    newline();
                 break;
             case tok!"{":
                 writeBraces();
