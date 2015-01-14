@@ -175,7 +175,7 @@ private:
                     auto next = tokens[index + 1];
                     if (next.type == tok!";" || next.type == tok!"("
                         || next.type == tok!")" || next.type == tok!","
-                        || next.type == tok!"{")
+                        || next.type == tok!"{" || next.type == tok!".")
                     {
                         writeToken();
                     }
