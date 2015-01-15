@@ -33,16 +33,34 @@ import std.d.parser;
 import std.d.formatter;
 import std.d.ast;
 import std.array;
-import std.getopt;
+
+immutable USAGE = "usage: %s [--inplace] [<path>...]
+Formats D code.
+
+      --inplace  change file in-place instead of outputing to stdout
+                 (implicit in case of multiple files)
+  -h, --help     display this help and exit
+";
 
 int main(string[] args)
 {
+    import std.getopt;
+
     bool inplace = false;
+    bool show_usage = false;
     getopt(args,
+      "help|h", &show_usage,
       "inplace", &inplace);
+    if (show_usage)
+    {
+        import std.path: baseName;
+        writef(USAGE, baseName(args[0]));
+        return 0;
+    }
     File output = stdout;
     ubyte[] buffer;
-    if (args.length == 1)
+    args.popFront();
+    if (args.length == 0)
     {
         ubyte[4096] inputBuffer;
         ubyte[] b;
@@ -54,15 +72,39 @@ int main(string[] args)
             else
                 break;
         }
+        format("stdin", buffer, output);
     }
     else
     {
-        File f = File(args[1]);
-        buffer = new ubyte[](cast(size_t)f.size);
-        f.rawRead(buffer);
-        if (inplace)
-            output = File(args[1], "w");
+        import std.file;
+        if (args.length >= 2)
+            inplace = true;
+        while (args.length > 0)
+        {
+            const path = args.front;
+            args.popFront();
+            if (isDir(path))
+            {
+                inplace = true;
+                foreach (string name; dirEntries(path, "*.d", SpanMode.depth))
+                {
+                    args ~= name;
+                }
+                continue;
+            }
+            File f = File(path);
+            buffer = new ubyte[](cast(size_t)f.size);
+            f.rawRead(buffer);
+            if (inplace)
+                output = File(path, "w");
+            format(path, buffer, output);
+        }
     }
+    return 0;
+}
+
+void format(string source_desc, ubyte[] buffer, File output)
+{
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
     config.whitespaceBehavior = WhitespaceBehavior.skip;
@@ -73,7 +115,7 @@ int main(string[] args)
     ASTInformation astInformation;
     FormatterConfig formatterConfig;
     auto parseTokens = getTokensForParser(buffer, parseConfig, &cache);
-    auto mod = parseModule(parseTokens, args.length > 1 ? args[1] : "stdin");
+    auto mod = parseModule(parseTokens, source_desc);
     auto visitor = new FormatVisitor(&astInformation);
     visitor.visit(mod);
     astInformation.cleanup();
@@ -81,7 +123,6 @@ int main(string[] args)
     auto tokenFormatter = TokenFormatter(tokens, output, &astInformation,
         &formatterConfig);
     tokenFormatter.format();
-    return 0;
 }
 
 struct TokenFormatter
@@ -149,9 +190,11 @@ private:
             {
                 if (current.type == tok!";")
                 {
-                    formatStep();
+                    writeToken();
+                    tempIndent = 0;
                     if (!(t == tok!"import" && current.type == tok!"import"))
-                        newline();
+                        write("\n");
+                    newline();
                     break;
                 }
                 else
