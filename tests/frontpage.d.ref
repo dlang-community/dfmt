@@ -12,4 +12,3 @@ void main()
     }
     writeln("Average line length: ", lines ? sumLength / lines:0);
 }
-
