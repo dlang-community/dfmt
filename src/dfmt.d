@@ -33,19 +33,19 @@ import std.d.parser;
 import std.d.formatter;
 import std.d.ast;
 import std.array;
-import std.getopt;
 
 int main(string[] args)
 {
+    import std.getopt;
+
     bool inplace = false;
     getopt(args,
       "inplace", &inplace);
     File output = stdout;
     ubyte[] buffer;
-    string source_desc;
-    if (args.length == 1)
+    args.popFront();
+    if (args.length == 0)
     {
-        source_desc = "stdin";
         ubyte[4096] inputBuffer;
         ubyte[] b;
         while (true)
@@ -56,17 +56,34 @@ int main(string[] args)
             else
                 break;
         }
+        format("stdin", buffer, output);
     }
     else
     {
-        source_desc = args[1];
-        File f = File(args[1]);
-        buffer = new ubyte[](cast(size_t)f.size);
-        f.rawRead(buffer);
-        if (inplace)
-            output = File(args[1], "w");
+        import std.file;
+        if (args.length >= 2)
+            inplace = true;
+        while (args.length > 0)
+        {
+            const path = args.front;
+            args.popFront();
+            if (isDir(path))
+            {
+                inplace = true;
+                foreach (string name; dirEntries(path, "*.d", SpanMode.depth))
+                {
+                    args ~= name;
+                }
+                continue;
+            }
+            File f = File(path);
+            buffer = new ubyte[](cast(size_t)f.size);
+            f.rawRead(buffer);
+            if (inplace)
+                output = File(path, "w");
+            format(path, buffer, output);
+        }
     }
-    format(source_desc, buffer, output);
     return 0;
 }
 
