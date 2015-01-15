@@ -34,13 +34,29 @@ import std.d.formatter;
 import std.d.ast;
 import std.array;
 
+immutable USAGE = "usage: %s [--inplace] [<path>...]
+Formats D code.
+
+      --inplace  change file in-place instead of outputing to stdout
+                 (implicit in case of multiple files)
+  -h, --help     display this help and exit
+";
+
 int main(string[] args)
 {
     import std.getopt;
 
     bool inplace = false;
+    bool show_usage = false;
     getopt(args,
+      "help|h", &show_usage,
       "inplace", &inplace);
+    if (show_usage)
+    {
+        import std.path: baseName;
+        writef(USAGE, baseName(args[0]));
+        return 0;
+    }
     File output = stdout;
     ubyte[] buffer;
     args.popFront();
