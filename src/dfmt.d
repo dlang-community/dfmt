@@ -190,9 +190,11 @@ private:
             {
                 if (current.type == tok!";")
                 {
-                    formatStep();
+                    writeToken();
+                    tempIndent = 0;
                     if (!(t == tok!"import" && current.type == tok!"import"))
-                        newline();
+                        write("\n");
+                    newline();
                     break;
                 }
                 else
