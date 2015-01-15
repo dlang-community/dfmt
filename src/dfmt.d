@@ -42,8 +42,10 @@ int main(string[] args)
       "inplace", &inplace);
     File output = stdout;
     ubyte[] buffer;
+    string source_desc;
     if (args.length == 1)
     {
+        source_desc = "stdin";
         ubyte[4096] inputBuffer;
         ubyte[] b;
         while (true)
@@ -57,12 +59,19 @@ int main(string[] args)
     }
     else
     {
+        source_desc = args[1];
         File f = File(args[1]);
         buffer = new ubyte[](cast(size_t)f.size);
         f.rawRead(buffer);
         if (inplace)
             output = File(args[1], "w");
     }
+    format(source_desc, buffer, output);
+    return 0;
+}
+
+void format(string source_desc, ubyte[] buffer, File output)
+{
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
     config.whitespaceBehavior = WhitespaceBehavior.skip;
@@ -73,7 +82,7 @@ int main(string[] args)
     ASTInformation astInformation;
     FormatterConfig formatterConfig;
     auto parseTokens = getTokensForParser(buffer, parseConfig, &cache);
-    auto mod = parseModule(parseTokens, args.length > 1 ? args[1] : "stdin");
+    auto mod = parseModule(parseTokens, source_desc);
     auto visitor = new FormatVisitor(&astInformation);
     visitor.visit(mod);
     astInformation.cleanup();
@@ -81,7 +90,6 @@ int main(string[] args)
     auto tokenFormatter = TokenFormatter(tokens, output, &astInformation,
         &formatterConfig);
     tokenFormatter.format();
-    return 0;
 }
 
 struct TokenFormatter
