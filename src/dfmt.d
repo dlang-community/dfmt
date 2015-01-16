@@ -215,7 +215,7 @@ private:
             currentLineLength += currentTokenLength() + 1;
             writeToken();
             write(" ");
-            writeParens();
+            writeParens(false);
             if (current.type != tok!"{" && current.type != tok!";")
             {
                 pushIndent();
@@ -286,7 +286,7 @@ private:
                 }
                 goto binary;
             case tok!"(":
-                writeParens();
+                writeParens(true);
                 break;
             case tok!":":
                 if (!assumeSorted(astInformation.ternaryColonLocations)
@@ -488,7 +488,7 @@ private:
         popIndent();
     }
 
-    void writeParens()
+    void writeParens(bool space_afterwards)
     in
     {
         assert (current.type == tok!"(", str(current.type));
@@ -518,7 +518,8 @@ private:
                     && isKeyword(tokens[index + 1].type)))
                 {
                     writeToken();
-                    write(" ");
+                    if (space_afterwards)
+                      write(" ");
                 }
                 else
                     writeToken();
@@ -542,7 +543,7 @@ private:
         immutable l = indentLevel;
         writeToken(); // switch
         write(" ");
-        writeParens();
+        writeParens(true);
         if (current.type != tok!"{")
             return;
         if (config.braceStyle == BraceStyle.otbs)
