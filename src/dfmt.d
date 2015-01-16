@@ -159,7 +159,7 @@ private:
             const i = index;
             if (i > 0)
             {
-                if (tokens[i-1].line < tokens[i].line)
+                if (tokens[i-1].line < current.line)
                 {
                     if (tokens[i-1].type != tok!"comment"
                         && tokens[i-1].type != tok!"{")
@@ -192,6 +192,8 @@ private:
                 {
                     writeToken();
                     tempIndent = 0;
+                    if (current.type == tok!"comment")
+                        break;
                     if (!(t == tok!"import" && current.type == tok!"import"))
                         write("\n");
                     newline();
