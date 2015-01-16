@@ -10,5 +10,5 @@ void main()
         ++lines;
         sumLength += line.length;
     }
-    writeln("Average line length: ", lines ? sumLength / lines:0);
+    writeln("Average line length: ", lines ? sumLength / lines : 0);
 }

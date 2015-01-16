@@ -197,6 +197,28 @@ private:
                     newline();
                     break;
                 }
+                else if (current.type == tok!",")
+                {
+                    // compute length until next , or ;
+                    int length_of_next_chunk = INVALID_TOKEN_LENGTH;
+                    for (size_t i=index+1; i<tokens.length; i++)
+                    {
+                        if (tokens[i].type == tok!"," || tokens[i].type == tok!";")
+                            break;
+                        const len = tokenLength(i);
+                        assert (len >= 0);
+                        length_of_next_chunk += len;
+                    }
+                    assert (length_of_next_chunk > 0);
+                    writeToken();
+                    if (currentLineLength+1+length_of_next_chunk >= config.columnSoftLimit)
+                    {
+                        pushIndent();
+                        newline();
+                    }
+                    else
+                        write(" ");
+                }
                 else
                     formatStep();
             }
@@ -215,7 +237,7 @@ private:
             currentLineLength += currentTokenLength() + 1;
             writeToken();
             write(" ");
-            writeParens();
+            writeParens(false);
             if (current.type != tok!"{" && current.type != tok!";")
             {
                 pushIndent();
@@ -286,7 +308,7 @@ private:
                 }
                 goto binary;
             case tok!"(":
-                writeParens();
+                writeParens(true);
                 break;
             case tok!":":
                 if (!assumeSorted(astInformation.ternaryColonLocations)
@@ -403,7 +425,8 @@ private:
         else if (current.type == tok!"identifier")
         {
             writeToken();
-            if (current.type == tok!"identifier" || isKeyword(current.type))
+            if (current.type == tok!"identifier" || isKeyword(current.type)
+                || current.type == tok!"@")
                 write(" ");
         }
         else
@@ -488,7 +511,7 @@ private:
         popIndent();
     }
 
-    void writeParens()
+    void writeParens(bool space_afterwards)
     in
     {
         assert (current.type == tok!"(", str(current.type));
@@ -518,7 +541,8 @@ private:
                     && isKeyword(tokens[index + 1].type)))
                 {
                     writeToken();
-                    write(" ");
+                    if (space_afterwards)
+                      write(" ");
                 }
                 else
                     writeToken();
@@ -542,7 +566,7 @@ private:
         immutable l = indentLevel;
         writeToken(); // switch
         write(" ");
-        writeParens();
+        writeParens(true);
         if (current.type != tok!"{")
             return;
         if (config.braceStyle == BraceStyle.otbs)
@@ -597,31 +621,34 @@ private:
         newline();
     }
 
-    int currentTokenLength()
-    {
-        switch (current.type)
-        {
-        mixin (generateFixedLengthCases());
-        default: return cast(int) current.text.length;
-        }
-    }
-
-    int nextTokenLength()
+    int tokenLength(size_t i) pure @safe @nogc
     {
         import std.algorithm : countUntil;
-        if (index + 1 >= tokens.length)
-            return INVALID_TOKEN_LENGTH;
-        auto nextToken = tokens[index + 1];
-        switch (nextToken.type)
+        assert (i+1 <= tokens.length);
+        switch (tokens[i].type)
         {
         case tok!"identifier":
         case tok!"stringLiteral":
         case tok!"wstringLiteral":
         case tok!"dstringLiteral":
-            return cast(int) nextToken.text.countUntil('\n');
+            auto c = cast(int) tokens[i].text.countUntil('\n');
+            if (c == -1)
+                return cast(int) tokens[i].text.length;
         mixin (generateFixedLengthCases());
-        default: return -1;
+        default: return INVALID_TOKEN_LENGTH;
         }
+    }
+
+    int currentTokenLength() pure @safe @nogc
+    {
+        return tokenLength(index);
+    }
+
+    int nextTokenLength() pure @safe @nogc
+    {
+        if (index + 1 >= tokens.length)
+            return INVALID_TOKEN_LENGTH;
+        return tokenLength(index + 1);
     }
 
     ref current() const @property

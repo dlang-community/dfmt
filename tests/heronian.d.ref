@@ -1,7 +1,7 @@
 import std.stdio, std.math, std.range, std.algorithm, std.numeric, std.traits,
     std.typecons;
 
-double hero(in uint a, in uint b, in uint c) pure nothrow @safe@nogc
+double hero(in uint a, in uint b, in uint c) pure nothrow @safe @nogc
 {
     immutable s = (a + b + c) / 2.0;
     immutable a2 = s * (s - a) * (s - b) * (s - c);
@@ -39,9 +39,9 @@ void main() /*@safe*/
             writefln("%3s %8d %3dx%dx%d", t[].hero, t[].only.sum, t[]);
     }
 
-    writefln("Primitive Heronian triangles with sides up to %d: %d", maxSide,
-        h.length);
-    "\nFirst ten when ordered by increasing area, then perimeter,then maximum sides:".writeln;
+    writefln("Primitive Heronian triangles with sides up to %d: %d", maxSide, h.length);
+    "\nFirst ten when ordered by increasing area, then perimeter,then maximum sides:"
+        .writeln;
     showTriangles(h.take(10));
     "\nAll with area 210 subject to the previous ordering:".writeln;
     showTriangles(h.filter!(t => t[].hero == 210));
