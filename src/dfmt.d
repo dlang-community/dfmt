@@ -313,17 +313,6 @@ private:
             case tok!"(":
                 writeParens(true);
                 break;
-            case tok!":":
-                if (!assumeSorted(astInformation.ternaryColonLocations)
-                    .equalRange(current.index).empty)
-                {
-                    write(" ");
-                    writeToken();
-                    write(" ");
-                }
-                else
-                    writeToken();
-                break;
             case tok!"@":
             case tok!"!":
             case tok!"...":
@@ -332,6 +321,10 @@ private:
             case tok!"--":
             case tok!"$":
                 writeToken();
+                break;
+            case tok!":":
+                write(" : ");
+                index += 1;
                 break;
             case tok!"]":
                 writeToken();
@@ -811,9 +804,6 @@ struct ASTInformation
 
     /// Locations of unary operators
     size_t[] unaryLocations;
-
-    /// Locations of ':' operators in ternary expressions
-    size_t[] ternaryColonLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -884,13 +874,6 @@ final class FormatVisitor : ASTVisitor
             astInformation.unaryLocations ~= unary.prefix.index;
         }
         unary.accept(this);
-    }
-
-    override void visit(const TernaryExpression ternary)
-    {
-        if (ternary.colon.type != tok!"")
-            astInformation.ternaryColonLocations ~= ternary.colon.index;
-        ternary.accept(this);
     }
 
 private:
