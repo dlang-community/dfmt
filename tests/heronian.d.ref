@@ -1,7 +1,7 @@
 import std.stdio, std.math, std.range, std.algorithm, std.numeric, std.traits,
     std.typecons;
 
-double hero(in uint a, in uint b, in uint c) pure nothrow @safe@nogc
+double hero(in uint a, in uint b, in uint c) pure nothrow @safe @nogc
 {
     immutable s = (a + b + c) / 2.0;
     immutable a2 = s * (s - a) * (s - b) * (s - c);

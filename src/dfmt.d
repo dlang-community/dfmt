@@ -403,7 +403,8 @@ private:
         else if (current.type == tok!"identifier")
         {
             writeToken();
-            if (current.type == tok!"identifier" || isKeyword(current.type))
+            if (current.type == tok!"identifier" || isKeyword(current.type)
+                || current.type == tok!"@")
                 write(" ");
         }
         else
