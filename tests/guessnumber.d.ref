@@ -30,6 +30,6 @@ void main()
             writeln("  Well guessed.");
             break;
         }
-        writeln(answer < target ? "  Too low.":"  Too high.");
+        writeln(answer < target ? "  Too low." : "  Too high.");
     }
 }
