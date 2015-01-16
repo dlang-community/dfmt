@@ -599,31 +599,34 @@ private:
         newline();
     }
 
-    int currentTokenLength()
-    {
-        switch (current.type)
-        {
-        mixin (generateFixedLengthCases());
-        default: return cast(int) current.text.length;
-        }
-    }
-
-    int nextTokenLength()
+    int tokenLength(size_t i) pure @safe @nogc
     {
         import std.algorithm : countUntil;
-        if (index + 1 >= tokens.length)
-            return INVALID_TOKEN_LENGTH;
-        auto nextToken = tokens[index + 1];
-        switch (nextToken.type)
+        assert (i+1 <= tokens.length);
+        switch (tokens[i].type)
         {
         case tok!"identifier":
         case tok!"stringLiteral":
         case tok!"wstringLiteral":
         case tok!"dstringLiteral":
-            return cast(int) nextToken.text.countUntil('\n');
+            auto c = cast(int) tokens[i].text.countUntil('\n');
+            if (c == -1)
+                return cast(int) tokens[i].text.length;
         mixin (generateFixedLengthCases());
-        default: return -1;
+        default: return INVALID_TOKEN_LENGTH;
         }
+    }
+
+    int currentTokenLength() pure @safe @nogc
+    {
+        return tokenLength(index);
+    }
+
+    int nextTokenLength() pure @safe @nogc
+    {
+        if (index + 1 >= tokens.length)
+            return INVALID_TOKEN_LENGTH;
+        return tokenLength(index + 1);
     }
 
     ref current() const @property
