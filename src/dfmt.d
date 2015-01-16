@@ -197,6 +197,28 @@ private:
                     newline();
                     break;
                 }
+                else if (current.type == tok!",")
+                {
+                    // compute length until next , or ;
+                    int length_of_next_chunk = INVALID_TOKEN_LENGTH;
+                    for (size_t i=index+1; i<tokens.length; i++)
+                    {
+                        if (tokens[i].type == tok!"," || tokens[i].type == tok!";")
+                            break;
+                        const len = tokenLength(i);
+                        assert (len >= 0);
+                        length_of_next_chunk += len;
+                    }
+                    assert (length_of_next_chunk > 0);
+                    writeToken();
+                    if (currentLineLength+1+length_of_next_chunk >= config.columnSoftLimit)
+                    {
+                        pushIndent();
+                        newline();
+                    }
+                    else
+                        write(" ");
+                }
                 else
                     formatStep();
             }
