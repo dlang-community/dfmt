@@ -228,7 +228,8 @@ private:
         else if (current.type == tok!"return")
         {
             writeToken();
-            write(" ");
+            if (current.type != tok!";")
+                write(" ");
         }
         else if (current.type == tok!"switch")
             formatSwitch();
