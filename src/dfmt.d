@@ -541,7 +541,8 @@ private:
             else if (current.type == tok!")")
             {
                 if (peekIs(tok!"identifier") || (index + 1 < tokens.length
-                    && isKeyword(tokens[index + 1].type)))
+                    && (isKeyword(tokens[index+1].type)
+                     || tokens[index+1].type == tok!"@")))
                 {
                     writeToken();
                     if (space_afterwards)
