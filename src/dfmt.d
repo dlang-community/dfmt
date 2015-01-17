@@ -42,6 +42,9 @@ Formats D code.
   -h, --help     display this help and exit
 ";
 
+version (NoMain)
+{ } 
+else
 int main(string[] args)
 {
     import std.getopt;
@@ -103,7 +106,8 @@ int main(string[] args)
     return 0;
 }
 
-void format(string source_desc, ubyte[] buffer, File output)
+
+void format(Output)(string source_desc, ubyte[] buffer, Output output)
 {
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
@@ -120,14 +124,14 @@ void format(string source_desc, ubyte[] buffer, File output)
     visitor.visit(mod);
     astInformation.cleanup();
     auto tokens = byToken(buffer, config, &cache).array();
-    auto tokenFormatter = TokenFormatter(tokens, output, &astInformation,
+    auto tokenFormatter = TokenFormatter!Output(tokens, output, &astInformation,
         &formatterConfig);
     tokenFormatter.format();
 }
 
-struct TokenFormatter
+struct TokenFormatter(Output)
 {
-    this(const(Token)[] tokens, File output, ASTInformation* astInformation,
+    this(const(Token)[] tokens, Output output, ASTInformation* astInformation,
         FormatterConfig* config)
     {
         this.tokens = tokens;
@@ -745,8 +749,8 @@ private:
     /// Length of the current line (so far)
     uint currentLineLength = 0;
 
-    /// File to output to
-    File output;
+    /// Output to write output to
+    Output output;
 
     /// Tokens being formatted
     const(Token)[] tokens;
