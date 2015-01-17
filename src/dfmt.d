@@ -341,6 +341,8 @@ private:
                 writeToken();
                 if (current.type != tok!"comment")
                     newline();
+                if (peekImplementation(tok!"class",0))
+                    newline();
                 break;
             case tok!"{":
                 writeBraces();
