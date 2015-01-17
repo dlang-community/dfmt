@@ -171,6 +171,11 @@ private:
             writeToken();
             if (i >= tokens.length-1)
                 newline();
+            else if (tokens[i+1].line-1 > tokens[i].line)
+            {
+                newline();
+                newline();
+            }
             else if (tokens[i+1].line > tokens[i].line)
                 newline();
             else if (tokens[i+1].type != tok!"{")
