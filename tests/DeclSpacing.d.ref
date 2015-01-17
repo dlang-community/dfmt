@@ -6,8 +6,6 @@ class Foo
 
 import std.conv;
 
-const bar = 42;
-
 void main()
 {
     return;
