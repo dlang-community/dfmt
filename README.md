@@ -1,10 +1,10 @@
 # dfmt
-Dfmt is a formatter for D source code
-
+**dfmt** is a formatter for D source code
 [![Build Status](https://travis-ci.org/Hackerpilot/dfmt.svg)](https://travis-ci.org/Hackerpilot/dfmt)
 
 ## Status
-*dfmt* is alpha-quality. Make backups of your files or use source control.
+**dfmt** is alpha-quality. Make backups of your files or use source control.
+
 
 ## Building
 ### Using Make
@@ -13,6 +13,7 @@ Dfmt is a formatter for D source code
 * To compile with DMD, run ```make``` in the dfmt directory. To compile with
   LDC, run ```make ldc``` instead. The generated binary will be placed in
   ```dfmt/bin/```.
+
 
 ## Using
 By default, dfmt reads its input from ```stdin``` and writes to ```stdout```.
