@@ -75,7 +75,7 @@ int main(string[] args)
             else
                 break;
         }
-        format("stdin", buffer, output);
+        format("stdin", buffer, output.lockingTextWriter());
     }
     else
     {
@@ -100,14 +100,14 @@ int main(string[] args)
             f.rawRead(buffer);
             if (inplace)
                 output = File(path, "w");
-            format(path, buffer, output);
+            format(path, buffer, output.lockingTextWriter());
         }
     }
     return 0;
 }
 
 
-void format(Output)(string source_desc, ubyte[] buffer, Output output)
+void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output)
 {
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
@@ -124,14 +124,14 @@ void format(Output)(string source_desc, ubyte[] buffer, Output output)
     visitor.visit(mod);
     astInformation.cleanup();
     auto tokens = byToken(buffer, config, &cache).array();
-    auto tokenFormatter = TokenFormatter!Output(tokens, output, &astInformation,
+    auto tokenFormatter = TokenFormatter!OutputRange(tokens, output, &astInformation,
         &formatterConfig);
     tokenFormatter.format();
 }
 
-struct TokenFormatter(Output)
+struct TokenFormatter(OutputRange)
 {
-    this(const(Token)[] tokens, Output output, ASTInformation* astInformation,
+    this(const(Token)[] tokens, OutputRange output, ASTInformation* astInformation,
         FormatterConfig* config)
     {
         this.tokens = tokens;
@@ -486,7 +486,7 @@ private:
                     assumeSorted(astInformation.doubleNewlineLocations)
                     .equalRange(tokens[index].index).length)
                 {
-                    output.write("\n");
+                    output.put("\n");
                 }
                 if (config.braceStyle == BraceStyle.otbs)
                 {
@@ -690,7 +690,7 @@ private:
 
     void newline()
     {
-        output.write("\n");
+        output.put("\n");
         currentLineLength = 0;
         if (index < tokens.length)
         {
@@ -703,16 +703,16 @@ private:
     void write(string str)
     {
         currentLineLength += str.length;
-        output.write(str);
+        output.put(str);
     }
 
     void writeToken()
     {
         currentLineLength += currentTokenLength();
         if (current.text is null)
-            output.write(str(current.type));
+            output.put(str(current.type));
         else
-            output.write(current.text);
+            output.put(current.text);
         index++;
     }
 
@@ -723,13 +723,13 @@ private:
             foreach (i; 0 .. indentLevel + tempIndent)
             {
                 currentLineLength += config.tabSize;
-                output.write("\t");
+                output.put("\t");
             }
         else
             foreach (i; 0 .. indentLevel + tempIndent)
                 foreach (j; 0 .. config.indentSize)
                 {
-                    output.write(" ");
+                    output.put(" ");
                     currentLineLength++;
                 }
     }
@@ -750,7 +750,7 @@ private:
     uint currentLineLength = 0;
 
     /// Output to write output to
-    Output output;
+    OutputRange output;
 
     /// Tokens being formatted
     const(Token)[] tokens;
