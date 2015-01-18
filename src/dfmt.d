@@ -159,7 +159,7 @@ private:
             const i = index;
             if (i > 0)
             {
-                if (tokens[i-1].line < tokens[i].line)
+                if (tokens[i-1].line < current.line)
                 {
                     if (tokens[i-1].type != tok!"comment"
                         && tokens[i-1].type != tok!"{")
@@ -171,6 +171,11 @@ private:
             writeToken();
             if (i >= tokens.length-1)
                 newline();
+            else if (tokens[i+1].line-1 > tokens[i].line)
+            {
+                newline();
+                newline();
+            }
             else if (tokens[i+1].line > tokens[i].line)
                 newline();
             else if (tokens[i+1].type != tok!"{")
@@ -192,6 +197,8 @@ private:
                 {
                     writeToken();
                     tempIndent = 0;
+                    if (current.type == tok!"comment")
+                        break;
                     if (!(t == tok!"import" && current.type == tok!"import"))
                         write("\n");
                     newline();
@@ -226,7 +233,8 @@ private:
         else if (current.type == tok!"return")
         {
             writeToken();
-            write(" ");
+            if (current.type != tok!";")
+                write(" ");
         }
         else if (current.type == tok!"switch")
             formatSwitch();
@@ -310,17 +318,6 @@ private:
             case tok!"(":
                 writeParens(true);
                 break;
-            case tok!":":
-                if (!assumeSorted(astInformation.ternaryColonLocations)
-                    .equalRange(current.index).empty)
-                {
-                    write(" ");
-                    writeToken();
-                    write(" ");
-                }
-                else
-                    writeToken();
-                break;
             case tok!"@":
             case tok!"!":
             case tok!"...":
@@ -329,6 +326,10 @@ private:
             case tok!"--":
             case tok!"$":
                 writeToken();
+                break;
+            case tok!":":
+                write(" : ");
+                index += 1;
                 break;
             case tok!"]":
                 writeToken();
@@ -339,6 +340,8 @@ private:
                 tempIndent = 0;
                 writeToken();
                 if (current.type != tok!"comment")
+                    newline();
+                if (peekImplementation(tok!"class",0))
                     newline();
                 break;
             case tok!"{":
@@ -538,7 +541,8 @@ private:
             else if (current.type == tok!")")
             {
                 if (peekIs(tok!"identifier") || (index + 1 < tokens.length
-                    && isKeyword(tokens[index + 1].type)))
+                    && (isKeyword(tokens[index+1].type)
+                     || tokens[index+1].type == tok!"@")))
                 {
                     writeToken();
                     if (space_afterwards)
@@ -807,9 +811,6 @@ struct ASTInformation
 
     /// Locations of unary operators
     size_t[] unaryLocations;
-
-    /// Locations of ':' operators in ternary expressions
-    size_t[] ternaryColonLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -880,13 +881,6 @@ final class FormatVisitor : ASTVisitor
             astInformation.unaryLocations ~= unary.prefix.index;
         }
         unary.accept(this);
-    }
-
-    override void visit(const TernaryExpression ternary)
-    {
-        if (ternary.colon.type != tok!"")
-            astInformation.ternaryColonLocations ~= ternary.colon.index;
-        ternary.accept(this);
     }
 
 private:
