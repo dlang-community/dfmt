@@ -201,7 +201,12 @@ private:
                 {
                     writeToken();
                     tempIndent = 0;
-                    if (current.type == tok!"comment")
+                    if (index >= tokens.length)
+					{
+						newline();
+						break;
+					}
+					if (current.type == tok!"comment")
                         break;
                     if (!(t == tok!"import" && current.type == tok!"import"))
                         write("\n");
@@ -222,7 +227,7 @@ private:
                     }
                     assert (length_of_next_chunk > 0);
                     writeToken();
-                    if (currentLineLength+1+length_of_next_chunk >= config.columnSoftLimit)
+                    if (currentLineLength + 1 + length_of_next_chunk >= config.columnSoftLimit)
                     {
                         pushIndent();
                         newline();
