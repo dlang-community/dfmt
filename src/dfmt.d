@@ -34,26 +34,21 @@ import std.d.formatter;
 import std.d.ast;
 import std.array;
 
-immutable USAGE = "usage: %s [--inplace] [<path>...]
-Formats D code.
-
-      --inplace  change file in-place instead of outputing to stdout
-                 (implicit in case of multiple files)
-  -h, --help     display this help and exit
-";
-
 version (NoMain)
 { }
 else
 int main(string[] args)
 {
-    import std.getopt;
+    import std.getopt : getopt;
 
     bool inplace = false;
     bool show_usage = false;
+    FormatterConfig formatterConfig;
     getopt(args,
       "help|h", &show_usage,
-      "inplace", &inplace);
+      "inplace", &inplace,
+      "tabs|t", &formatterConfig.useTabs,
+      "braces", &formatterConfig.braceStyle);
     if (show_usage)
     {
         import std.path: baseName;
@@ -75,11 +70,11 @@ int main(string[] args)
             else
                 break;
         }
-        format("stdin", buffer, output.lockingTextWriter());
+        format("stdin", buffer, output.lockingTextWriter(), &formatterConfig);
     }
     else
     {
-        import std.file;
+        import std.file : dirEntries, isDir, SpanMode;
         if (args.length >= 2)
             inplace = true;
         while (args.length > 0)
@@ -100,14 +95,27 @@ int main(string[] args)
             f.rawRead(buffer);
             if (inplace)
                 output = File(path, "w");
-            format(path, buffer, output.lockingTextWriter());
+            format(path, buffer, output.lockingTextWriter(), &formatterConfig);
         }
     }
     return 0;
 }
 
+private:
 
-void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output)
+immutable USAGE = "usage: %s [--inplace] [<path>...]
+Formats D code.
+
+    --inplace        Change file in-place instead of outputing to stdout
+                     (implicit in case of multiple files)
+    --tabs | -t      Use tabs instead of spaces for indentation
+    --braces=allman  Use Allman indent style (default)
+    --braces=otbs    Use the One True Brace Style
+    --help | -h      Display this help and exit
+";
+
+void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
+    FormatterConfig* formatterConfig)
 {
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
@@ -117,7 +125,6 @@ void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output)
     parseConfig.whitespaceBehavior = WhitespaceBehavior.skip;
     StringCache cache = StringCache(StringCache.defaultBucketCount);
     ASTInformation astInformation;
-    FormatterConfig formatterConfig;
     auto parseTokens = getTokensForParser(buffer, parseConfig, &cache);
     auto mod = parseModule(parseTokens, source_desc);
     auto visitor = new FormatVisitor(&astInformation);
@@ -125,7 +132,7 @@ void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output)
     astInformation.cleanup();
     auto tokens = byToken(buffer, config, &cache).array();
     auto tokenFormatter = TokenFormatter!OutputRange(tokens, output, &astInformation,
-        &formatterConfig);
+        formatterConfig);
     tokenFormatter.format();
 }
 
@@ -202,11 +209,11 @@ private:
                     writeToken();
                     tempIndent = 0;
                     if (index >= tokens.length)
-					{
-						newline();
-						break;
-					}
-					if (current.type == tok!"comment")
+                    {
+                        newline();
+                        break;
+                    }
+                    if (current.type == tok!"comment")
                         break;
                     if (!(t == tok!"import" && current.type == tok!"import"))
                         write("\n");
@@ -247,6 +254,12 @@ private:
         }
         else if (current.type == tok!"switch")
             formatSwitch();
+        else if (current.type == tok!"version" && peekIs(tok!"("))
+        {
+            writeToken();
+            write(" ");
+            writeParens(false);
+        }
         else if (current.type == tok!"for" || current.type == tok!"foreach"
             || current.type == tok!"foreach_reverse" || current.type == tok!"while"
             || current.type == tok!"if")
@@ -367,17 +380,14 @@ private:
                     writeToken();
                 break;
             case tok!",":
-                if (currentLineLength + nextTokenLength() >= config.columnSoftLimit)
+                writeToken();
+                if (currentLineLength + expressionLength() >= config.columnSoftLimit)
                 {
                     pushIndent();
-                    writeToken();
                     newline();
                 }
                 else
-                {
-                    writeToken();
                     write(" ");
-                }
                 break;
             case tok!"^^":
             case tok!"^=":
@@ -438,29 +448,62 @@ private:
         {
             writeToken();
             if (index < tokens.length && (current.type == tok!"identifier"
-				|| isKeyword(current.type) || isBasicType(current.type)
-				|| current.type == tok!"@"))
+                || isKeyword(current.type) || isBasicType(current.type)
+                || current.type == tok!"@"))
+            {
                 write(" ");
+            }
         }
         else
             assert (false, str(current.type));
     }
 
-	/// Pushes a temporary indent level
+    /// Pushes a temporary indent level
     void pushIndent()
     {
         if (tempIndent == 0)
             tempIndent++;
     }
 
-	/// Pops a temporary indent level
+    /// Pops a temporary indent level
     void popIndent()
     {
         if (tempIndent > 0)
             tempIndent--;
     }
 
-	/// Writes balanced braces
+    size_t expressionLength() const pure @safe @nogc
+    {
+        size_t i = index;
+        size_t l = 0;
+        int parenDepth = 0;
+        loop: while (i < tokens.length) switch (tokens[i].type)
+        {
+        case tok!"(":
+            parenDepth++;
+            l++;
+            i++;
+            break;
+        case tok!")":
+            parenDepth--;
+            if (parenDepth == 0)
+                break loop;
+            l++;
+            i++;
+            break;
+        case tok!";":
+        case tok!",":
+            break loop;
+        default:
+            l += tokenLength(i);
+            if (isBasicType(tokens[i].type) || tokens[i].type == tok!"identifier")
+                l++;
+            i++;
+        }
+        return l;
+    }
+
+    /// Writes balanced braces
     void writeBraces()
     {
         import std.range : assumeSorted;
@@ -486,12 +529,12 @@ private:
             }
             else if (current.type == tok!"}")
             {
-				// Silly hack to format enums better.
+                // Silly hack to format enums better.
                 if (peekBackIs(tok!"identifier"))
                     newline();
                 write("}");
                 depth--;
-                if (index < tokens.length-1 &&
+                if (index < tokens.length - 1 &&
                     assumeSorted(astInformation.doubleNewlineLocations)
                     .equalRange(tokens[index].index).length)
                 {
@@ -635,10 +678,11 @@ private:
         newline();
     }
 
-    int tokenLength(size_t i) pure @safe @nogc
+    int tokenLength(size_t i) const pure @safe @nogc
     {
         import std.algorithm : countUntil;
-        assert (i+1 <= tokens.length);
+
+        assert(i + 1 <= tokens.length);
         switch (tokens[i].type)
         {
         case tok!"identifier":
@@ -649,7 +693,8 @@ private:
             if (c == -1)
                 return cast(int) tokens[i].text.length;
         mixin (generateFixedLengthCases());
-        default: return INVALID_TOKEN_LENGTH;
+        default :
+            return INVALID_TOKEN_LENGTH;
         }
     }
 
@@ -911,21 +956,21 @@ string generateFixedLengthCases()
         "finally", "float", "for", "foreach", "foreach_reverse", "function",
         "goto", "idouble", "if", "ifloat", "immutable", "import", "in", "inout",
         "int", "interface", "invariant", "ireal", "is", "lazy", "long", "macro",
-        "mixin", "module", "new", "nothrow", "null", "out", "override", "package",
-        "pragma", "private", "protected", "public", "pure", "real", "ref",
-        "return", "scope", "shared", "short", "static", "struct", "super",
+        "mixin", "module", "new", "nothrow", "null", "out", "override",
+        "package", "pragma", "private", "protected", "public", "pure", "real",
+        "ref", "return", "scope", "shared", "short", "static", "struct", "super",
         "switch", "synchronized", "template", "this", "throw", "true", "try",
-        "typedef", "typeid", "typeof", "ubyte", "ucent", "uint", "ulong", "union",
-        "unittest", "ushort", "version", "void", "volatile", "wchar", "while",
-        "with", "__DATE__", "__EOF__", "__FILE__", "__FUNCTION__", "__gshared",
-        "__LINE__", "__MODULE__", "__parameters", "__PRETTY_FUNCTION__",
-        "__TIME__", "__TIMESTAMP__", "__traits", "__vector", "__VENDOR__",
-        "__VERSION__", ",", ".", "..", "...", "/", "/=", "!", "!<", "!<=", "!<>",
-        "!<>=", "!=", "!>", "!>=", "$", "%", "%=", "&", "&&", "&=", "(", ")", "*",
-        "*=", "+", "++", "+=", "-", "--", "-=", ":", ";", "<", "<<", "<<=", "<=",
-        "<>", "<>=", "=", "==", "=>", ">", ">=", ">>", ">>=", ">>>", ">>>=", "?",
-        "@", "[", "]", "^", "^=", "^^", "^^=", "{", "|", "|=", "||", "}", "~",
-        "~="];
-    return fixedLengthTokens.map!(a => format(`case tok!"%s": return %d;`, a, a
-        .length)).join("\n\t");
+        "typedef", "typeid", "typeof", "ubyte", "ucent", "uint", "ulong",
+        "union", "unittest", "ushort", "version", "void", "volatile", "wchar",
+        "while", "with", "__DATE__", "__EOF__", "__FILE__", "__FUNCTION__",
+        "__gshared", "__LINE__", "__MODULE__", "__parameters",
+        "__PRETTY_FUNCTION__", "__TIME__", "__TIMESTAMP__", "__traits",
+        "__vector", "__VENDOR__", "__VERSION__", ",", ".", "..", "...", "/",
+        "/=", "!", "!<", "!<=", "!<>", "!<>=", "!=", "!>", "!>=", "$", "%", "%=",
+        "&", "&&", "&=", "(", ")", "*", "*=", "+", "++", "+=", "-", "--", "-=",
+        ":", ";", "<", "<<", "<<=", "<=", "<>", "<>=", "=", "==", "=>", ">",
+        ">=", ">>", ">>=", ">>>", ">>>=", "?", "@", "[", "]", "^", "^=", "^^",
+        "^^=", "{", "|", "|=", "||", "}", "~", "~="];
+    return fixedLengthTokens.map!(a => format(`case tok!"%s": return %d;`, a,
+        a.length)).join("\n\t");
 }
