@@ -34,6 +34,7 @@ import std.d.formatter;
 import std.d.ast;
 import std.array;
 
+/// Help text
 immutable USAGE = "usage: %s [--inplace] [<path>...]
 Formats D code.
 
@@ -44,16 +45,26 @@ Formats D code.
 
 int main(string[] args)
 {
-    import std.getopt;
+    import std.getopt : getopt;
+    import std.path: baseName;
+    import std.file : isDir, dirEntries, SpanMode;
 
     bool inplace = false;
     bool show_usage = false;
-    getopt(args,
-      "help|h", &show_usage,
-      "inplace", &inplace);
+
+    try
+    {
+        getopt(args,
+            "help|h", &show_usage,
+            "inplace", &inplace);
+    }
+    catch (Exception e)
+    {
+        writef(USAGE, baseName(args[0]));
+        return 1;
+    }
     if (show_usage)
     {
-        import std.path: baseName;
         writef(USAGE, baseName(args[0]));
         return 0;
     }
@@ -76,7 +87,6 @@ int main(string[] args)
     }
     else
     {
-        import std.file;
         if (args.length >= 2)
             inplace = true;
         while (args.length > 0)
@@ -103,6 +113,12 @@ int main(string[] args)
     return 0;
 }
 
+/**
+ * Params:
+ *     source_desc =
+ *     buffer =
+ *     output =
+ */
 void format(string source_desc, ubyte[] buffer, File output)
 {
     LexerConfig config;
@@ -125,8 +141,16 @@ void format(string source_desc, ubyte[] buffer, File output)
     tokenFormatter.format();
 }
 
+/// Contains formatting logic
 struct TokenFormatter
 {
+    /**
+     * Params:
+     *     tokens = the tokens to format
+     *     output = the file that the code will be formatted to
+     *     astInformation = information about the AST used to inform formatting
+     *         decisions.
+     */
     this(const(Token)[] tokens, File output, ASTInformation* astInformation,
         FormatterConfig* config)
     {
@@ -136,6 +160,7 @@ struct TokenFormatter
         this.config = config;
     }
 
+    /// Runs the foramtting process
     void format()
     {
         while (index < tokens.length)
@@ -169,11 +194,11 @@ private:
                     write(" ");
             }
             writeToken();
-            if (i >= tokens.length-1)
+            if (i + 1 >= tokens.length)
                 newline();
-            else if (tokens[i+1].line > tokens[i].line)
+            else if (tokens[i + 1].line > tokens[i].line)
                 newline();
-            else if (tokens[i+1].type != tok!"{")
+            else if (tokens[i + 1].type != tok!"{")
                 write(" ");
         }
         else if (isStringLiteral(current.type) || isNumberLiteral(current.type)
@@ -410,21 +435,21 @@ private:
             assert (false, str(current.type));
     }
 
-	/// Pushes a temporary indent level
+    /// Pushes a temporary indent level
     void pushIndent()
     {
         if (tempIndent == 0)
             tempIndent++;
     }
 
-	/// Pops a temporary indent level
+    /// Pops a temporary indent level
     void popIndent()
     {
         if (tempIndent > 0)
             tempIndent--;
     }
 
-	/// Writes balanced braces
+    /// Writes balanced braces
     void writeBraces()
     {
         import std.range : assumeSorted;
@@ -450,12 +475,12 @@ private:
             }
             else if (current.type == tok!"}")
             {
-				// Silly hack to format enums better.
+                // Silly hack to format enums better.
                 if (peekBackIs(tok!"identifier"))
                     newline();
                 write("}");
                 depth--;
-                if (index < tokens.length-1 &&
+                if (index + 1 < tokens.length &&
                     assumeSorted(astInformation.doubleNewlineLocations)
                     .equalRange(tokens[index].index).length)
                 {
@@ -770,6 +795,7 @@ struct ASTInformation
         sort(doubleNewlineLocations);
         sort(spaceAfterLocations);
         sort(unaryLocations);
+        sort(ternaryColonLocations);
     }
 
     /// Locations of end braces for struct bodies
