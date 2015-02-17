@@ -15,7 +15,7 @@ void main()
         {
             answer = txt.to!int;
         }
-        catch(ConvException e)
+        catch (ConvException e)
         {
             writefln("  I don't understand your input '%s'", txt);
             continue;

@@ -4,7 +4,6 @@ class U0 : Exception
     {
         super("U0 error message");
     }
-
 }
 
 class U1 : Exception
@@ -13,7 +12,6 @@ class U1 : Exception
     {
         super("U1 error message");
     }
-
 }
 
 void foo()
@@ -26,7 +24,7 @@ void foo()
         {
             i.bar;
         }
-        catch(U0)
+        catch (U0)
         {
             "Function foo caught exception U0".writeln;
         }

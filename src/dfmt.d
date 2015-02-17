@@ -75,6 +75,7 @@ int main(string[] args)
     else
     {
         import std.file : dirEntries, isDir, SpanMode;
+
         if (args.length >= 2)
             inplace = true;
         while (args.length > 0)
@@ -91,7 +92,7 @@ int main(string[] args)
                 continue;
             }
             File f = File(path);
-            buffer = new ubyte[](cast(size_t)f.size);
+            buffer = new ubyte[](cast(size_t) f.size);
             f.rawRead(buffer);
             if (inplace)
                 output = File(path, "w");
@@ -270,7 +271,8 @@ private:
         }
         else if (current.type == tok!"for" || current.type == tok!"foreach"
             || current.type == tok!"foreach_reverse" || current.type == tok!"while"
-            || current.type == tok!"if")
+            || current.type == tok!"if" || current.type == tok!"out"
+            || current.type == tok!"catch")
         {
             currentLineLength += currentTokenLength() + 1;
             writeToken();
@@ -300,7 +302,8 @@ private:
                     auto next = tokens[index + 1];
                     if (next.type == tok!";" || next.type == tok!"("
                         || next.type == tok!")" || next.type == tok!","
-                        || next.type == tok!"{" || next.type == tok!".")
+                        || next.type == tok!"{" || next.type == tok!"."
+                        || next.type == tok!":")
                     {
                         writeToken();
                     }
@@ -358,8 +361,18 @@ private:
                 writeToken();
                 break;
             case tok!":":
-                write(" : ");
-                index += 1;
+                if (!assumeSorted(astInformation.attributeDeclarationLines)
+                    .equalRange(current.line).empty)
+                {
+                    writeToken();
+                    tempIndent = 0;
+                    newline();
+                }
+                else
+                {
+                    write(" : ");
+                    index += 1;
+                }
                 break;
             case tok!"]":
                 writeToken();
@@ -466,14 +479,14 @@ private:
             assert (false, str(current.type));
     }
 
-	/// Pushes a temporary indent level
+    /// Pushes a temporary indent level
     void pushIndent()
     {
         if (tempIndent == 0)
             tempIndent++;
     }
 
-	/// Pops a temporary indent level
+    /// Pops a temporary indent level
     void popIndent()
     {
         if (tempIndent > 0)
@@ -511,7 +524,7 @@ private:
         return l;
     }
 
-	/// Writes balanced braces
+    /// Writes balanced braces
     void writeBraces()
     {
         import std.range : assumeSorted;
@@ -544,7 +557,7 @@ private:
                 depth--;
                 if (index < tokens.length - 1 &&
                     assumeSorted(astInformation.doubleNewlineLocations)
-                    .equalRange(tokens[index].index).length)
+                    .equalRange(tokens[index].index).length && !peekIs(tok!"}"))
                 {
                     output.put("\n");
                 }
@@ -601,13 +614,30 @@ private:
             }
             else if (current.type == tok!")")
             {
-                if (peekIs(tok!"identifier") || (index + 1 < tokens.length
-                    && (isKeyword(tokens[index + 1].type)
-                     || tokens[index + 1].type == tok!"@")))
+                if (peekIs(tok!"identifier"))
                 {
                     writeToken();
                     if (space_afterwards)
                     write(" ");
+                }
+                else if (index + 1 < tokens.length)
+                {
+                    if (tokens[index + 1].type == tok!"in"
+                        || tokens[index + 1].type == tok!"out"
+                        || tokens[index + 1].type == tok!"body")
+                    {
+                        writeToken();
+                        newline();
+                    }
+                    else if (isKeyword(tokens[index + 1].type)
+                        || tokens[index + 1].type == tok!"@")
+                    {
+                        writeToken();
+                        if (space_afterwards)
+                            write(" ");
+                    }
+                    else
+                        writeToken();
                 }
                 else
                     writeToken();
@@ -753,12 +783,18 @@ private:
 
     void newline()
     {
+        import std.range:assumeSorted;
         output.put("\n");
         currentLineLength = 0;
         if (index < tokens.length)
         {
             if (current.type == tok!"}")
                 indentLevel--;
+            else if (!assumeSorted(astInformation.attributeDeclarationLines)
+                .equalRange(current.line).empty)
+            {
+                tempIndent--;
+            }
             indent();
         }
     }
@@ -864,7 +900,7 @@ struct ASTInformation
         sort(doubleNewlineLocations);
         sort(spaceAfterLocations);
         sort(unaryLocations);
-        sort(ternaryColonLocations);
+        sort(attributeDeclarationLines);
     }
 
     /// Locations of end braces for struct bodies
@@ -876,8 +912,8 @@ struct ASTInformation
     /// Locations of unary operators
     size_t[] unaryLocations;
 
-    /// Locations of ':' operators in ternary expressions
-    size_t[] ternaryColonLocations;
+    /// Lines containing attribute declarations
+    size_t[] attributeDeclarationLines;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -893,10 +929,6 @@ final class FormatVisitor : ASTVisitor
     {
         if (functionBody.blockStatement !is null)
             astInformation.doubleNewlineLocations ~= functionBody.blockStatement.endLocation;
-        if (functionBody.inStatement !is null && functionBody.inStatement.blockStatement !is null)
-            astInformation.doubleNewlineLocations ~= functionBody.inStatement.blockStatement.endLocation;
-        if (functionBody.outStatement !is null && functionBody.outStatement.blockStatement !is null)
-            astInformation.doubleNewlineLocations ~= functionBody.outStatement.blockStatement.endLocation;
         if (functionBody.bodyStatement !is null && functionBody.bodyStatement.blockStatement !is null)
             astInformation.doubleNewlineLocations ~= functionBody.bodyStatement.blockStatement.endLocation;
         functionBody.accept(this);
@@ -950,11 +982,10 @@ final class FormatVisitor : ASTVisitor
         unary.accept(this);
     }
 
-    override void visit(const TernaryExpression ternary)
+    override void visit(const AttributeDeclaration attributeDeclaration)
     {
-        if (ternary.colon.type != tok!"")
-            astInformation.ternaryColonLocations ~= ternary.colon.index;
-        ternary.accept(this);
+        astInformation.attributeDeclarationLines ~= attributeDeclaration.line;
+        attributeDeclaration.accept(this);
     }
 
 private:
