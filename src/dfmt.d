@@ -176,30 +176,26 @@ private:
         assert (index < tokens.length);
         if (current.type == tok!"comment")
         {
-            const i = index;
-            if (i > 0)
+            if (index > 0)
             {
-                if (tokens[i-1].line < current.line)
-                {
-                    if (tokens[i-1].type != tok!"comment"
-                        && tokens[i-1].type != tok!"{")
-                        newline();
-                }
-                else
+                if (tokens[index - 1].line + 1 < tokens[index].line)
+                    newline();
+                else if (tokens[index - 1].line == tokens[index].line)
                     write(" ");
             }
             writeToken();
-            if (i >= tokens.length-1)
+            if (tokens[index - 1].text[0 .. 2] == "//")
                 newline();
-            else if (tokens[i+1].line-1 > tokens[i].line)
+            else if (index < tokens.length)
             {
-                newline();
-                newline();
+                if (tokens[index - 1].line == tokens[index].line)
+                {
+                    if (tokens[index].type != tok!"{")
+                        write(" ");
+                }
+                else
+                    newline();
             }
-            else if (tokens[i+1].line > tokens[i].line)
-                newline();
-            else if (tokens[i+1].type != tok!"{")
-                write(" ");
         }
         else if (isStringLiteral(current.type) || isNumberLiteral(current.type)
             || current.type == tok!"characterLiteral")
@@ -274,7 +270,6 @@ private:
             || current.type == tok!"if" || current.type == tok!"out"
             || current.type == tok!"catch")
         {
-            currentLineLength += currentTokenLength() + 1;
             writeToken();
             write(" ");
             writeParens(false);
@@ -507,7 +502,7 @@ private:
             break;
         case tok!")":
             parenDepth--;
-            if (parenDepth == 0)
+            if (parenDepth <= 0)
                 break loop;
             l++;
             i++;
@@ -517,8 +512,6 @@ private:
             break loop;
         default:
             l += tokenLength(i);
-            if (isBasicType(tokens[i].type) || tokens[i].type == tok!"identifier")
-                l++;
             i++;
         }
         return l;
@@ -727,6 +720,7 @@ private:
         case tok!"stringLiteral":
         case tok!"wstringLiteral":
         case tok!"dstringLiteral":
+        // TODO: Unicode line breaks and old-Mac line endings
             auto c = cast(int) tokens[i].text.countUntil('\n');
             if (c == -1)
                 return cast(int) tokens[i].text.length;
@@ -749,24 +743,26 @@ private:
         return tokenLength(i);
     }
 
-	int distanceToNextPreferredBreak() pure @safe @nogc
-	{
-		size_t i = index + 1;
-		int l;
-		loop: while (i < tokens.length) switch (tokens[i].type)
-		{
-		case tok!"||":
-		case tok!"&&":
-		case tok!";":
-		case tok!")":
-			break loop;
-		default:
-			l += tokenLength(i);
-			i++;
-			break;
-		}
-		return l;
-	}
+    int distanceToNextPreferredBreak() pure @safe @nogc
+    {
+        size_t i = index + 1;
+        int l;
+        loop: while (i < tokens.length) switch (tokens[i].type)
+        {
+        case tok!"||":
+        case tok!"&&":
+        case tok!";":
+        case tok!")":
+        case tok!",":
+        case tok!"(":
+            break loop;
+        default:
+            l += tokenLength(i);
+            i++;
+            break;
+        }
+        return l;
+    }
 
     ref current() const @property
     in
