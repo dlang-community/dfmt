@@ -391,7 +391,7 @@ private:
                 writeBraces();
                 break;
             case tok!".":
-                if (currentLineLength + nextTokenLength() >= config.columnSoftLimit)
+                if (currentLineLength + nextTokenLength() >= config.columnHardLimit)
                 {
                     pushIndent();
                     newline();
@@ -451,7 +451,7 @@ private:
             case tok!"%":
             case tok!"+=":
             binary:
-                if (currentLineLength + nextTokenLength() >= config.columnSoftLimit)
+                if (currentLineLength + distanceToNextPreferredBreak() >= config.columnSoftLimit)
                 {
                     pushIndent();
                     newline();
@@ -743,10 +743,30 @@ private:
 
     int nextTokenLength() pure @safe @nogc
     {
-        if (index + 1 >= tokens.length)
+        immutable size_t i = index + 1;
+        if (i >= tokens.length)
             return INVALID_TOKEN_LENGTH;
-        return tokenLength(index + 1);
+        return tokenLength(i);
     }
+
+	int distanceToNextPreferredBreak() pure @safe @nogc
+	{
+		size_t i = index + 1;
+		int l;
+		loop: while (i < tokens.length) switch (tokens[i].type)
+		{
+		case tok!"||":
+		case tok!"&&":
+		case tok!";":
+		case tok!")":
+			break loop;
+		default:
+			l += tokenLength(i);
+			i++;
+			break;
+		}
+		return l;
+	}
 
     ref current() const @property
     in
