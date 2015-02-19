@@ -172,7 +172,7 @@ private:
     void formatStep()
     {
         import std.range : assumeSorted;
-		import std.algorithm : canFind;
+        import std.algorithm : canFind;
 
         assert (index < tokens.length);
         if (current.type == tok!"comment")
@@ -378,7 +378,7 @@ private:
             case tok!";":
                 tempIndent = 0;
                 writeToken();
-				linebreakHints = [];
+                linebreakHints = [];
                 if (index >= tokens.length || current.type != tok!"comment")
                     newline();
                 if (peekImplementation(tok!"class",0))
@@ -388,20 +388,20 @@ private:
                 writeBraces();
                 break;
             case tok!".":
-				writeToken();
+                writeToken();
                 break;
             case tok!",":
                 if (linebreakHints.canFind(index))
                 {
-					writeToken();
+                    writeToken();
                     pushIndent();
                     newline();
                 }
                 else
-				{
-					writeToken();
+                {
+                    writeToken();
                     write(" ");
-				}
+                }
                 break;
             case tok!"=":
             case tok!">=":
@@ -414,13 +414,13 @@ private:
             case tok!"&=":
             case tok!"%=":
             case tok!"+=":
-				write(" ");
-				writeToken();
-				write(" ");
-				immutable size_t i = expressionEndIndex();
-				linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
-					config, currentLineLength, indentLevel);
-				break;
+                write(" ");
+                writeToken();
+                write(" ");
+                immutable size_t i = expressionEndIndex();
+                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
+                    config, currentLineLength, indentLevel);
+                break;
             case tok!"^^":
             case tok!"^=":
             case tok!"^":
@@ -604,9 +604,9 @@ private:
             {
                 writeToken();
                 depth++;
-				immutable size_t i = expressionEndIndex();
-				linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
-					config, currentLineLength, indentLevel);
+                immutable size_t i = expressionEndIndex();
+                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
+                    config, currentLineLength, indentLevel);
                 continue;
             }
             else if (current.type == tok!")")
@@ -646,7 +646,7 @@ private:
         while (index < tokens.length && depth > 0);
         popIndent();
         tempIndent = t;
-		linebreakHints = [];
+        linebreakHints = [];
     }
 
     bool peekIsLabel()
@@ -833,7 +833,7 @@ private:
     /// Information about the AST
     ASTInformation* astInformation;
 
-	size_t[] linebreakHints;
+    size_t[] linebreakHints;
 
     /// Configuration
     FormatterConfig* config;
@@ -851,19 +851,14 @@ struct FormatterConfig
 {
     /// Number of spaces used for indentation
     uint indentSize = 4;
-
     /// Use tabs or spaces
     bool useTabs = false;
-
     /// Size of a tab character
     uint tabSize = 8;
-
     /// Soft line wrap limit
     uint columnSoftLimit = 80;
-
     /// Hard line wrap limit
     uint columnHardLimit = 120;
-
     /// Use the One True Brace Style
     BraceStyle braceStyle = BraceStyle.allman;
 }
@@ -1011,6 +1006,18 @@ int tokenLength(ref const Token t) pure @safe @nogc
     import std.algorithm : countUntil;
     switch (t.type)
     {
+    case tok!"doubleLiteral":
+    case tok!"floatLiteral":
+    case tok!"idoubleLiteral":
+    case tok!"ifloatLiteral":
+    case tok!"intLiteral":
+    case tok!"longLiteral":
+    case tok!"realLiteral":
+    case tok!"irealLiteral":
+    case tok!"uintLiteral":
+    case tok!"ulongLiteral":
+    case tok!"characterLiteral":
+        return cast(int) t.text.length;
     case tok!"identifier":
     case tok!"stringLiteral":
     case tok!"wstringLiteral":
@@ -1019,6 +1026,8 @@ int tokenLength(ref const Token t) pure @safe @nogc
         auto c = cast(int) t.text.countUntil('\n');
         if (c == -1)
             return cast(int) t.text.length;
+        else
+            return c;
     mixin (generateFixedLengthCases());
     default:
         return INVALID_TOKEN_LENGTH;
@@ -1072,6 +1081,9 @@ bool isBreakToken(IdType t)
     case tok!"%":
     case tok!"+=":
     case tok!".":
+    case tok!"~":
+    case tok!"+":
+    case tok!"-":
         return true;
     default:
         return false;
@@ -1084,10 +1096,10 @@ int breakCost(IdType t)
     {
     case tok!"||":
     case tok!"&&":
-        return 21;
+        return 0;
     case tok!"(":
     case tok!",":
-        return 34;
+        return 10;
     case tok!"^^":
     case tok!"^=":
     case tok!"^":
@@ -1125,6 +1137,9 @@ int breakCost(IdType t)
     case tok!"&=":
     case tok!"%=":
     case tok!"%":
+    case tok!"+":
+    case tok!"-":
+    case tok!"~":
     case tok!"+=":
         return 55;
     case tok!".":
@@ -1151,7 +1166,7 @@ struct State
         if (breaks.length == 0)
         {
             _cost = int.max;
-            s = false;
+            s = tokens.map!(a => tokenLength(a)).sum() < formatterConfig.columnSoftLimit;
         }
         else
         {
@@ -1180,11 +1195,11 @@ struct State
     int opCmp(ref const State other) const pure nothrow @safe
     {
         if (cost < other.cost
-			|| (cost == other.cost && breaks.length && other.breaks.length && breaks[0] > other.breaks[0])
-			|| (cost == other.cost && _solved && !other.solved))
-		{
+            || (cost == other.cost && breaks.length && other.breaks.length && breaks[0] > other.breaks[0])
+            || (cost == other.cost && _solved && !other.solved))
+        {
             return -1;
-		}
+        }
         return other.cost > _cost;
     }
 
@@ -1212,33 +1227,31 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
 
     int depth = 0;
     auto open = new RedBlackTree!State;
-    open.insert(State(cast(size_t[])[], tokens, depth, formatterConfig,
-        currentLineLength, indentLevel));
+    open.insert(State(cast(size_t[])[], tokens, depth, formatterConfig, currentLineLength, indentLevel));
     while (!open.empty)
     {
         State current = open.front();
         open.removeFront();
         if (current.solved)
-		{
-			foreach (ref b; current.breaks)
-				b += index;
-			return current.breaks;
-		}
-        foreach (next; validMoves(tokens, current, formatterConfig,
-            currentLineLength, indentLevel, depth))
+        {
+            foreach (ref b; current.breaks)
+                b += index;
+            return current.breaks;
+        }
+        foreach (next; validMoves(tokens, current, formatterConfig, currentLineLength, indentLevel, depth))
         {
             open.insert(next);
         }
     }
     size_t[] retVal = open.empty ? [] : open.front().breaks;
-	foreach (ref b; retVal)
-		b += index;
-	return retVal;
+    foreach (ref b; retVal)
+        b += index;
+    return retVal;
 }
 
 State[] validMoves(const Token[] tokens, ref const State current,
-	const FormatterConfig* formatterConfig, int currentLineLength,
-	int indentLevel, int depth)
+    const FormatterConfig* formatterConfig, int currentLineLength,
+    int indentLevel, int depth)
 {
     import std.algorithm : sort, canFind;
     import std.array:insertInPlace;
