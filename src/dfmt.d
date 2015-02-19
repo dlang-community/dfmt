@@ -1159,40 +1159,50 @@ struct State
         size_t breakIndex = 0;
         size_t i;
         bool s = true;
-        do
+        if (breaks.length == 0)
         {
-            immutable size_t j = breakIndex < breaks.length ? breaks[breakIndex] : tokens.length;
-            ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
-            writeln("ll = ", ll, " i = ", i, " j = ", j);
-            if (ll > formatterConfig.columnSoftLimit)
-            {
-                s = false;
-                break;
-            }
-            i = j;
-            ll = (indentLevel + 1) * formatterConfig.indentSize;
-            writeln("ll2 = ", ll);
-            breakIndex++;
+            _cost = int.max;
+            s = false;
         }
-        while (i + 1 < tokens.length);
+        else
+        {
+            do
+            {
+                immutable size_t j = breakIndex < breaks.length ? breaks[breakIndex] : tokens.length;
+                ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
+                if (ll > formatterConfig.columnSoftLimit)
+                {
+                    s = false;
+                    break;
+                }
+                i = j;
+                ll = (indentLevel + 1) * formatterConfig.indentSize;
+                breakIndex++;
+            }
+            while (i + 1 < tokens.length);
+        }
         this._solved = s;
-        writeln("breaks = ", breaks, " solved = ", this._solved);
     }
 
-    int cost() const @property { return _cost; }
-    int depth() const @property { return _depth; }
-    int solved() const @property { return _solved; }
+    int cost() const pure nothrow @safe @property { return _cost; }
+    int depth() const pure nothrow @safe @property { return _depth; }
+    int solved() const pure nothrow @safe @property { return _solved; }
 
-    int opCmp(ref const State other) const
+    int opCmp(ref const State other) const pure nothrow @safe
     {
-        if (other.cost < cost)
+        if (cost < other.cost || (_solved && !other.solved))
             return -1;
-        return other.cost > cost;
+        return other.cost > _cost;
     }
 
-    bool opEquals(ref const State other) const
+    bool opEquals(ref const State other) const pure nothrow @safe
     {
         return other.breaks == breaks;
+    }
+
+    size_t toHash() const nothrow @safe
+    {
+        return typeid(breaks).getHash(&breaks);
     }
 
     size_t[] breaks;
@@ -1205,38 +1215,25 @@ private:
 size_t[] chooseLineBreakTokens(const Token[] tokens,
     const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel)
 {
-    import std.typecons : Tuple, tuple;
     import std.container.rbtree : RedBlackTree;
-    import std.algorithm : map;
 
     int depth = 0;
     auto open = new RedBlackTree!State;
-    auto closed = new RedBlackTree!(State, "a.breaks < b.breaks");
     open.insert(State(cast(size_t[])[], tokens, depth, formatterConfig,
         currentLineLength, indentLevel));
     while (!open.empty)
     {
         State current = open.front();
-        writeln("open = ", open[].map!(a => tuple(a.cost, a.solved)));
         open.removeFront();
-        closed.insert(current);
         if (current.solved)
             return current.breaks;
         foreach (next; validMoves(tokens, current, formatterConfig,
             currentLineLength, indentLevel, depth))
         {
-            auto r = closed.equalRange(next);
-            if (!r.empty)
-            {
-                if (current.cost > r.front.cost)
-                    continue;
-                closed.remove(r);
-            }
             open.insert(next);
         }
     }
-    writeln("No solution found");
-    return open.front().breaks;
+    return open.empty ? [] : open.front().breaks;
 }
 
 State[] validMoves(const Token[] tokens, ref const State current,
@@ -1258,7 +1255,6 @@ State[] validMoves(const Token[] tokens, ref const State current,
         states ~= State(breaks, tokens, depth + 1, formatterConfig,
             currentLineLength, indentLevel);
     }
-    writeln(states);
     return states;
 }
 
@@ -1271,5 +1267,5 @@ unittest
     StringCache cache = StringCache(StringCache.defaultBucketCount);
     auto tokens = byToken(cast(ubyte[]) sourceCode, config, &cache).array();
     FormatterConfig formatterConfig;
-    writeln(chooseLineBreakTokens(tokens, &formatterConfig, 0, 0));
+    assert ([15] == chooseLineBreakTokens(tokens, &formatterConfig, 0, 0));
 }
