@@ -171,7 +171,8 @@ private:
 
     void formatStep()
     {
-        import std.range:assumeSorted;
+        import std.range : assumeSorted;
+		import std.algorithm : canFind;
 
         assert (index < tokens.length);
         if (current.type == tok!"comment")
@@ -377,6 +378,7 @@ private:
             case tok!";":
                 tempIndent = 0;
                 writeToken();
+				linebreakHints = [];
                 if (index >= tokens.length || current.type != tok!"comment")
                     newline();
                 if (peekImplementation(tok!"class",0))
@@ -386,24 +388,20 @@ private:
                 writeBraces();
                 break;
             case tok!".":
-                if (currentLineLength + nextTokenLength() >= config.columnHardLimit)
-                {
-                    pushIndent();
-                    newline();
-                    writeToken();
-                }
-                else
-                    writeToken();
+				writeToken();
                 break;
             case tok!",":
-                writeToken();
-                if (currentLineLength + distanceToNextPreferredBreak() >= config.columnSoftLimit)
+                if (linebreakHints.canFind(index))
                 {
+					writeToken();
                     pushIndent();
                     newline();
                 }
                 else
+				{
+					writeToken();
                     write(" ");
+				}
                 break;
             case tok!"=":
             case tok!">=":
@@ -416,7 +414,13 @@ private:
             case tok!"&=":
             case tok!"%=":
             case tok!"+=":
-                goto case;
+				write(" ");
+				writeToken();
+				write(" ");
+				immutable size_t i = expressionEndIndex();
+				linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
+					config, currentLineLength, indentLevel);
+				break;
             case tok!"^^":
             case tok!"^=":
             case tok!"^":
@@ -447,7 +451,7 @@ private:
             case tok!"%":
             case tok!"&&":
             binary:
-                if (currentLineLength + distanceToNextPreferredBreak() >= config.columnSoftLimit)
+                if (linebreakHints.canFind(index))
                 {
                     pushIndent();
                     newline();
@@ -600,6 +604,9 @@ private:
             {
                 writeToken();
                 depth++;
+				immutable size_t i = expressionEndIndex();
+				linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
+					config, currentLineLength, indentLevel);
                 continue;
             }
             else if (current.type == tok!")")
@@ -639,6 +646,7 @@ private:
         while (index < tokens.length && depth > 0);
         popIndent();
         tempIndent = t;
+		linebreakHints = [];
     }
 
     bool peekIsLabel()
@@ -717,27 +725,6 @@ private:
         if (i >= tokens.length)
             return INVALID_TOKEN_LENGTH;
         return tokenLength(tokens[i]);
-    }
-
-    int distanceToNextPreferredBreak() pure @safe @nogc
-    {
-        size_t i = index + 1;
-        int l;
-        loop: while (i < tokens.length) switch (tokens[i].type)
-        {
-        case tok!"||":
-        case tok!"&&":
-        case tok!";":
-        case tok!")":
-        case tok!",":
-        case tok!"(":
-            break loop;
-        default:
-            l += tokenLength(tokens[i]);
-            i++;
-            break;
-        }
-        return l;
     }
 
     ref current() const @property
@@ -845,6 +832,8 @@ private:
 
     /// Information about the AST
     ASTInformation* astInformation;
+
+	size_t[] linebreakHints;
 
     /// Configuration
     FormatterConfig* config;
@@ -1157,7 +1146,7 @@ struct State
         this._cost = breaks.map!(b => breakCost(tokens[b].type)).sum() + ((depth - 1) * 50);
         int ll = currentLineLength;
         size_t breakIndex = 0;
-        size_t i;
+        size_t i = 0;
         bool s = true;
         if (breaks.length == 0)
         {
@@ -1190,8 +1179,12 @@ struct State
 
     int opCmp(ref const State other) const pure nothrow @safe
     {
-        if (cost < other.cost || (_solved && !other.solved))
+        if (cost < other.cost
+			|| (cost == other.cost && breaks.length && other.breaks.length && breaks[0] > other.breaks[0])
+			|| (cost == other.cost && _solved && !other.solved))
+		{
             return -1;
+		}
         return other.cost > _cost;
     }
 
@@ -1212,7 +1205,7 @@ private:
     bool _solved;
 }
 
-size_t[] chooseLineBreakTokens(const Token[] tokens,
+size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
     const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel)
 {
     import std.container.rbtree : RedBlackTree;
@@ -1226,19 +1219,26 @@ size_t[] chooseLineBreakTokens(const Token[] tokens,
         State current = open.front();
         open.removeFront();
         if (current.solved)
-            return current.breaks;
+		{
+			foreach (ref b; current.breaks)
+				b += index;
+			return current.breaks;
+		}
         foreach (next; validMoves(tokens, current, formatterConfig,
             currentLineLength, indentLevel, depth))
         {
             open.insert(next);
         }
     }
-    return open.empty ? [] : open.front().breaks;
+    size_t[] retVal = open.empty ? [] : open.front().breaks;
+	foreach (ref b; retVal)
+		b += index;
+	return retVal;
 }
 
 State[] validMoves(const Token[] tokens, ref const State current,
-    const FormatterConfig* formatterConfig, int currentLineLength,
-    int indentLevel, int depth)
+	const FormatterConfig* formatterConfig, int currentLineLength,
+	int indentLevel, int depth)
 {
     import std.algorithm : sort, canFind;
     import std.array:insertInPlace;
@@ -1267,5 +1267,5 @@ unittest
     StringCache cache = StringCache(StringCache.defaultBucketCount);
     auto tokens = byToken(cast(ubyte[]) sourceCode, config, &cache).array();
     FormatterConfig formatterConfig;
-    assert ([15] == chooseLineBreakTokens(tokens, &formatterConfig, 0, 0));
+    assert ([15] == chooseLineBreakTokens(0, tokens, &formatterConfig, 0, 0));
 }
