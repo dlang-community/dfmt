@@ -1,6 +1,6 @@
 SRC := $(shell find src -name "*.d") $(shell find libdparse/src -name "*.d")
 INCLUDE_PATHS := -Ilibdparse/src
-DMD_FLAGS := -g -w $(INCLUDE_PATHS)
+DMD_FLAGS := -g -w -unittest $(INCLUDE_PATHS)
 LDC_FLAGS := -g -w -oq $(INCLUDE_PATHS)
 
 .PHONY: dmd ldc test
