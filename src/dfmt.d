@@ -1230,6 +1230,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
 {
     import std.container.rbtree : RedBlackTree;
     import std.algorithm : min;
+    import core.memory : GC;
 
     enum ALGORITHMIC_COMPLEXITY_SUCKS = 20;
     immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
@@ -1237,6 +1238,8 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
     auto open = new RedBlackTree!State;
     open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd], depth, formatterConfig,
         currentLineLength, indentLevel));
+    GC.disable();
+    scope(exit) GC.enable();
     while (!open.empty)
     {
         State current = open.front();
