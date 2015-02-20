@@ -425,6 +425,12 @@ private:
                 linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
                     config, currentLineLength, indentLevel);
                 break;
+            case tok!"&&":
+            case tok!"||":
+                immutable size_t i = expressionEndIndex();
+                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
+                    config, currentLineLength, indentLevel);
+                goto case;
             case tok!"^^":
             case tok!"^=":
             case tok!"^":
@@ -440,7 +446,6 @@ private:
             case tok!">>>":
             case tok!">>":
             case tok!">":
-            case tok!"||":
             case tok!"|":
             case tok!"!<=":
             case tok!"!<>=":
@@ -453,7 +458,6 @@ private:
             case tok!"/":
             case tok!"..":
             case tok!"%":
-            case tok!"&&":
             binary:
                 if (linebreakHints.canFind(index))
                 {
@@ -986,21 +990,21 @@ string generateFixedLengthCases()
         "finally", "float", "for", "foreach", "foreach_reverse", "function",
         "goto", "idouble", "if", "ifloat", "immutable", "import", "in", "inout",
         "int", "interface", "invariant", "ireal", "is", "lazy", "long", "macro",
-        "mixin", "module", "new", "nothrow", "null", "out", "override",
-        "package", "pragma", "private", "protected", "public", "pure", "real",
-        "ref", "return", "scope", "shared", "short", "static", "struct", "super",
+        "mixin", "module", "new", "nothrow", "null", "out", "override", "package",
+        "pragma", "private", "protected", "public", "pure", "real", "ref",
+        "return", "scope", "shared", "short", "static", "struct", "super",
         "switch", "synchronized", "template", "this", "throw", "true", "try",
-        "typedef", "typeid", "typeof", "ubyte", "ucent", "uint", "ulong",
-        "union", "unittest", "ushort", "version", "void", "volatile", "wchar",
-        "while", "with", "__DATE__", "__EOF__", "__FILE__", "__FUNCTION__",
-        "__gshared", "__LINE__", "__MODULE__", "__parameters",
-        "__PRETTY_FUNCTION__", "__TIME__", "__TIMESTAMP__", "__traits",
-        "__vector", "__VENDOR__", "__VERSION__", ",", ".", "..", "...", "/",
-        "/=", "!", "!<", "!<=", "!<>", "!<>=", "!=", "!>", "!>=", "$", "%", "%=",
-        "&", "&&", "&=", "(", ")", "*", "*=", "+", "++", "+=", "-", "--", "-=",
-        ":", ";", "<", "<<", "<<=", "<=", "<>", "<>=", "=", "==", "=>", ">",
-        ">=", ">>", ">>=", ">>>", ">>>=", "?", "@", "[", "]", "^", "^=", "^^",
-        "^^=", "{", "|", "|=", "||", "}", "~", "~="];
+        "typedef", "typeid", "typeof", "ubyte", "ucent", "uint", "ulong", "union",
+        "unittest", "ushort", "version", "void", "volatile", "wchar", "while",
+        "with", "__DATE__", "__EOF__", "__FILE__", "__FUNCTION__", "__gshared",
+        "__LINE__", "__MODULE__", "__parameters", "__PRETTY_FUNCTION__",
+        "__TIME__", "__TIMESTAMP__", "__traits", "__vector", "__VENDOR__",
+        "__VERSION__", ",", ".", "..", "...", "/", "/=", "!", "!<", "!<=", "!<>",
+        "!<>=", "!=", "!>", "!>=", "$", "%", "%=", "&", "&&", "&=", "(", ")", "*",
+        "*=", "+", "++", "+=", "-", "--", "-=", ":", ";", "<", "<<", "<<=", "<=",
+        "<>", "<>=", "=", "==", "=>", ">", ">=", ">>", ">>=", ">>>", ">>>=", "?",
+        "@", "[", "]", "^", "^=", "^^", "^^=", "{", "|", "|=", "||", "}", "~",
+        "~="];
     return fixedLengthTokens.map!(a => format(`case tok!"%s": return %d;`, a,
         a.length)).join("\n\t");
 }
@@ -1162,7 +1166,9 @@ struct State
         this.breaks = breaks;
         this._depth = depth;
         import std.algorithm : map, sum;
-        this._cost = breaks.map!(b => breakCost(tokens[b].type)).sum() + ((depth - 1) * 200);
+
+        this._cost = breaks.map!(b => breakCost(tokens[b].type)).sum()
+            + (depth * 300);
         int ll = currentLineLength;
         size_t breakIndex = 0;
         size_t i = 0;
@@ -1177,7 +1183,8 @@ struct State
         {
             do
             {
-                immutable size_t j = breakIndex < breaks.length ? breaks[breakIndex] : tokens.length;
+                immutable size_t j = breakIndex < breaks.length
+                    ? breaks[breakIndex] : tokens.length;
                 ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
                 if (ll > formatterConfig.columnSoftLimit)
                 {
@@ -1193,16 +1200,26 @@ struct State
         this._solved = s;
     }
 
-    int cost() const pure nothrow @safe @property { return _cost; }
-    int depth() const pure nothrow @safe @property { return _depth; }
-    int solved() const pure nothrow @safe @property { return _solved; }
+    int cost() const pure nothrow @safe @property
+    {
+        return _cost;
+    }
+
+    int depth() const pure nothrow @safe @property
+    {
+        return _depth;
+    }
+
+    int solved() const pure nothrow @safe @property
+    {
+        return _solved;
+    }
 
     int opCmp(ref const State other) const pure nothrow @safe
     {
-        if (cost < other.cost
-            || (cost == other.cost
-                && ((breaks.length && other.breaks.length && breaks[0] > other.breaks[0])
-                || (_solved && !other.solved))))
+        if (cost < other.cost || (cost == other.cost && ((breaks.length
+            && other.breaks.length && breaks[0] > other.breaks[0]) || (_solved
+            && !other.solved))))
         {
             return -1;
         }
@@ -1225,19 +1242,20 @@ private:
     int _depth;
     bool _solved;
 }
+
 size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
     const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel)
 {
     import std.container.rbtree : RedBlackTree;
-    import std.algorithm : min;
+    import std.algorithm : filter, min;
     import core.memory : GC;
 
     enum ALGORITHMIC_COMPLEXITY_SUCKS = 20;
     immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
     int depth = 0;
     auto open = new RedBlackTree!State;
-    open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd], depth, formatterConfig,
-        currentLineLength, indentLevel));
+    open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd], depth,
+        formatterConfig, currentLineLength, indentLevel));
     GC.disable();
     scope(exit) GC.enable();
     while (!open.empty)
@@ -1249,18 +1267,25 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
             current.breaks[] += index;
             return current.breaks;
         }
-        foreach (next; validMoves(tokens[0 .. tokensEnd], current, formatterConfig,
-            currentLineLength, indentLevel, depth))
+        foreach (next; validMoves(tokens[0 .. tokensEnd], current,
+            formatterConfig, currentLineLength, indentLevel, depth))
         {
             open.insert(next);
         }
     }
-    size_t[] retVal = open.empty ? [] : open.front().breaks;
-    retVal[] += index;
-    return retVal;
+    if (open.empty)
+        return isBreakToken(tokens[0].type) ? [index] : [];
+    foreach (r; open[].filter!(a => a.solved))
+    {
+        r.breaks[] += index;
+        return r.breaks;
+    }
+    assert (false);
 }
+
 State[] validMoves(const Token[] tokens, ref const State current,
-    const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel, int depth)
+    const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel,
+    int depth)
 {
     import std.algorithm : sort, canFind;
     import std.array : insertInPlace;
