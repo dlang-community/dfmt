@@ -179,8 +179,12 @@ private:
         {
             if (index > 0)
             {
-                if (tokens[index - 1].line + 1 < tokens[index].line)
+                if (tokens[index - 1].type != tok!";"
+                    && tokens[index - 1].type != tok!"}"
+                    && tokens[index - 1].line + 1 < tokens[index].line)
+                {
                     newline();
+                }
                 else if (tokens[index - 1].line == tokens[index].line)
                     write(" ");
             }
