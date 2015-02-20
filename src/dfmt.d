@@ -172,7 +172,7 @@ private:
     void formatStep()
     {
         import std.range : assumeSorted;
-        import std.algorithm : canFind;
+        import std.algorithm : canFind, startsWith;
 
         assert (index < tokens.length);
         if (current.type == tok!"comment")
@@ -387,7 +387,8 @@ private:
                 tempIndent = 0;
                 writeToken();
                 linebreakHints = [];
-                if (index >= tokens.length || current.type != tok!"comment")
+                if (index >= tokens.length || current.type != tok!"comment"
+                    || current.line != tokens[index - 1].line)
                     newline();
                 if (peekImplementation(tok!"class",0))
                     newline();
