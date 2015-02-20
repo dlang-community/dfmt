@@ -19,7 +19,7 @@
 By default, dfmt reads its input from ```stdin``` and writes to ```stdout```.
 If a file name is specified on the command line, input will be read from the
 file instead, and output will be written to ```stdout```.
-#### Options
+### Options
 * ```--inplace```: a file name is required and the file will be edited in-place.
 * ```--braces=otbs```: Use ["The One True Brace Style"](https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS), placing open braces on
   the same line as the previous token.
