@@ -171,7 +171,8 @@ private:
 
     void formatStep()
     {
-        import std.range:assumeSorted;
+        import std.range : assumeSorted;
+        import std.algorithm : canFind;
 
         assert (index < tokens.length);
         if (current.type == tok!"comment")
@@ -233,7 +234,7 @@ private:
                     {
                         if (tokens[i].type == tok!"," || tokens[i].type == tok!";")
                             break;
-                        const len = tokenLength(i);
+                        const len = tokenLength(tokens[i]);
                         assert (len >= 0);
                         length_of_next_chunk += len;
                     }
@@ -363,6 +364,14 @@ private:
                     tempIndent = 0;
                     newline();
                 }
+                else if (!assumeSorted(astInformation.caseEndLocations)
+                    .equalRange(current.index).empty)
+                {
+                    if (!(peekIs(tok!"case") || peekIs(tok!"default") || peekIsLabel()))
+                        indentLevel++;
+                    writeToken();
+                    newline();
+                }
                 else
                 {
                     write(" : ");
@@ -377,6 +386,7 @@ private:
             case tok!";":
                 tempIndent = 0;
                 writeToken();
+                linebreakHints = [];
                 if (index >= tokens.length || current.type != tok!"comment")
                     newline();
                 if (peekImplementation(tok!"class",0))
@@ -386,25 +396,55 @@ private:
                 writeBraces();
                 break;
             case tok!".":
-                if (currentLineLength + nextTokenLength() >= config.columnHardLimit)
+                if (linebreakHints.canFind(index) || (linebreakHints.length == 0
+                    && currentLineLength + nextTokenLength() > config.columnHardLimit))
                 {
                     pushIndent();
                     newline();
-                    writeToken();
                 }
-                else
-                    writeToken();
+                writeToken();
                 break;
             case tok!",":
-                writeToken();
-                if (currentLineLength + expressionLength() >= config.columnSoftLimit)
+                if (linebreakHints.canFind(index) || (linebreakHints.length == 0
+                    && currentLineLength > config.columnSoftLimit))
                 {
+                    writeToken();
                     pushIndent();
                     newline();
                 }
                 else
+                {
+                    writeToken();
                     write(" ");
+                }
+                immutable size_t i = expressionEndIndex();
+                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
+                    config, currentLineLength, indentLevel);
                 break;
+            case tok!"=":
+            case tok!">=":
+            case tok!">>=":
+            case tok!">>>=":
+            case tok!"|=":
+            case tok!"-=":
+            case tok!"/=":
+            case tok!"*=":
+            case tok!"&=":
+            case tok!"%=":
+            case tok!"+=":
+                write(" ");
+                writeToken();
+                write(" ");
+                immutable size_t i = expressionEndIndex();
+                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
+                    config, currentLineLength, indentLevel);
+                break;
+            case tok!"&&":
+            case tok!"||":
+                immutable size_t i = expressionEndIndex();
+                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
+                    config, currentLineLength, indentLevel);
+                goto case;
             case tok!"^^":
             case tok!"^=":
             case tok!"^":
@@ -417,17 +457,10 @@ private:
             case tok!"<":
             case tok!"==":
             case tok!"=>":
-            case tok!"=":
-            case tok!">=":
-            case tok!">>=":
-            case tok!">>>=":
             case tok!">>>":
             case tok!">>":
             case tok!">":
-            case tok!"|=":
-            case tok!"||":
             case tok!"|":
-            case tok!"-=":
             case tok!"!<=":
             case tok!"!<>=":
             case tok!"!<>":
@@ -436,17 +469,11 @@ private:
             case tok!"!>=":
             case tok!"!>":
             case tok!"?":
-            case tok!"/=":
             case tok!"/":
             case tok!"..":
-            case tok!"*=":
-            case tok!"&=":
-            case tok!"&&":
-            case tok!"%=":
             case tok!"%":
-            case tok!"+=":
             binary:
-                if (currentLineLength + distanceToNextPreferredBreak() >= config.columnSoftLimit)
+                if (linebreakHints.canFind(index))
                 {
                     pushIndent();
                     newline();
@@ -488,33 +515,29 @@ private:
             tempIndent--;
     }
 
-    size_t expressionLength() const pure @safe @nogc
+    size_t expressionEndIndex() const pure @safe @nogc
     {
         size_t i = index;
-        size_t l = 0;
         int parenDepth = 0;
         loop: while (i < tokens.length) switch (tokens[i].type)
         {
         case tok!"(":
             parenDepth++;
-            l++;
             i++;
             break;
         case tok!")":
             parenDepth--;
             if (parenDepth <= 0)
                 break loop;
-            l++;
             i++;
             break;
         case tok!";":
-        case tok!",":
             break loop;
         default:
-            l += tokenLength(i);
             i++;
+            break;
         }
-        return l;
+        return i;
     }
 
     /// Writes balanced braces
@@ -603,6 +626,15 @@ private:
             {
                 writeToken();
                 depth++;
+                immutable size_t i = expressionEndIndex();
+                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
+                    config, currentLineLength, indentLevel);
+                if (linebreakHints.length == 0 && currentLineLength > config.columnSoftLimit
+                    && current.type != tok!")")
+                {
+                    pushIndent();
+                    newline();
+                }
                 continue;
             }
             else if (current.type == tok!")")
@@ -642,6 +674,7 @@ private:
         while (index < tokens.length && depth > 0);
         popIndent();
         tempIndent = t;
+        linebreakHints = [];
     }
 
     bool peekIsLabel()
@@ -670,22 +703,12 @@ private:
                 writeToken();
                 write(" ");
             }
-            else if (current.type == tok!":")
+            else if (current.type == tok!":" && peekIs(tok!".."))
             {
-                if (peekIs(tok!".."))
-                {
-                    writeToken();
-                    write(" ");
-                    writeToken();
-                    write(" ");
-                }
-                else
-                {
-                    if (!(peekIs(tok!"case") || peekIs(tok!"default") || peekIsLabel()))
-                        indentLevel++;
-                    formatStep();
-                    newline();
-                }
+                writeToken();
+                write(" ");
+                writeToken();
+                write(" ");
             }
             else
             {
@@ -709,30 +732,9 @@ private:
         newline();
     }
 
-    int tokenLength(size_t i) const pure @safe @nogc
-    {
-        import std.algorithm : countUntil;
-
-        assert(i + 1 <= tokens.length);
-        switch (tokens[i].type)
-        {
-        case tok!"identifier":
-        case tok!"stringLiteral":
-        case tok!"wstringLiteral":
-        case tok!"dstringLiteral":
-        // TODO: Unicode line breaks and old-Mac line endings
-            auto c = cast(int) tokens[i].text.countUntil('\n');
-            if (c == -1)
-                return cast(int) tokens[i].text.length;
-        mixin (generateFixedLengthCases());
-        default :
-            return INVALID_TOKEN_LENGTH;
-        }
-    }
-
     int currentTokenLength() pure @safe @nogc
     {
-        return tokenLength(index);
+        return tokenLength(tokens[index]);
     }
 
     int nextTokenLength() pure @safe @nogc
@@ -740,28 +742,7 @@ private:
         immutable size_t i = index + 1;
         if (i >= tokens.length)
             return INVALID_TOKEN_LENGTH;
-        return tokenLength(i);
-    }
-
-    int distanceToNextPreferredBreak() pure @safe @nogc
-    {
-        size_t i = index + 1;
-        int l;
-        loop: while (i < tokens.length) switch (tokens[i].type)
-        {
-        case tok!"||":
-        case tok!"&&":
-        case tok!";":
-        case tok!")":
-        case tok!",":
-        case tok!"(":
-            break loop;
-        default:
-            l += tokenLength(i);
-            i++;
-            break;
-        }
-        return l;
+        return tokenLength(tokens[i]);
     }
 
     ref current() const @property
@@ -849,9 +830,6 @@ private:
                 }
     }
 
-    /// Length of an invalid token
-    enum int INVALID_TOKEN_LENGTH = -1;
-
     /// Current index into the tokens array
     size_t index;
 
@@ -873,6 +851,8 @@ private:
     /// Information about the AST
     ASTInformation* astInformation;
 
+    size_t[] linebreakHints;
+
     /// Configuration
     FormatterConfig* config;
 }
@@ -889,19 +869,14 @@ struct FormatterConfig
 {
     /// Number of spaces used for indentation
     uint indentSize = 4;
-
     /// Use tabs or spaces
     bool useTabs = false;
-
     /// Size of a tab character
     uint tabSize = 8;
-
     /// Soft line wrap limit
     uint columnSoftLimit = 80;
-
     /// Hard line wrap limit
     uint columnHardLimit = 120;
-
     /// Use the One True Brace Style
     BraceStyle braceStyle = BraceStyle.allman;
 }
@@ -917,6 +892,7 @@ struct ASTInformation
         sort(spaceAfterLocations);
         sort(unaryLocations);
         sort(attributeDeclarationLines);
+        sort(caseEndLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -930,6 +906,9 @@ struct ASTInformation
 
     /// Lines containing attribute declarations
     size_t[] attributeDeclarationLines;
+
+    /// Case statement colon locations
+    size_t[] caseEndLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -939,6 +918,24 @@ final class FormatVisitor : ASTVisitor
     this(ASTInformation* astInformation)
     {
         this.astInformation = astInformation;
+    }
+
+    override void visit(const DefaultStatement defaultStatement)
+    {
+        astInformation.caseEndLocations ~= defaultStatement.colonLocation;
+        defaultStatement.accept(this);
+    }
+
+    override void visit(const CaseStatement caseStatement)
+    {
+        astInformation.caseEndLocations ~= caseStatement.colonLocation;
+        caseStatement.accept(this);
+    }
+
+    override void visit(const CaseRangeStatement caseRangeStatement)
+    {
+        astInformation.caseEndLocations ~= caseRangeStatement.colonLocation;
+        caseRangeStatement.accept(this);
     }
 
     override void visit(const FunctionBody functionBody)
@@ -1009,6 +1006,9 @@ private:
     alias visit = ASTVisitor.visit;
 }
 
+/// Length of an invalid token
+enum int INVALID_TOKEN_LENGTH = -1;
+
 string generateFixedLengthCases()
 {
     import std.algorithm : map;
@@ -1022,21 +1022,331 @@ string generateFixedLengthCases()
         "finally", "float", "for", "foreach", "foreach_reverse", "function",
         "goto", "idouble", "if", "ifloat", "immutable", "import", "in", "inout",
         "int", "interface", "invariant", "ireal", "is", "lazy", "long", "macro",
-        "mixin", "module", "new", "nothrow", "null", "out", "override",
-        "package", "pragma", "private", "protected", "public", "pure", "real",
-        "ref", "return", "scope", "shared", "short", "static", "struct", "super",
+        "mixin", "module", "new", "nothrow", "null", "out", "override", "package",
+        "pragma", "private", "protected", "public", "pure", "real", "ref",
+        "return", "scope", "shared", "short", "static", "struct", "super",
         "switch", "synchronized", "template", "this", "throw", "true", "try",
-        "typedef", "typeid", "typeof", "ubyte", "ucent", "uint", "ulong",
-        "union", "unittest", "ushort", "version", "void", "volatile", "wchar",
-        "while", "with", "__DATE__", "__EOF__", "__FILE__", "__FUNCTION__",
-        "__gshared", "__LINE__", "__MODULE__", "__parameters",
-        "__PRETTY_FUNCTION__", "__TIME__", "__TIMESTAMP__", "__traits",
-        "__vector", "__VENDOR__", "__VERSION__", ",", ".", "..", "...", "/",
-        "/=", "!", "!<", "!<=", "!<>", "!<>=", "!=", "!>", "!>=", "$", "%", "%=",
-        "&", "&&", "&=", "(", ")", "*", "*=", "+", "++", "+=", "-", "--", "-=",
-        ":", ";", "<", "<<", "<<=", "<=", "<>", "<>=", "=", "==", "=>", ">",
-        ">=", ">>", ">>=", ">>>", ">>>=", "?", "@", "[", "]", "^", "^=", "^^",
-        "^^=", "{", "|", "|=", "||", "}", "~", "~="];
+        "typedef", "typeid", "typeof", "ubyte", "ucent", "uint", "ulong", "union",
+        "unittest", "ushort", "version", "void", "volatile", "wchar", "while",
+        "with", "__DATE__", "__EOF__", "__FILE__", "__FUNCTION__", "__gshared",
+        "__LINE__", "__MODULE__", "__parameters", "__PRETTY_FUNCTION__",
+        "__TIME__", "__TIMESTAMP__", "__traits", "__vector", "__VENDOR__",
+        "__VERSION__", ",", ".", "..", "...", "/", "/=", "!", "!<", "!<=", "!<>",
+        "!<>=", "!=", "!>", "!>=", "$", "%", "%=", "&", "&&", "&=", "(", ")", "*",
+        "*=", "+", "++", "+=", "-", "--", "-=", ":", ";", "<", "<<", "<<=", "<=",
+        "<>", "<>=", "=", "==", "=>", ">", ">=", ">>", ">>=", ">>>", ">>>=", "?",
+        "@", "[", "]", "^", "^=", "^^", "^^=", "{", "|", "|=", "||", "}", "~",
+        "~="];
     return fixedLengthTokens.map!(a => format(`case tok!"%s": return %d;`, a,
         a.length)).join("\n\t");
+}
+
+int tokenLength(ref const Token t) pure @safe @nogc
+{
+    import std.algorithm : countUntil;
+    switch (t.type)
+    {
+    case tok!"doubleLiteral":
+    case tok!"floatLiteral":
+    case tok!"idoubleLiteral":
+    case tok!"ifloatLiteral":
+    case tok!"intLiteral":
+    case tok!"longLiteral":
+    case tok!"realLiteral":
+    case tok!"irealLiteral":
+    case tok!"uintLiteral":
+    case tok!"ulongLiteral":
+    case tok!"characterLiteral":
+        return cast(int) t.text.length;
+    case tok!"identifier":
+    case tok!"stringLiteral":
+    case tok!"wstringLiteral":
+    case tok!"dstringLiteral":
+        // TODO: Unicode line breaks and old-Mac line endings
+        auto c = cast(int) t.text.countUntil('\n');
+        if (c == -1)
+            return cast(int) t.text.length;
+        else
+            return c;
+    mixin (generateFixedLengthCases());
+    default:
+        return INVALID_TOKEN_LENGTH;
+    }
+}
+
+bool isBreakToken(IdType t)
+{
+    switch (t)
+    {
+    case tok!"||":
+    case tok!"&&":
+    case tok!"(":
+    case tok!",":
+    case tok!"^^":
+    case tok!"^=":
+    case tok!"^":
+    case tok!"~=":
+    case tok!"<<=":
+    case tok!"<<":
+    case tok!"<=":
+    case tok!"<>=":
+    case tok!"<>":
+    case tok!"<":
+    case tok!"==":
+    case tok!"=>":
+    case tok!"=":
+    case tok!">=":
+    case tok!">>=":
+    case tok!">>>=":
+    case tok!">>>":
+    case tok!">>":
+    case tok!">":
+    case tok!"|=":
+    case tok!"|":
+    case tok!"-=":
+    case tok!"!<=":
+    case tok!"!<>=":
+    case tok!"!<>":
+    case tok!"!<":
+    case tok!"!=":
+    case tok!"!>=":
+    case tok!"!>":
+    case tok!"?":
+    case tok!"/=":
+    case tok!"/":
+    case tok!"..":
+    case tok!"*=":
+    case tok!"&=":
+    case tok!"%=":
+    case tok!"%":
+    case tok!"+=":
+    case tok!".":
+    case tok!"~":
+    case tok!"+":
+    case tok!"-":
+        return true;
+    default:
+        return false;
+    }
+}
+
+int breakCost(IdType t)
+{
+    switch (t)
+    {
+    case tok!"||":
+    case tok!"&&":
+        return 0;
+    case tok!"(":
+    case tok!",":
+        return 10;
+    case tok!"^^":
+    case tok!"^=":
+    case tok!"^":
+    case tok!"~=":
+    case tok!"<<=":
+    case tok!"<<":
+    case tok!"<=":
+    case tok!"<>=":
+    case tok!"<>":
+    case tok!"<":
+    case tok!"==":
+    case tok!"=>":
+    case tok!"=":
+    case tok!">=":
+    case tok!">>=":
+    case tok!">>>=":
+    case tok!">>>":
+    case tok!">>":
+    case tok!">":
+    case tok!"|=":
+    case tok!"|":
+    case tok!"-=":
+    case tok!"!<=":
+    case tok!"!<>=":
+    case tok!"!<>":
+    case tok!"!<":
+    case tok!"!=":
+    case tok!"!>=":
+    case tok!"!>":
+    case tok!"?":
+    case tok!"/=":
+    case tok!"/":
+    case tok!"..":
+    case tok!"*=":
+    case tok!"&=":
+    case tok!"%=":
+    case tok!"%":
+    case tok!"+":
+    case tok!"-":
+    case tok!"~":
+    case tok!"+=":
+        return 100;
+    case tok!".":
+        return 200;
+    default:
+        return 1000;
+    }
+}
+
+struct State
+{
+    this(size_t[] breaks, const Token[] tokens, int depth,
+        const FormatterConfig* formatterConfig, int currentLineLength,
+        int indentLevel)
+    {
+        this.breaks = breaks;
+        this._depth = depth;
+        import std.algorithm : map, sum;
+
+        this._cost = breaks.map!(b => breakCost(tokens[b].type)).sum()
+            + (depth * 300);
+        int ll = currentLineLength;
+        size_t breakIndex = 0;
+        size_t i = 0;
+        bool s = true;
+        if (breaks.length == 0)
+        {
+            _cost = int.max;
+            immutable int l = currentLineLength + tokens.map!(a => tokenLength(a)).sum();
+            s = l < formatterConfig.columnSoftLimit;
+        }
+        else
+        {
+            do
+            {
+                immutable size_t j = breakIndex < breaks.length
+                    ? breaks[breakIndex] : tokens.length;
+                ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
+                if (ll > formatterConfig.columnSoftLimit)
+                {
+                    s = false;
+                    break;
+                }
+                i = j;
+                ll = (indentLevel + 1) * formatterConfig.indentSize;
+                breakIndex++;
+            }
+            while (i + 1 < tokens.length);
+        }
+        this._solved = s;
+    }
+
+    int cost() const pure nothrow @safe @property
+    {
+        return _cost;
+    }
+
+    int depth() const pure nothrow @safe @property
+    {
+        return _depth;
+    }
+
+    int solved() const pure nothrow @safe @property
+    {
+        return _solved;
+    }
+
+    int opCmp(ref const State other) const pure nothrow @safe
+    {
+        if (cost < other.cost || (cost == other.cost && ((breaks.length
+            && other.breaks.length && breaks[0] > other.breaks[0]) || (_solved
+            && !other.solved))))
+        {
+            return -1;
+        }
+        return other.cost > _cost;
+    }
+
+    bool opEquals(ref const State other) const pure nothrow @safe
+    {
+        return other.breaks == breaks;
+    }
+
+    size_t toHash() const nothrow @safe
+    {
+        return typeid(breaks).getHash(&breaks);
+    }
+
+    size_t[] breaks;
+private:
+    int _cost;
+    int _depth;
+    bool _solved;
+}
+
+size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
+    const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel)
+{
+    import std.container.rbtree : RedBlackTree;
+    import std.algorithm : filter, min;
+    import core.memory : GC;
+
+    enum ALGORITHMIC_COMPLEXITY_SUCKS = 20;
+    immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
+    int depth = 0;
+    auto open = new RedBlackTree!State;
+    open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd], depth,
+        formatterConfig, currentLineLength, indentLevel));
+    GC.disable();
+    scope(exit) GC.enable();
+    while (!open.empty)
+    {
+        State current = open.front();
+        open.removeFront();
+        if (current.solved)
+        {
+            current.breaks[] += index;
+            return current.breaks;
+        }
+        foreach (next; validMoves(tokens[0 .. tokensEnd], current,
+            formatterConfig, currentLineLength, indentLevel, depth))
+        {
+            open.insert(next);
+        }
+    }
+    if (open.empty)
+        return (tokens.length > 0 && isBreakToken(tokens[0].type)) ? [index] : [];
+    foreach (r; open[].filter!(a => a.solved))
+    {
+        r.breaks[] += index;
+        return r.breaks;
+    }
+    assert (false);
+}
+
+State[] validMoves(const Token[] tokens, ref const State current,
+    const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel,
+    int depth)
+{
+    import std.algorithm : sort, canFind;
+    import std.array : insertInPlace;
+
+    State[] states;
+    foreach (i, token; tokens)
+    {
+        if (!isBreakToken(token.type) || current.breaks.canFind(i))
+            continue;
+        size_t[] breaks;
+        breaks ~= current.breaks;
+        breaks ~= i;
+        sort(breaks);
+        states ~= State(breaks, tokens, depth + 1, formatterConfig,
+            currentLineLength, indentLevel);
+    }
+    return states;
+}
+
+unittest
+{
+    import std.string : format;
+    auto sourceCode = q{const Token[] tokens, ref const State current, const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel, int depth};
+    LexerConfig config;
+    config.stringBehavior = StringBehavior.source;
+    config.whitespaceBehavior = WhitespaceBehavior.skip;
+    StringCache cache = StringCache(StringCache.defaultBucketCount);
+    auto tokens = byToken(cast(ubyte[]) sourceCode, config, &cache).array();
+    FormatterConfig formatterConfig;
+    auto result = chooseLineBreakTokens(0, tokens, &formatterConfig, 0, 0);
+    assert ([15] == result, "%s".format(result));
 }
