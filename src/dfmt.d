@@ -364,6 +364,14 @@ private:
                     tempIndent = 0;
                     newline();
                 }
+                else if (!assumeSorted(astInformation.caseEndLocations)
+                    .equalRange(current.index).empty)
+                {
+                    if (!(peekIs(tok!"case") || peekIs(tok!"default") || peekIsLabel()))
+                        indentLevel++;
+                    writeToken();
+                    newline();
+                }
                 else
                 {
                     write(" : ");
@@ -388,6 +396,12 @@ private:
                 writeBraces();
                 break;
             case tok!".":
+                if (linebreakHints.canFind(index) || (linebreakHints.length == 0
+                    && currentLineLength + nextTokenLength() > config.columnHardLimit))
+                {
+                    pushIndent();
+                    newline();
+                }
                 writeToken();
                 break;
             case tok!",":
@@ -615,6 +629,12 @@ private:
                 immutable size_t i = expressionEndIndex();
                 linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
                     config, currentLineLength, indentLevel);
+                if (linebreakHints.length == 0 && currentLineLength > config.columnSoftLimit
+                    && current.type != tok!")")
+                {
+                    pushIndent();
+                    newline();
+                }
                 continue;
             }
             else if (current.type == tok!")")
@@ -683,22 +703,12 @@ private:
                 writeToken();
                 write(" ");
             }
-            else if (current.type == tok!":")
+            else if (current.type == tok!":" && peekIs(tok!".."))
             {
-                if (peekIs(tok!".."))
-                {
-                    writeToken();
-                    write(" ");
-                    writeToken();
-                    write(" ");
-                }
-                else
-                {
-                    if (!(peekIs(tok!"case") || peekIs(tok!"default") || peekIsLabel()))
-                        indentLevel++;
-                    formatStep();
-                    newline();
-                }
+                writeToken();
+                write(" ");
+                writeToken();
+                write(" ");
             }
             else
             {
@@ -882,6 +892,7 @@ struct ASTInformation
         sort(spaceAfterLocations);
         sort(unaryLocations);
         sort(attributeDeclarationLines);
+        sort(caseEndLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -895,6 +906,9 @@ struct ASTInformation
 
     /// Lines containing attribute declarations
     size_t[] attributeDeclarationLines;
+
+    /// Case statement colon locations
+    size_t[] caseEndLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -904,6 +918,24 @@ final class FormatVisitor : ASTVisitor
     this(ASTInformation* astInformation)
     {
         this.astInformation = astInformation;
+    }
+
+    override void visit(const DefaultStatement defaultStatement)
+    {
+        astInformation.caseEndLocations ~= defaultStatement.colonLocation;
+        defaultStatement.accept(this);
+    }
+
+    override void visit(const CaseStatement caseStatement)
+    {
+        astInformation.caseEndLocations ~= caseStatement.colonLocation;
+        caseStatement.accept(this);
+    }
+
+    override void visit(const CaseRangeStatement caseRangeStatement)
+    {
+        astInformation.caseEndLocations ~= caseRangeStatement.colonLocation;
+        caseRangeStatement.accept(this);
     }
 
     override void visit(const FunctionBody functionBody)
@@ -1274,7 +1306,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
         }
     }
     if (open.empty)
-        return isBreakToken(tokens[0].type) ? [index] : [];
+        return (tokens.length > 0 && isBreakToken(tokens[0].type)) ? [index] : [];
     foreach (r; open[].filter!(a => a.solved))
     {
         r.breaks[] += index;
