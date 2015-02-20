@@ -391,7 +391,8 @@ private:
                 writeToken();
                 break;
             case tok!",":
-                if (linebreakHints.canFind(index))
+                if (linebreakHints.canFind(index) || (linebreakHints.length == 0
+                    && currentLineLength > config.columnSoftLimit))
                 {
                     writeToken();
                     pushIndent();
@@ -402,6 +403,9 @@ private:
                     writeToken();
                     write(" ");
                 }
+                immutable size_t i = expressionEndIndex();
+                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
+                    config, currentLineLength, indentLevel);
                 break;
             case tok!"=":
             case tok!">=":
@@ -1141,11 +1145,11 @@ int breakCost(IdType t)
     case tok!"-":
     case tok!"~":
     case tok!"+=":
-        return 55;
+        return 100;
     case tok!".":
-        return 89;
+        return 200;
     default:
-        return 144;
+        return 1000;
     }
 }
 
@@ -1158,7 +1162,7 @@ struct State
         this.breaks = breaks;
         this._depth = depth;
         import std.algorithm : map, sum;
-        this._cost = breaks.map!(b => breakCost(tokens[b].type)).sum() + ((depth - 1) * 50);
+        this._cost = breaks.map!(b => breakCost(tokens[b].type)).sum() + ((depth - 1) * 200);
         int ll = currentLineLength;
         size_t breakIndex = 0;
         size_t i = 0;
@@ -1166,7 +1170,8 @@ struct State
         if (breaks.length == 0)
         {
             _cost = int.max;
-            s = tokens.map!(a => tokenLength(a)).sum() < formatterConfig.columnSoftLimit;
+            immutable int l = currentLineLength + tokens.map!(a => tokenLength(a)).sum();
+            s = l < formatterConfig.columnSoftLimit;
         }
         else
         {
@@ -1195,8 +1200,9 @@ struct State
     int opCmp(ref const State other) const pure nothrow @safe
     {
         if (cost < other.cost
-            || (cost == other.cost && breaks.length && other.breaks.length && breaks[0] > other.breaks[0])
-            || (cost == other.cost && _solved && !other.solved))
+            || (cost == other.cost
+                && ((breaks.length && other.breaks.length && breaks[0] > other.breaks[0])
+                || (_solved && !other.solved))))
         {
             return -1;
         }
@@ -1219,42 +1225,42 @@ private:
     int _depth;
     bool _solved;
 }
-
 size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
     const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel)
 {
     import std.container.rbtree : RedBlackTree;
+    import std.algorithm : min;
 
+    enum ALGORITHMIC_COMPLEXITY_SUCKS = 20;
+    immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
     int depth = 0;
     auto open = new RedBlackTree!State;
-    open.insert(State(cast(size_t[])[], tokens, depth, formatterConfig, currentLineLength, indentLevel));
+    open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd], depth, formatterConfig,
+        currentLineLength, indentLevel));
     while (!open.empty)
     {
         State current = open.front();
         open.removeFront();
         if (current.solved)
         {
-            foreach (ref b; current.breaks)
-                b += index;
+            current.breaks[] += index;
             return current.breaks;
         }
-        foreach (next; validMoves(tokens, current, formatterConfig, currentLineLength, indentLevel, depth))
+        foreach (next; validMoves(tokens[0 .. tokensEnd], current, formatterConfig,
+            currentLineLength, indentLevel, depth))
         {
             open.insert(next);
         }
     }
     size_t[] retVal = open.empty ? [] : open.front().breaks;
-    foreach (ref b; retVal)
-        b += index;
+    retVal[] += index;
     return retVal;
 }
-
 State[] validMoves(const Token[] tokens, ref const State current,
-    const FormatterConfig* formatterConfig, int currentLineLength,
-    int indentLevel, int depth)
+    const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel, int depth)
 {
     import std.algorithm : sort, canFind;
-    import std.array:insertInPlace;
+    import std.array : insertInPlace;
 
     State[] states;
     foreach (i, token; tokens)
@@ -1273,6 +1279,7 @@ State[] validMoves(const Token[] tokens, ref const State current,
 
 unittest
 {
+    import std.string : format;
     auto sourceCode = q{const Token[] tokens, ref const State current, const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel, int depth};
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
@@ -1280,5 +1287,6 @@ unittest
     StringCache cache = StringCache(StringCache.defaultBucketCount);
     auto tokens = byToken(cast(ubyte[]) sourceCode, config, &cache).array();
     FormatterConfig formatterConfig;
-    assert ([15] == chooseLineBreakTokens(0, tokens, &formatterConfig, 0, 0));
+    auto result = chooseLineBreakTokens(0, tokens, &formatterConfig, 0, 0);
+    assert ([15] == result, "%s".format(result));
 }
