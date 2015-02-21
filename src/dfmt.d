@@ -877,7 +877,7 @@ struct FormatterConfig
     /// Use tabs or spaces
     bool useTabs = false;
     /// Size of a tab character
-    uint tabSize = 8;
+    uint tabSize = 4;
     /// Soft line wrap limit
     uint columnSoftLimit = 80;
     /// Hard line wrap limit
