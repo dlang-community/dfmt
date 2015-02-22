@@ -422,9 +422,7 @@ private:
                     writeToken();
                     write(" ");
                 }
-                immutable size_t i = expressionEndIndex();
-                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
-                    config, currentLineLength, indentLevel);
+                regenLineBreakHintsIfNecessary(index - 1);
                 break;
             case tok!"=":
             case tok!">=":
@@ -440,15 +438,11 @@ private:
                 write(" ");
                 writeToken();
                 write(" ");
-                immutable size_t i = expressionEndIndex();
-                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
-                    config, currentLineLength, indentLevel);
+                regenLineBreakHintsIfNecessary(index - 1);
                 break;
             case tok!"&&":
             case tok!"||":
-                immutable size_t i = expressionEndIndex();
-                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
-                    config, currentLineLength, indentLevel);
+                regenLineBreakHintsIfNecessary(index);
                 goto case;
             case tok!"^^":
             case tok!"^=":
@@ -506,6 +500,16 @@ private:
             assert (false, str(current.type));
     }
 
+    void regenLineBreakHintsIfNecessary(immutable size_t i)
+    {
+        if (linebreakHints.length == 0 || linebreakHints[$ - 1] <= i - 1)
+        {
+            immutable size_t j = expressionEndIndex(i);
+            linebreakHints = chooseLineBreakTokens(i, tokens[i .. j],
+                config, currentLineLength, indentLevel);
+        }
+    }
+
     /// Pushes a temporary indent level
     void pushIndent()
     {
@@ -520,14 +524,14 @@ private:
             tempIndent--;
     }
 
-    size_t expressionEndIndex() const pure @safe @nogc
+    size_t expressionEndIndex(size_t i) const pure @safe @nogc
     {
-        size_t i = index;
         int parenDepth = 0;
-        loop: while (i < tokens.length) switch (tokens[i].type)
-        {
-        case tok!"(":
-            parenDepth++;
+        loop : while (i < tokens.length)
+            switch (tokens[i].type)
+            {
+            case tok!"(":
+                parenDepth++;
             i++;
             break;
         case tok!")":
@@ -616,6 +620,8 @@ private:
     }
     body
     {
+        import std.range : assumeSorted;
+
         immutable t = tempIndent;
         int depth = 0;
         do
@@ -631,15 +637,15 @@ private:
             {
                 writeToken();
                 depth++;
-                immutable size_t i = expressionEndIndex();
-                linebreakHints = chooseLineBreakTokens(index, tokens[index .. i],
-                    config, currentLineLength, indentLevel);
-                if (linebreakHints.length == 0 && currentLineLength > config.columnSoftLimit
-                    && current.type != tok!")")
+                if (!assumeSorted(linebreakHints).equalRange(index - 1).empty
+                    || (linebreakHints.length == 0
+                    && currentLineLength > config.columnSoftLimit
+                    && current.type != tok!")"))
                 {
                     pushIndent();
                     newline();
                 }
+                regenLineBreakHintsIfNecessary(index - 1);
                 continue;
             }
             else if (current.type == tok!")")
@@ -1086,6 +1092,7 @@ bool isBreakToken(IdType t)
     case tok!"||":
     case tok!"&&":
     case tok!"(":
+    case tok!"[":
     case tok!",":
     case tok!"^^":
     case tok!"^=":
@@ -1142,6 +1149,7 @@ int breakCost(IdType t)
     case tok!"||":
     case tok!"&&":
         return 0;
+    case tok!"[":
     case tok!"(":
     case tok!",":
         return 10;
@@ -1205,7 +1213,7 @@ struct State
         import std.algorithm : map, sum;
 
         this._cost = breaks.map!(b => breakCost(tokens[b].type)).sum()
-            + (depth * 300);
+            + (depth * 500);
         int ll = currentLineLength;
         size_t breakIndex = 0;
         size_t i = 0;
@@ -1287,17 +1295,20 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
     import std.algorithm : filter, min;
     import core.memory : GC;
 
-    enum ALGORITHMIC_COMPLEXITY_SUCKS = 20;
+    enum ALGORITHMIC_COMPLEXITY_SUCKS = 25;
     immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
     int depth = 0;
     auto open = new RedBlackTree!State;
     open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd], depth,
         formatterConfig, currentLineLength, indentLevel));
+    State lowest;
     GC.disable();
     scope(exit) GC.enable();
     while (!open.empty)
     {
         State current = open.front();
+        if (current.cost < lowest.cost)
+            lowest = current;
         open.removeFront();
         if (current.solved)
         {
@@ -1311,7 +1322,10 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
         }
     }
     if (open.empty)
-        return (tokens.length > 0 && isBreakToken(tokens[0].type)) ? [index] : [];
+    {
+        lowest.breaks[] += index;
+        return lowest.breaks;
+    }
     foreach (r; open[].filter!(a => a.solved))
     {
         r.breaks[] += index;
@@ -1330,7 +1344,7 @@ State[] validMoves(const Token[] tokens, ref const State current,
     State[] states;
     foreach (i, token; tokens)
     {
-        if (!isBreakToken(token.type) || current.breaks.canFind(i))
+        if (current.breaks.canFind(i) || !isBreakToken(token.type))
             continue;
         size_t[] breaks;
         breaks ~= current.breaks;
