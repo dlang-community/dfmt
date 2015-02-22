@@ -112,6 +112,7 @@ Formats D code.
     --tabs | -t      Use tabs instead of spaces for indentation
     --braces=allman  Use Allman indent style (default)
     --braces=otbs    Use the One True Brace Style
+    --braces=pesky   Get those pesky semicolons and curly braces out of my code
     --help | -h      Display this help and exit
 ";
 
@@ -175,6 +176,9 @@ private:
         import std.algorithm : canFind, startsWith;
 
         assert (index < tokens.length);
+
+        ensurePeskyNewline();
+
         if (current.type == tok!"comment")
         {
             if (index > 0)
@@ -216,18 +220,27 @@ private:
             {
                 if (current.type == tok!";")
                 {
-                    writeToken();
-                    tempIndent = 0;
-                    if (index >= tokens.length)
+                    if (config.braceStyle == BraceStyle.pesky)
                     {
-                        newline();
-                        break;
+                        tempIndent = 0;
+                        ensurePeskySpaces();
+                        writeToken();
                     }
-                    if (current.type == tok!"comment")
-                        break;
-                    if (!(t == tok!"import" && current.type == tok!"import"))
-                        write("\n");
-                    newline();
+                    else
+                    {
+                        writeToken();
+                        tempIndent = 0;
+                        if (index >= tokens.length)
+                        {
+                            newline();
+                            break;
+                        }
+                        if (current.type == tok!"comment")
+                            break;
+                        if (!(t == tok!"import" && current.type == tok!"import"))
+                            write("\n");
+                        newline();
+                    }
                     break;
                 }
                 else if (current.type == tok!",")
@@ -395,8 +408,11 @@ private:
                 break;
             case tok!";":
                 tempIndent = 0;
+                if (config.braceStyle == BraceStyle.pesky)
+                    ensurePeskySpaces();
                 writeToken();
                 linebreakHints = [];
+                if (config.braceStyle != BraceStyle.pesky)
                 if (index >= tokens.length || current.type != tok!"comment"
                     || current.line != tokens[index - 1].line)
                     newline();
@@ -570,6 +586,11 @@ private:
                     write(" ");
                     write("{");
                 }
+                else if (config.braceStyle == BraceStyle.pesky)
+                {
+                    ensurePeskySpaces();
+                    write("{");
+                }
                 else
                 {
                     newline();
@@ -577,13 +598,17 @@ private:
                 }
                 indentLevel++;
                 index++;
-                newline();
+                if (!peskyToken)
+                    newline();
             }
             else if (current.type == tok!"}")
             {
                 // Silly hack to format enums better.
-                if (peekBackIs(tok!"identifier"))
-                    newline();
+                if (config.braceStyle != BraceStyle.pesky)
+                    if (peekBackIs(tok!"identifier"))
+                        newline();
+                if (config.braceStyle == BraceStyle.pesky)
+                    ensurePeskySpaces();
                 write("}");
                 depth--;
                 if (index < tokens.length - 1 &&
@@ -603,6 +628,11 @@ private:
                             indentLevel--;
                         newline();
                     }
+                }
+                else if (config.braceStyle == BraceStyle.pesky)
+                {
+                    index++;
+                    indentLevel--;
                 }
                 else
                 {
@@ -708,13 +738,25 @@ private:
         if (current.type != tok!"{")
             return;
         if (config.braceStyle == BraceStyle.otbs)
+        {
             write(" ");
-        else
+            writeToken();
             newline();
-        writeToken();
-        newline();
+        }
+        else if (config.braceStyle == BraceStyle.pesky)
+        {
+            ensurePeskySpaces();
+            writeToken();
+        }
+        else
+        {
+            newline();
+            writeToken();
+            newline();
+        }
         while (index < tokens.length)
         {
+            ensurePeskyNewline();
             if (current.type == tok!"case")
             {
                 writeToken();
@@ -745,8 +787,16 @@ private:
         }
         indentLevel = l;
         assert (current.type == tok!"}");
-        writeToken();
-        newline();
+        if (config.braceStyle == BraceStyle.pesky)
+        {
+            ensurePeskySpaces();
+            writeToken();
+        }
+        else
+        {
+            writeToken();
+            newline();
+        }
     }
 
     int currentTokenLength() pure @safe @nogc
@@ -834,6 +884,29 @@ private:
         index++;
     }
 
+    void ensurePeskySpaces()
+    {
+        if (!peskyToken)
+        {
+            foreach (i; currentLineLength .. config.columnHardLimit)
+            {
+                write(" ");
+            }
+            peskyToken = true;
+        }
+    }
+
+    void ensurePeskyNewline()
+    {
+        if (peskyToken &&
+            current.type != tok!"{" &&
+            current.type != tok!"}")
+        {
+            newline();
+            peskyToken = false;
+        }
+    }
+
     void indent()
     {
         import std.range : repeat, take;
@@ -864,6 +937,9 @@ private:
     /// Length of the current line (so far)
     uint currentLineLength = 0;
 
+    /// Whether the last token was pesky
+    bool peskyToken = false;
+
     /// Output to write output to
     OutputRange output;
 
@@ -883,7 +959,8 @@ private:
 enum BraceStyle
 {
     allman,
-    otbs
+    otbs,
+    pesky
 }
 
 /// Configuration options for formatting
