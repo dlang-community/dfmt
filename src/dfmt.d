@@ -376,6 +376,12 @@ private:
                     writeToken();
                     newline();
                 }
+                else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!";")
+                    || peekBack2Is(tok!"}") || peekBack2Is(tok!"{")))
+                {
+                    writeToken();
+                    write(" ");
+                }
                 else
                 {
                     write(" : ");
@@ -769,6 +775,11 @@ private:
     bool peekBackIs(IdType tokenType)
     {
         return (index >= 1) && tokens[index - 1].type == tokenType;
+    }
+
+    bool peekBack2Is(IdType tokenType)
+    {
+        return (index >= 2) && tokens[index - 2].type == tokenType;
     }
 
     bool peekImplementation(IdType tokenType, size_t n)
