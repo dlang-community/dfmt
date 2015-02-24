@@ -302,7 +302,6 @@ private:
                 writeParens(true);
                 break;
             case tok!"mixin":
-            case tok!"assert":
                 writeToken();
                 write(" ");
                 break;
