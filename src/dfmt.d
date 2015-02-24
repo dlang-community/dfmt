@@ -211,6 +211,11 @@ private:
         {
             auto t = current.type;
             writeToken();
+            if (current.type == tok!"(")
+            {
+                writeParens(false);
+                return;
+            }
             write(" ");
             while (index < tokens.length)
             {
@@ -289,10 +294,15 @@ private:
             switch (current.type)
             {
             case tok!"default":
-            case tok!"cast":
                 writeToken();
                 break;
+            case tok!"cast":
+                writeToken();
+                write(" ");
+                writeParens(true);
+                break;
             case tok!"mixin":
+            case tok!"assert":
                 writeToken();
                 write(" ");
                 break;
