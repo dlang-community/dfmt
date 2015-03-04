@@ -289,6 +289,17 @@ private:
                 newline();
             }
         }
+        else if (current.type == tok!"else")
+        {
+            writeToken();
+            if (current.type == tok!"if")
+                write(" ");
+            else if (current.type != tok!"{")
+            {
+                pushIndent();
+                newline();
+            }
+        }
         else if (isKeyword(current.type))
         {
             switch (current.type)
