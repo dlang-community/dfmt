@@ -201,6 +201,8 @@ private:
                 else
                     newline();
             }
+            else
+                newline();
         }
         else if (isStringLiteral(current.type) || isNumberLiteral(current.type)
             || current.type == tok!"characterLiteral")
@@ -228,7 +230,7 @@ private:
                         newline();
                         break;
                     }
-                    if (current.type == tok!"comment")
+                    if (current.type == tok!"comment" && current.line == peekBack().line)
                         break;
                     if (!(t == tok!"import" && current.type == tok!"import"))
                         write("\n");
@@ -797,6 +799,12 @@ private:
     body
     {
         return tokens[index];
+    }
+
+    const(Token) peekBack()
+    {
+        assert (index > 0);
+        return tokens[index - 1];
     }
 
     bool peekBackIs(IdType tokenType)
