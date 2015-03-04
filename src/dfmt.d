@@ -594,51 +594,68 @@ private:
             if (current.type == tok!"{")
             {
                 depth++;
-                if (config.braceStyle == BraceStyle.otbs)
+                if (assumeSorted(astInformation.structInitStartLocations)
+                    .equalRange(tokens[index].index).length)
                 {
-                    write(" ");
-                    write("{");
+                    writeToken();
                 }
                 else
                 {
+                    if (config.braceStyle == BraceStyle.otbs)
+                    {
+                        write(" ");
+                        write("{");
+                    }
+                    else
+                    {
+                        newline();
+                        write("{");
+                    }
+                    indentLevel++;
+                    index++;
                     newline();
-                    write("{");
                 }
-                indentLevel++;
-                index++;
-                newline();
             }
             else if (current.type == tok!"}")
             {
-                // Silly hack to format enums better.
-                if (peekBackIs(tok!"identifier"))
-                    newline();
-                write("}");
-                depth--;
-                if (index < tokens.length - 1 &&
-                    assumeSorted(astInformation.doubleNewlineLocations)
-                    .equalRange(tokens[index].index).length && !peekIs(tok!"}"))
+                if (assumeSorted(astInformation.structInitEndLocations)
+                    .equalRange(tokens[index].index).length)
                 {
-                    output.put("\n");
+                    writeToken();
+                    depth--;
                 }
-                if (config.braceStyle == BraceStyle.otbs)
+                else
                 {
-                    index++;
-                    if (index < tokens.length && current.type == tok!"else")
-                        write(" ");
+                    // Silly hack to format enums better.
+                    if (peekBackIs(tok!"identifier"))
+                        newline();
+                    write("}");
+                    depth--;
+                    if (index < tokens.length - 1 &&
+                        assumeSorted(astInformation.doubleNewlineLocations)
+                        .equalRange(tokens[index].index).length && !peekIs(tok!"}"))
+                    {
+                        output.put("\n");
+                    }
+                    if (config.braceStyle == BraceStyle.otbs)
+                    {
+                        index++;
+                        if (index < tokens.length && current.type == tok!"else")
+                            write(" ");
+                        else
+                        {
+                            if (peekIs(tok!"case") || peekIs(tok!"default"))
+                                indentLevel--;
+                            newline();
+                        }
+                    }
                     else
                     {
+                        index++;
                         if (peekIs(tok!"case") || peekIs(tok!"default"))
                             indentLevel--;
                         newline();
                     }
-                }
-                else
-                {
-                    index++;
-                    if (peekIs(tok!"case") || peekIs(tok!"default"))
-                        indentLevel--;
-                    newline();
                 }
             }
             else
@@ -950,6 +967,8 @@ struct ASTInformation
         sort(unaryLocations);
         sort(attributeDeclarationLines);
         sort(caseEndLocations);
+        sort(structInitStartLocations);
+        sort(structInitEndLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -966,6 +985,12 @@ struct ASTInformation
 
     /// Case statement colon locations
     size_t[] caseEndLocations;
+
+    /// Opening braces of struct initializers
+    size_t[] structInitStartLocations;
+
+    /// Closing braces of struct initializers
+    size_t[] structInitEndLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -1002,6 +1027,13 @@ final class FormatVisitor : ASTVisitor
         if (functionBody.bodyStatement !is null && functionBody.bodyStatement.blockStatement !is null)
             astInformation.doubleNewlineLocations ~= functionBody.bodyStatement.blockStatement.endLocation;
         functionBody.accept(this);
+    }
+
+    override void visit(const StructInitializer structInitializer)
+    {
+        astInformation.structInitStartLocations ~= structInitializer.startLocation;
+        astInformation.structInitEndLocations ~= structInitializer.endLocation;
+        structInitializer.accept(this);
     }
 
     override void visit(const EnumBody enumBody)
