@@ -347,6 +347,13 @@ private:
                 }
                 goto case;
             case tok!"~":
+                if (peekIs(tok!"this"))
+                {
+                    writeToken();
+                    break;
+                }
+                else
+                    goto case;
             case tok!"&":
             case tok!"+":
             case tok!"-":
