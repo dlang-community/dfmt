@@ -320,7 +320,7 @@ private:
                     if (next.type == tok!";" || next.type == tok!"("
                         || next.type == tok!")" || next.type == tok!","
                         || next.type == tok!"{" || next.type == tok!"."
-                        || next.type == tok!":")
+                        || next.type == tok!":" || next.type == tok!"*")
                     {
                         writeToken();
                     }
