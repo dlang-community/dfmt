@@ -311,12 +311,7 @@ private:
                 break;
             case tok!"cast":
                 writeToken();
-                write(" ");
                 writeParens(true);
-                break;
-            case tok!"mixin":
-                writeToken();
-                write(" ");
                 break;
             default:
                 if (index + 1 < tokens.length)
@@ -627,7 +622,7 @@ private:
                 else
                 {
                     // Silly hack to format enums better.
-                    if (peekBackIs(tok!"identifier"))
+                    if (peekBackIs(tok!"identifier") || peekBackIs(tok!","))
                         newline();
                     write("}");
                     depth--;
@@ -702,11 +697,11 @@ private:
             }
             else if (current.type == tok!")")
             {
-                if (peekIs(tok!"identifier"))
+                if (peekIs(tok!"identifier") || peekIsBasicType())
                 {
                     writeToken();
                     if (space_afterwards)
-                    write(" ");
+                        write(" ");
                 }
                 else if (index + 1 < tokens.length)
                 {
@@ -738,6 +733,11 @@ private:
         popIndent();
         tempIndent = t;
         linebreakHints = [];
+    }
+
+    bool peekIsBasicType()
+    {
+        return index + 1 < tokens.length && isBasicType(tokens[index + 1].type);
     }
 
     bool peekIsLabel()
