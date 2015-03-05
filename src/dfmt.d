@@ -350,7 +350,8 @@ private:
                     .equalRange(current.index).empty)
                 {
                     writeToken();
-                    write(" ");
+                    if (current.type != tok!"*" && current.type != tok!")")
+                        write(" ");
                     break;
                 }
                 goto binary;
