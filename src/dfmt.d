@@ -353,7 +353,7 @@ private:
                     write(" ");
                     break;
                 }
-                goto case;
+                goto binary;
             case tok!"~":
                 if (peekIs(tok!"this"))
                 {
@@ -361,7 +361,7 @@ private:
                     break;
                 }
                 else
-                    goto case;
+                    goto binary;
             case tok!"&":
             case tok!"+":
             case tok!"-":
