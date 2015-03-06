@@ -335,7 +335,8 @@ private:
                 break;
             case tok!"is":
                 writeToken();
-                write(" ");
+                if (!currentIs(tok!"("))
+                    write(" ");
                 break;
             default:
                 if (index + 1 < tokens.length)
