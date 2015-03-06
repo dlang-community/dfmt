@@ -317,13 +317,8 @@ private:
                 if (index + 1 < tokens.length)
                 {
                     auto next = tokens[index + 1];
-                    if (next.type == tok!";" || next.type == tok!"("
-                        || next.type == tok!")" || next.type == tok!","
-                        || next.type == tok!"{" || next.type == tok!"."
-                        || next.type == tok!":" || next.type == tok!"*")
-                    {
+                    if (peekIsOperator())
                         writeToken();
-                    }
                     else
                     {
                         writeToken();
@@ -846,6 +841,11 @@ private:
     bool peek2Is(IdType tokenType)
     {
         return peekImplementation(tokenType, 2);
+    }
+
+    bool peekIsOperator()
+    {
+        return index + 1 < tokens.length && isOperator(tokens[index + 1].type);
     }
 
     bool peekIs(IdType tokenType)
