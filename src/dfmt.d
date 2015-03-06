@@ -349,7 +349,11 @@ private:
                         write(" ");
                     break;
                 }
-                goto binary;
+                else if (assumeSorted(astInformation.unaryLocations).equalRange(current.index).empty)
+                    goto binary;
+                else
+                    writeToken();
+                break;
             case tok!"~":
                 if (peekIs(tok!"this"))
                 {
