@@ -283,11 +283,12 @@ private:
         }
         else if (current.type == tok!"switch")
             formatSwitch();
-        else if (current.type == tok!"version" && peekIs(tok!"("))
+        else if ((current.type == tok!"version" || current.type == tok!"extern")
+            && peekIs(tok!"("))
         {
             writeToken();
             write(" ");
-            writeParens(false);
+            writeParens(true);
         }
         else if (currentIsBlockHeader())
         {
