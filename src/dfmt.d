@@ -290,12 +290,12 @@ private:
             write(" ");
             writeParens(true);
         }
-        else if (currentIsBlockHeader())
+        else if (isBlockHeader())
         {
             writeToken();
             write(" ");
             writeParens(false);
-            if (currentIsBlockHeader() || current.type == tok!"switch")
+            if (isBlockHeader() || current.type == tok!"switch")
             {
                 write(" ");
             }
@@ -430,8 +430,12 @@ private:
                 else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!";")
                     || peekBack2Is(tok!"}") || peekBack2Is(tok!"{")))
                 {
+                    tempIndent = 0;
                     writeToken();
-                    write(" ");
+                    if (isBlockHeader())
+                        write(" ");
+                    else if (!currentIs(tok!"{"))
+                        newline();
                 }
                 else
                 {
@@ -883,12 +887,20 @@ private:
         return peekImplementation(tokenType, 1);
     }
 
-    bool currentIsBlockHeader()
+    bool currentIs(IdType tokenType)
     {
-        return current.type == tok!"for" || current.type == tok!"foreach"
-            || current.type == tok!"foreach_reverse" || current.type == tok!"while"
-            || current.type == tok!"if" || current.type == tok!"out"
-            || current.type == tok!"catch" || current.type == tok!"with";
+        return peekImplementation(tokenType, 0);
+    }
+
+    bool isBlockHeader(int i = 0)
+    {
+        if (i + index < 0 || i + index >= tokens.length)
+            return false;
+        auto t = tokens[i + index].type;
+        return t == tok!"for" || t == tok!"foreach"
+            || t == tok!"foreach_reverse" || t == tok!"while"
+            || t == tok!"if" || t == tok!"out"
+            || t == tok!"catch" || t == tok!"with";
     }
 
     void newline()
@@ -907,8 +919,10 @@ private:
         {
             if (current.type == tok!"}")
                 indentLevel--;
-            else if (!assumeSorted(astInformation.attributeDeclarationLines)
-                .equalRange(current.line).empty)
+            else if ((current.type == tok!"identifier" && peekIs(tok!":")
+                && !isBlockHeader(2))
+                || (!assumeSorted(astInformation.attributeDeclarationLines)
+                .equalRange(current.line).empty))
             {
                 tempIndent--;
             }
