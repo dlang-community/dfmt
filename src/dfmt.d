@@ -333,6 +333,10 @@ private:
                 writeToken();
                 writeParens(true);
                 break;
+            case tok!"is":
+                writeToken();
+                write(" ");
+                break;
             default:
                 if (index + 1 < tokens.length)
                 {
@@ -395,8 +399,11 @@ private:
             case tok!"(":
                 writeParens(true);
                 break;
-            case tok!"@":
             case tok!"!":
+                if (peekIs(tok!"is"))
+                    write(" ");
+                goto case;
+            case tok!"@":
             case tok!"...":
             case tok!"[":
             case tok!"++":
