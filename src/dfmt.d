@@ -198,7 +198,7 @@ private:
                     if (tokens[index].type != tok!"{")
                         write(" ");
                 }
-                else
+                else if (current.type != tok!"{")
                     newline();
             }
             else
@@ -277,15 +277,22 @@ private:
             write(" ");
             writeParens(false);
         }
-        else if (current.type == tok!"for" || current.type == tok!"foreach"
-            || current.type == tok!"foreach_reverse" || current.type == tok!"while"
-            || current.type == tok!"if" || current.type == tok!"out"
-            || current.type == tok!"catch")
+        else if (currentIsBlockHeader())
         {
             writeToken();
             write(" ");
             writeParens(false);
-            if (current.type != tok!"{" && current.type != tok!";")
+            if (currentIsBlockHeader() || current.type == tok!"switch")
+            {
+                write(" ");
+            }
+            else if (current.type == tok!"comment")
+            {
+                if (!peekIs(tok!"{") && !peekIs(tok!";"))
+                    pushIndent();
+                formatStep();
+            }
+            else if (current.type != tok!"{" && current.type != tok!";")
             {
                 pushIndent();
                 newline();
@@ -761,7 +768,15 @@ private:
         newline();
         while (index < tokens.length)
         {
-            if (current.type == tok!"case")
+            if (current.type == tok!"}")
+            {
+                indentLevel = l;
+                indent();
+                writeToken();
+                newline();
+                return;
+            }
+            else if (current.type == tok!"case")
             {
                 writeToken();
                 write(" ");
@@ -773,21 +788,14 @@ private:
                 writeToken();
                 write(" ");
             }
-            else
+            else if (peekIs(tok!"case") || peekIs(tok!"default")
+                || peekIs(tok!"}") || peekIsLabel())
             {
-                assert (current.type != tok!"}");
-                if (peekIs(tok!"case") || peekIs(tok!"default") || peekIsLabel())
-                {
-                    indentLevel = l;
-                    formatStep();
-                }
-                else
-                {
-                    formatStep();
-                    if (current.type == tok!"}")
-                        break;
-                }
+                indentLevel = l;
+                formatStep();
             }
+            else
+                formatStep();
         }
         indentLevel = l;
         assert (current.type == tok!"}");
@@ -855,6 +863,14 @@ private:
     bool peekIs(IdType tokenType)
     {
         return peekImplementation(tokenType, 1);
+    }
+
+    bool currentIsBlockHeader()
+    {
+        return current.type == tok!"for" || current.type == tok!"foreach"
+            || current.type == tok!"foreach_reverse" || current.type == tok!"while"
+            || current.type == tok!"if" || current.type == tok!"out"
+            || current.type == tok!"catch" || current.type == tok!"with";
     }
 
     void newline()
