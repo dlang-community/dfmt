@@ -14,10 +14,12 @@ void main()
 
     int[] a = [10, 20];
     writeln(a);
+
     // The std.algorithm standard library module
     // contains a generic swap:
     swap(a[0], a[1]);
     writeln(a);
+
     // Using mySwap:
     mySwap(a[0], a[1]);
     writeln(a);

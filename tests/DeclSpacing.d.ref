@@ -12,7 +12,6 @@ void main()
 }
 
 const baz = 11;
-
 class Foo2 : Foo
 {
 }

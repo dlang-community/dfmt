@@ -189,8 +189,12 @@ private:
                     write(" ");
             }
             writeToken();
+            auto j = justAddedExtraNewline;
             if (tokens[index - 1].text[0 .. 2] == "//")
+            {
                 newline();
+                justAddedExtraNewline = j;
+            }
             else if (index < tokens.length)
             {
                 if (tokens[index - 1].line == tokens[index].line)
@@ -231,10 +235,18 @@ private:
                         break;
                     }
                     if (current.type == tok!"comment" && current.line == peekBack().line)
+                    {
+                        justAddedExtraNewline = true;
                         break;
-                    if (!(t == tok!"import" && current.type == tok!"import"))
+                    }
+                    else if ((t == tok!"import" && current.type != tok!"import"))
+                    {
                         write("\n");
-                    newline();
+                        justAddedExtraNewline = true;
+                        newline();
+                    }
+                    else
+                        newline();
                     break;
                 }
                 else if (current.type == tok!",")
@@ -430,8 +442,6 @@ private:
                 linebreakHints = [];
                 if (index >= tokens.length || current.type != tok!"comment"
                     || current.line != tokens[index - 1].line)
-                    newline();
-                if (peekImplementation(tok!"class",0))
                     newline();
                 break;
             case tok!"{":
@@ -877,8 +887,15 @@ private:
     {
         import std.range:assumeSorted;
         output.put("\n");
+        immutable bool hasCurrent = index + 1 < tokens.length;
+        if (index > 0 && hasCurrent && tokens[index - 1].type != tok!"}"
+            && tokens[index].line - tokens[index - 1].line > 1 && !justAddedExtraNewline)
+        {
+            output.put("\n");
+        }
+        justAddedExtraNewline = false;
         currentLineLength = 0;
-        if (index < tokens.length)
+        if (hasCurrent)
         {
             if (current.type == tok!"}")
                 indentLevel--;
@@ -950,6 +967,10 @@ private:
 
     /// Configuration
     FormatterConfig* config;
+
+    /// Keep track of whether or not an extra newline was just added because of
+    /// an import statement.
+    bool justAddedExtraNewline;
 }
 
 /// The only good brace styles
