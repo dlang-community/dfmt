@@ -661,6 +661,7 @@ private:
                         .equalRange(tokens[index].index).length && !peekIs(tok!"}"))
                     {
                         output.put("\n");
+                        justAddedExtraNewline = true;
                     }
                     if (config.braceStyle == BraceStyle.otbs)
                     {
@@ -909,8 +910,8 @@ private:
         import std.range:assumeSorted;
         output.put("\n");
         immutable bool hasCurrent = index + 1 < tokens.length;
-        if (index > 0 && hasCurrent && tokens[index - 1].type != tok!"}"
-            && tokens[index].line - tokens[index - 1].line > 1 && !justAddedExtraNewline)
+        if (!justAddedExtraNewline && index > 0
+            && hasCurrent && tokens[index].line - tokens[index - 1].line > 1)
         {
             output.put("\n");
         }
