@@ -362,7 +362,7 @@ private:
                     break;
                 }
                 else
-                    goto binary;
+                    goto case;
             case tok!"&":
             case tok!"+":
             case tok!"-":
