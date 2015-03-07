@@ -428,8 +428,11 @@ private:
                 else if (!assumeSorted(astInformation.caseEndLocations)
                     .equalRange(current.index).empty)
                 {
-                    if (!(peekIs(tok!"case") || peekIs(tok!"default") || peekIsLabel()))
+                    if (!(peekIs(tok!"case", false) || peekIs(tok!"default", false)
+                        || peekIs(tok!"}") || peekIsLabel()))
+                    {
                         indentLevel++;
+                    }
                     writeToken();
                     newline();
                 }
@@ -843,8 +846,8 @@ private:
                 writeToken();
                 write(" ");
             }
-            else if (peekIs(tok!"case") || peekIs(tok!"default")
-                || peekIs(tok!"}") || peekIsLabel())
+            else if (peekIs(tok!"case", false) || peekIs(tok!"default", false)
+                || peekIs(tok!"}", false) || peekIsLabel())
             {
                 indentLevel = l;
                 formatStep();
