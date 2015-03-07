@@ -836,6 +836,20 @@ private:
                 newline();
                 return;
             }
+            else if (current.type == tok!";")
+            {
+                if (peekIs(tok!"}"))
+                {
+                    writeToken();
+                    newline();
+                    indentLevel = l;
+                    writeToken();
+                    newline();
+                    return;
+                }
+                else
+                    goto peek;
+            }
             else if (current.type == tok!"case")
             {
                 writeToken();
@@ -848,14 +862,18 @@ private:
                 writeToken();
                 write(" ");
             }
-            else if (peekIs(tok!"case", false) || peekIs(tok!"default", false)
-                || peekIs(tok!"}", false) || peekIsLabel())
-            {
-                indentLevel = l;
-                formatStep();
-            }
             else
-                formatStep();
+            {
+            peek:
+                if (peekIs(tok!"case", false) || peekIs(tok!"default", false)
+                    || peekIs(tok!"}", false) || peekIsLabel())
+                {
+                    indentLevel = l;
+                    formatStep();
+                }
+                else
+                    formatStep();
+            }
         }
         indentLevel = l;
         assert (current.type == tok!"}");
