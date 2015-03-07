@@ -740,8 +740,10 @@ private:
         {
             if (current.type == tok!";")
             {
-                write("; ");
-                currentLineLength += 2;
+                if (!(peekIs(tok!";") || peekIs(tok!")")))
+                    write("; ");
+                else
+                    write(";");
                 index++;
                 continue;
             }
