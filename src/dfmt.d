@@ -382,6 +382,11 @@ private:
             case tok!"~":
                 if (peekIs(tok!"this"))
                 {
+                    if (!(index == 0 || peekBackIs(tok!"{") || peekBackIs(tok!"}")
+                        || peekBackIs(tok!";")))
+                    {
+                        write(" ");
+                    }
                     writeToken();
                     break;
                 }
