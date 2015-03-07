@@ -475,8 +475,9 @@ private:
                 writeToken();
                 break;
             case tok!",":
-                if (linebreakHints.canFind(index) || (linebreakHints.length == 0
-                    && currentLineLength > config.columnSoftLimit))
+                if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
+                    || (linebreakHints.length == 0
+                    && currentLineLength > config.columnSoftLimit)))
                 {
                     writeToken();
                     pushIndent();
@@ -485,7 +486,11 @@ private:
                 else
                 {
                     writeToken();
-                    write(" ");
+                    if (!currentIs(tok!")", false) && !currentIs(tok!"}", false)
+                        && !currentIs(tok!"]", false))
+                    {
+                        write(" ");
+                    }
                 }
                 regenLineBreakHintsIfNecessary(index - 1);
                 break;
@@ -592,16 +597,37 @@ private:
     size_t expressionEndIndex(size_t i) const pure @safe @nogc
     {
         int parenDepth = 0;
-        loop : while (i < tokens.length)
-            switch (tokens[i].type)
-            {
-            case tok!"(":
-                parenDepth++;
+        int bracketDepth = 0;
+        int braceDepth = 0;
+        loop : while (i < tokens.length) switch (tokens[i].type)
+        {
+        case tok!"(":
+            parenDepth++;
+            i++;
+            break;
+        case tok!"{":
+            braceDepth++;
+            i++;
+            break;
+        case tok!"[":
+            bracketDepth++;
             i++;
             break;
         case tok!")":
             parenDepth--;
             if (parenDepth <= 0)
+                break loop;
+            i++;
+            break;
+        case tok!"}":
+            braceDepth--;
+            if (braceDepth <= 0)
+                break loop;
+            i++;
+            break;
+        case tok!"]":
+            bracketDepth--;
+            if (bracketDepth <= 0)
                 break loop;
             i++;
             break;
@@ -657,7 +683,7 @@ private:
                 else
                 {
                     // Silly hack to format enums better.
-                    if (peekBackIs(tok!"identifier") || peekBackIs(tok!","))
+                    if (peekBackIsLiteralOrIdent() || peekBackIs(tok!","))
                         newline();
                     write("}");
                     depth--;
@@ -861,6 +887,32 @@ private:
         return tokens[index - 1];
     }
 
+    bool peekBackIsLiteralOrIdent()
+    {
+        if (index == 0) return false;
+        switch (tokens[index - 1].type)
+        {
+        case tok!"doubleLiteral":
+        case tok!"floatLiteral":
+        case tok!"idoubleLiteral":
+        case tok!"ifloatLiteral":
+        case tok!"intLiteral":
+        case tok!"longLiteral":
+        case tok!"realLiteral":
+        case tok!"irealLiteral":
+        case tok!"uintLiteral":
+        case tok!"ulongLiteral":
+        case tok!"characterLiteral":
+        case tok!"identifier":
+        case tok!"stringLiteral":
+        case tok!"wstringLiteral":
+        case tok!"dstringLiteral":
+            return true;
+        default:
+            return false;
+        }
+    }
+
     bool peekBackIs(IdType tokenType)
     {
         return (index >= 1) && tokens[index - 1].type == tokenType;
@@ -871,11 +923,12 @@ private:
         return (index >= 2) && tokens[index - 2].type == tokenType;
     }
 
-    bool peekImplementation(IdType tokenType, size_t n)
+    bool peekImplementation(IdType tokenType, size_t n, bool ignoreComments = true)
     {
         auto i = index + n;
-        while (i < tokens.length && tokens[i].type == tok!"comment")
-            i++;
+        if (ignoreComments)
+            while (i < tokens.length && tokens[i].type == tok!"comment")
+                i++;
         return i < tokens.length && tokens[i].type == tokenType;
     }
 
@@ -889,14 +942,14 @@ private:
         return index + 1 < tokens.length && isOperator(tokens[index + 1].type);
     }
 
-    bool peekIs(IdType tokenType)
+    bool peekIs(IdType tokenType, bool ignoreComments = true)
     {
-        return peekImplementation(tokenType, 1);
+        return peekImplementation(tokenType, 1, ignoreComments);
     }
 
-    bool currentIs(IdType tokenType)
+    bool currentIs(IdType tokenType, bool ignoreComments = true)
     {
-        return peekImplementation(tokenType, 0);
+        return peekImplementation(tokenType, 0, ignoreComments);
     }
 
     bool isBlockHeader(int i = 0)
