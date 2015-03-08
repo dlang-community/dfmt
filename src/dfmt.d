@@ -660,16 +660,14 @@ private:
                 }
                 else
                 {
-                    if (config.braceStyle == BraceStyle.otbs)
+                    if (index > 0 && !justAddedExtraNewline && !peekBackIs(tok!"{") && !peekBackIs(tok!"}"))
                     {
-                        write(" ");
-                        write("{");
+                        if (config.braceStyle == BraceStyle.otbs)
+                            write(" ");
+                        else
+                            newline();
                     }
-                    else
-                    {
-                        newline();
-                        write("{");
-                    }
+                    write("{");
                     indentLevel++;
                     index++;
                     newline();
