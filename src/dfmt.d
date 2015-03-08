@@ -839,6 +839,8 @@ private:
         else
             newline();
         writeToken();
+        if (!currentIs(tok!"case") && !currentIs(tok!"default") && !currentIs(tok!"}"))
+            indentLevel++;
         newline();
         while (index < tokens.length)
         {
@@ -850,7 +852,7 @@ private:
                 newline();
                 return;
             }
-            else if (current.type == tok!";" && peekIs(tok!"}"))
+            else if (current.type == tok!";" && peekIs(tok!"}", false))
             {
                 writeToken();
                 newline();
@@ -886,6 +888,8 @@ private:
                 else
                     goto peek;
             }
+            else if (currentIs(tok!"}", false))
+                break;
             else
             {
             peek:
