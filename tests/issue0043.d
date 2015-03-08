@@ -4,7 +4,7 @@ unittest
 	case 1:	case 2:
 label:doStuff();
 	case 3:
-		doOtherSTuff();
+		doOtherStuff();
 		goto label;
 default:
 break;

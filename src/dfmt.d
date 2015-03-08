@@ -292,13 +292,13 @@ private:
         }
         else if (isBlockHeader())
         {
+            if (current.type == tok!"if")
+                ifIndents ~= tempIndent;
             writeToken();
             write(" ");
             writeParens(false);
-            if (isBlockHeader() || current.type == tok!"switch")
-            {
+            if (current.type == tok!"switch")
                 write(" ");
-            }
             else if (current.type == tok!"comment")
             {
                 if (!peekIs(tok!"{") && !peekIs(tok!";"))
@@ -439,9 +439,12 @@ private:
                 else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!";")
                     || peekBack2Is(tok!"}") || peekBack2Is(tok!"{")))
                 {
-                    tempIndent = 0;
+                    if (tempIndent < 0)
+                        tempIndent = 0;
+                    else
+                        popIndent();
                     writeToken();
-                    if (isBlockHeader())
+                    if (isBlockHeader() && current.type != tok!"if")
                         write(" ");
                     else if (!currentIs(tok!"{"))
                         newline();
@@ -449,7 +452,7 @@ private:
                 else
                 {
                     write(" : ");
-                    index += 1;
+                    index++;
                 }
                 break;
             case tok!"]":
@@ -458,7 +461,16 @@ private:
                     write(" ");
                 break;
             case tok!";":
-                tempIndent = 0;
+                if (peekIs(tok!"else"))
+                {
+                    tempIndent = ifIndents[$ - 1];
+                    if (ifIndents.length)
+                        ifIndents = ifIndents[0 .. $ - 1];
+                }
+                else if (!peekIs(tok!"}"))
+                    tempIndent = 0;
+                else
+                    popIndent();
                 writeToken();
                 linebreakHints = [];
                 if (index >= tokens.length || current.type != tok!"comment"
@@ -472,7 +484,8 @@ private:
                 if (linebreakHints.canFind(index) || (linebreakHints.length == 0
                     && currentLineLength + nextTokenLength() > config.columnHardLimit))
                 {
-                    pushIndent();
+                    if (tempIndent < 2)
+                        pushIndent();
                     newline();
                 }
                 writeToken();
@@ -483,7 +496,8 @@ private:
                     && currentLineLength > config.columnSoftLimit)))
                 {
                     writeToken();
-                    pushIndent();
+                    if (tempIndent < 2)
+                        pushIndent();
                     newline();
                 }
                 else
@@ -546,7 +560,8 @@ private:
             binary:
                 if (linebreakHints.canFind(index))
                 {
-                    pushIndent();
+                    if (tempIndent < 2)
+                        pushIndent();
                     newline();
                 }
                 else
@@ -585,8 +600,7 @@ private:
     /// Pushes a temporary indent level
     void pushIndent()
     {
-        if (tempIndent == 0)
-            tempIndent++;
+        tempIndent++;
     }
 
     /// Pops a temporary indent level
@@ -647,7 +661,6 @@ private:
     {
         import std.range : assumeSorted;
         int depth = 0;
-        immutable l = indentLevel;
         do
         {
             if (current.type == tok!"{")
@@ -745,7 +758,8 @@ private:
                     && currentLineLength > config.columnSoftLimit
                     && current.type != tok!")"))
                 {
-                    pushIndent();
+                    if (tempIndent < 2)
+                        pushIndent();
                     newline();
                 }
                 regenLineBreakHintsIfNecessary(index - 1);
@@ -753,7 +767,7 @@ private:
             }
             else if (current.type == tok!")")
             {
-                if (peekIs(tok!"identifier") || peekIsBasicType())
+                if (peekIsLiteralOrIdent() || peekIsBasicType())
                 {
                     writeToken();
                     if (space_afterwards)
@@ -831,19 +845,14 @@ private:
                 newline();
                 return;
             }
-            else if (current.type == tok!";")
+            else if (current.type == tok!";" && peekIs(tok!"}"))
             {
-                if (peekIs(tok!"}"))
-                {
-                    writeToken();
-                    newline();
-                    indentLevel = l;
-                    writeToken();
-                    newline();
-                    return;
-                }
-                else
-                    goto peek;
+                writeToken();
+                newline();
+                indentLevel = l;
+                writeToken();
+                newline();
+                return;
             }
             else if (current.type == tok!"case")
             {
@@ -859,14 +868,14 @@ private:
                     writeToken();
                     write(" ");
                 }
-                else if (peekIs(tok!"identifier") && peek2Is(tok!":"))
+                else if (peekIsLabel())
                 {
                     writeToken();
-                    indentLevel++;
+                    pushIndent();
                     newline();
                     writeToken();
                     writeToken();
-                    indentLevel++;
+                    pushIndent();
                     newline();
                 }
                 else
@@ -876,13 +885,13 @@ private:
             {
             peek:
                 if (peekIs(tok!"case", false) || peekIs(tok!"default", false)
-                    || peekIs(tok!"}", false) || peekIsLabel())
+                    || peekIs(tok!"}", false))
                 {
                     indentLevel = l;
-                    formatStep();
+                    if (peekIsLabel())
+                        pushIndent();
                 }
-                else
-                    formatStep();
+                formatStep();
             }
         }
         indentLevel = l;
@@ -924,6 +933,32 @@ private:
     {
         if (index == 0) return false;
         switch (tokens[index - 1].type)
+        {
+        case tok!"doubleLiteral":
+        case tok!"floatLiteral":
+        case tok!"idoubleLiteral":
+        case tok!"ifloatLiteral":
+        case tok!"intLiteral":
+        case tok!"longLiteral":
+        case tok!"realLiteral":
+        case tok!"irealLiteral":
+        case tok!"uintLiteral":
+        case tok!"ulongLiteral":
+        case tok!"characterLiteral":
+        case tok!"identifier":
+        case tok!"stringLiteral":
+        case tok!"wstringLiteral":
+        case tok!"dstringLiteral":
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    bool peekIsLiteralOrIdent()
+    {
+        if (index + 1 >= tokens.length) return false;
+        switch (tokens[index + 1].type)
         {
         case tok!"doubleLiteral":
         case tok!"floatLiteral":
@@ -998,7 +1033,8 @@ private:
 
     void newline()
     {
-        import std.range:assumeSorted;
+        import std.range : assumeSorted;
+
         output.put("\n");
         immutable bool hasCurrent = index + 1 < tokens.length;
         if (!justAddedExtraNewline && index > 0
@@ -1012,10 +1048,9 @@ private:
         {
             if (current.type == tok!"}")
                 indentLevel--;
-            else if ((current.type == tok!"identifier" && peekIs(tok!":")
-                && !isBlockHeader(2))
-                || (!assumeSorted(astInformation.attributeDeclarationLines)
-                .equalRange(current.line).empty))
+            else if ((!assumeSorted(astInformation.attributeDeclarationLines)
+                .equalRange(current.line).empty) || (current.type == tok!"identifier"
+                && peekIs(tok!":") && !isBlockHeader(2)))
             {
                 tempIndent--;
             }
@@ -1079,6 +1114,8 @@ private:
     ASTInformation* astInformation;
 
     size_t[] linebreakHints;
+
+    int[] ifIndents;
 
     /// Configuration
     FormatterConfig* config;
