@@ -816,6 +816,12 @@ private:
         writeToken(); // switch
         write(" ");
         writeParens(true);
+        if (current.type == tok!"with")
+        {
+            writeToken();
+            write(" ");
+            writeParens(true);
+        }
         if (current.type != tok!"{")
             return;
         if (config.braceStyle == BraceStyle.otbs)
@@ -853,12 +859,27 @@ private:
                 writeToken();
                 write(" ");
             }
-            else if (current.type == tok!":" && peekIs(tok!".."))
+            else if (current.type == tok!":")
             {
-                writeToken();
-                write(" ");
-                writeToken();
-                write(" ");
+                if (peekIs(tok!".."))
+                {
+                    writeToken();
+                    write(" ");
+                    writeToken();
+                    write(" ");
+                }
+                else if (peekIs(tok!"identifier") && peek2Is(tok!":"))
+                {
+                    writeToken();
+                    indentLevel++;
+                    newline();
+                    writeToken();
+                    writeToken();
+                    indentLevel++;
+                    newline();
+                }
+                else
+                    goto peek;
             }
             else
             {
