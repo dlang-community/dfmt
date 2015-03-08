@@ -314,7 +314,7 @@ private:
         else if (current.type == tok!"else")
         {
             writeToken();
-            if (current.type == tok!"if")
+            if (current.type == tok!"if" || (current.type == tok!"static" && peekIs(tok!"if")))
                 write(" ");
             else if (current.type != tok!"{")
             {
