@@ -1021,6 +1021,22 @@ private:
         return peekImplementation(tokenType, 0, ignoreComments);
     }
 
+    /// Bugs: not unicode correct
+    size_t tokenEndLine(const Token t)
+    {
+        import std.algorithm : count;
+        switch (t.type)
+        {
+        case tok!"comment":
+        case tok!"stringLiteral":
+        case tok!"wstringLiteral":
+        case tok!"dstringLiteral":
+            return t.line + (cast(ubyte[]) t.text).count('\n');
+        default:
+            return t.line;
+        }
+    }
+
     bool isBlockHeader(int i = 0)
     {
         if (i + index < 0 || i + index >= tokens.length)
@@ -1039,7 +1055,7 @@ private:
         output.put("\n");
         immutable bool hasCurrent = index + 1 < tokens.length;
         if (!justAddedExtraNewline && index > 0
-            && hasCurrent && tokens[index].line - tokens[index - 1].line > 1)
+            && hasCurrent && tokens[index].line - tokenEndLine(tokens[index - 1]) > 1)
         {
             output.put("\n");
         }
