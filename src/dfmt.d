@@ -505,8 +505,11 @@ private:
                     writeToken();
                     if (currentIs(tok!"}", false))
                         tempIndent = 0;
-                    else if (!currentIs(tok!")", false) && !currentIs(tok!"]", false))
+                    else if (!currentIs(tok!")", false) && !currentIs(tok!"]", false)
+                        && !currentIs(tok!"comment", false))
+                    {
                         write(" ");
+                    }
                 }
                 regenLineBreakHintsIfNecessary(index - 1);
                 break;
