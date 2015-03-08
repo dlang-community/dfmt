@@ -489,11 +489,10 @@ private:
                 else
                 {
                     writeToken();
-                    if (!currentIs(tok!")", false) && !currentIs(tok!"}", false)
-                        && !currentIs(tok!"]", false))
-                    {
+                    if (currentIs(tok!"}", false))
+                        tempIndent = 0;
+                    else if (!currentIs(tok!")", false) && !currentIs(tok!"]", false))
                         write(" ");
-                    }
                 }
                 regenLineBreakHintsIfNecessary(index - 1);
                 break;
@@ -648,6 +647,7 @@ private:
     {
         import std.range : assumeSorted;
         int depth = 0;
+        immutable l = indentLevel;
         do
         {
             if (current.type == tok!"{")
@@ -700,20 +700,11 @@ private:
                         index++;
                         if (index < tokens.length && current.type == tok!"else")
                             write(" ");
-                        else
-                        {
-                            if (peekIs(tok!"case") || peekIs(tok!"default"))
-                                indentLevel--;
-                            newline();
-                        }
                     }
-                    else
-                    {
-                        index++;
-                        if (peekIs(tok!"case") || peekIs(tok!"default"))
-                            indentLevel--;
-                        newline();
-                    }
+                    index++;
+                    if (peekIs(tok!"case") || peekIs(tok!"default"))
+                        indentLevel--;
+                    newline();
                 }
             }
             else
