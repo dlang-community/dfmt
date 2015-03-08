@@ -673,7 +673,8 @@ private:
                 }
                 else
                 {
-                    if (index > 0 && !justAddedExtraNewline && !peekBackIs(tok!"{") && !peekBackIs(tok!"}"))
+                    if (index > 0 && !justAddedExtraNewline && !peekBackIs(tok!"{")
+                        && !peekBackIs(tok!"}") && !peekBackIs(tok!";"))
                     {
                         if (config.braceStyle == BraceStyle.otbs)
                             write(" ");
