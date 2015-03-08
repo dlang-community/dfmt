@@ -316,7 +316,7 @@ private:
             writeToken();
             if (current.type == tok!"if" || (current.type == tok!"static" && peekIs(tok!"if")))
                 write(" ");
-            else if (current.type != tok!"{")
+            else if (current.type != tok!"{" && current.type != tok!"comment")
             {
                 pushIndent();
                 newline();
@@ -677,8 +677,10 @@ private:
                         && !peekBackIs(tok!"}") && !peekBackIs(tok!";"))
                     {
                         if (config.braceStyle == BraceStyle.otbs)
+                        {
                             write(" ");
-                        else
+                        }
+                        else if (!peekBackIs(tok!"comment") || tokens[index - 1].text[0 .. 2] != "//")
                             newline();
                     }
                     write("{");
@@ -711,7 +713,6 @@ private:
                     }
                     if (config.braceStyle == BraceStyle.otbs)
                     {
-                        index++;
                         if (index < tokens.length && current.type == tok!"else")
                             write(" ");
                     }
