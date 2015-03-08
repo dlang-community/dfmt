@@ -370,7 +370,7 @@ private:
                     .equalRange(current.index).empty)
                 {
                     writeToken();
-                    if (current.type != tok!"*" && current.type != tok!")")
+                    if (current.type != tok!"*" && current.type != tok!")" && current.type != tok!"[")
                         write(" ");
                     break;
                 }
