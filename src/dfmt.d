@@ -443,8 +443,8 @@ private:
                     writeToken();
                     newline();
                 }
-                else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!";")
-                    || peekBack2Is(tok!"}") || peekBack2Is(tok!"{")))
+                else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!";", true)
+                    || peekBack2Is(tok!"}", true) || peekBack2Is(tok!"{", true)))
                 {
                     if (tempIndent < 0)
                         tempIndent = 0;
@@ -483,9 +483,7 @@ private:
                 }
                 writeToken();
                 linebreakHints = [];
-                if (index >= tokens.length || !currentIs(tok!"comment")
-                    || current.line != tokens[index - 1].line)
-                    newline();
+                newline();
                 break;
             case tok!"{":
                 writeBraces();
@@ -1003,28 +1001,28 @@ private:
         }
     }
 
-    bool peekBackIs(IdType tokenType)
+    bool peekBackIs(IdType tokenType, bool ignoreComments = false)
     {
-        return (index >= 1) && tokens[index - 1].type == tokenType;
+        return peekImplementation(tokenType, -1, ignoreComments);
     }
 
-    bool peekBack2Is(IdType tokenType)
+    bool peekBack2Is(IdType tokenType, bool ignoreComments = false)
     {
-        return (index >= 2) && tokens[index - 2].type == tokenType;
+        return peekImplementation(tokenType, -2, ignoreComments);
     }
 
-    bool peekImplementation(IdType tokenType, size_t n, bool ignoreComments = true)
+    bool peekImplementation(IdType tokenType, int n, bool ignoreComments = true)
     {
         auto i = index + n;
         if (ignoreComments)
-            while (i < tokens.length && tokens[i].type == tok!"comment")
-                i++;
+            while (n != 0 && i < tokens.length && tokens[i].type == tok!"comment")
+                i = n > 0 ? i + 1 : i - 1;
         return i < tokens.length && tokens[i].type == tokenType;
     }
 
-    bool peek2Is(IdType tokenType)
+    bool peek2Is(IdType tokenType, bool ignoreComments = true)
     {
-        return peekImplementation(tokenType, 2);
+        return peekImplementation(tokenType, 2, ignoreComments);
     }
 
     bool peekIsOperator()
@@ -1072,6 +1070,9 @@ private:
     void newline()
     {
         import std.range : assumeSorted;
+
+        if (currentIs(tok!"comment") && current.line == tokenEndLine(tokens[index - 1]))
+            return;
 
         output.put("\n");
         immutable bool hasCurrent = index + 1 < tokens.length;
