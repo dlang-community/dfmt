@@ -375,7 +375,7 @@ private:
                 {
                     writeToken();
                     if (!currentIs(tok!"*") && !currentIs(tok!")") && !currentIs(tok!"[")
-                        && !currentIs(tok!","))
+                        && !currentIs(tok!",") && !currentIs(tok!";"))
                     {
                         write(" ");
                     }
