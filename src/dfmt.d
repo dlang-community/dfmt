@@ -333,6 +333,7 @@ private:
                 writeToken();
                 writeParens(true);
                 break;
+            case tok!"in":
             case tok!"is":
                 writeToken();
                 if (!currentIs(tok!"("))
@@ -772,34 +773,27 @@ private:
             }
             else if (current.type == tok!")")
             {
-                if (peekIsLiteralOrIdent() || peekIsBasicType())
+                depth--;
+                if (depth == 0 && (peekIs(tok!"in") || peekIs(tok!"out")
+                    || peekIs(tok!"body")))
+                {
+                    writeToken(); // )
+                    newline();
+                    writeToken(); // in/out/body
+                }
+                else if (peekIsLiteralOrIdent() || peekIsBasicType() || peekIsKeyword())
                 {
                     writeToken();
-                    if (space_afterwards)
+                    if (space_afterwards || depth > 0)
                         write(" ");
                 }
-                else if (index + 1 < tokens.length)
+                else if ((peekIsKeyword() || peekIs(tok!"@")) && space_afterwards)
                 {
-                    if (tokens[index + 1].type == tok!"in"
-                        || tokens[index + 1].type == tok!"out"
-                        || tokens[index + 1].type == tok!"body")
-                    {
-                        writeToken();
-                        newline();
-                    }
-                    else if (isKeyword(tokens[index + 1].type)
-                        || tokens[index + 1].type == tok!"@")
-                    {
-                        writeToken();
-                        if (space_afterwards)
-                            write(" ");
-                    }
-                    else
-                        writeToken();
+                    writeToken();
+                    write(" ");
                 }
                 else
                     writeToken();
-                depth--;
             }
             else
                 formatStep();
@@ -808,6 +802,11 @@ private:
         popIndent();
         tempIndent = t;
         linebreakHints = [];
+    }
+
+    bool peekIsKeyword()
+    {
+        return index + 1 < tokens.length && isKeyword(tokens[index + 1].type);
     }
 
     bool peekIsBasicType()
