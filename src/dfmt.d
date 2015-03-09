@@ -468,10 +468,13 @@ private:
                     if (ifIndents.length)
                         ifIndents.pop();
                 }
-                else if (!peekIs(tok!"}"))
-                    tempIndent = 0;
-                else
-                    popIndent();
+                else if (braceIndents.top() < tempIndent)
+                {
+                    if (!peekIs(tok!"}"))
+                        tempIndent = 0;
+                    else
+                        popIndent();
+                }
                 writeToken();
                 linebreakHints = [];
                 if (index >= tokens.length || current.type != tok!"comment"
@@ -604,12 +607,17 @@ private:
     /// Pushes a temporary indent level
     void pushIndent()
     {
+//        stderr.writeln("pushIndent: ", current.line, ",", current.column);
         tempIndent++;
     }
 
     /// Pops a temporary indent level
     void popIndent()
     {
+//        if (index < tokens.length)
+//            stderr.writeln("popIndent: ", current.line, ",", current.column);
+//        else
+//            stderr.writeln("popIndent: EOF");
         if (tempIndent > 0)
             tempIndent--;
     }
@@ -697,11 +705,11 @@ private:
             else if (current.type == tok!"}")
             {
                 braceIndents.pop();
+                depth--;
                 if (assumeSorted(astInformation.structInitEndLocations)
                     .equalRange(tokens[index].index).length)
                 {
                     writeToken();
-                    depth--;
                 }
                 else
                 {
@@ -709,7 +717,6 @@ private:
                     if (peekBackIsLiteralOrIdent() || peekBackIs(tok!","))
                         newline();
                     write("}");
-                    depth--;
                     if (index < tokens.length - 1 &&
                         assumeSorted(astInformation.doubleNewlineLocations)
                         .equalRange(tokens[index].index).length && !peekIs(tok!"}"))
@@ -732,7 +739,6 @@ private:
                 formatStep();
         }
         while (index < tokens.length && depth > 0);
-        popIndent();
     }
 
     void writeParens(bool space_afterwards)
@@ -801,7 +807,7 @@ private:
                 formatStep();
         }
         while (index < tokens.length && depth > 0);
-        popIndent();
+//        popIndent();
         tempIndent = t;
         linebreakHints = [];
     }
