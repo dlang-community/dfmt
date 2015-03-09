@@ -374,8 +374,11 @@ private:
                     .equalRange(current.index).empty)
                 {
                     writeToken();
-                    if (!currentIs(tok!"*") && !currentIs(tok!")") && !currentIs(tok!"["))
+                    if (!currentIs(tok!"*") && !currentIs(tok!")") && !currentIs(tok!"[")
+                        && !currentIs(tok!","))
+                    {
                         write(" ");
+                    }
                     break;
                 }
                 else if (assumeSorted(astInformation.unaryLocations).equalRange(current.index).empty)
