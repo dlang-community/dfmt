@@ -290,7 +290,7 @@ private:
             write(" ");
             writeParens(true);
         }
-        else if (isBlockHeader())
+        else if (isBlockHeader() && peekIs(tok!"(", false))
         {
             if (current.type == tok!"if")
                 ifIndents.push(tempIndent);
