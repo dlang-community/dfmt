@@ -297,7 +297,7 @@ private:
             writeToken();
             write(" ");
             writeParens(false);
-            if (currentIs(tok!"switch"))
+            if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch")))
                 write(" ");
             else if (currentIs(tok!"comment"))
             {
