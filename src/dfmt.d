@@ -1088,7 +1088,7 @@ private:
             }
             else if ((!assumeSorted(astInformation.attributeDeclarationLines)
                 .equalRange(current.line).empty) || (currentIs(tok!"identifier")
-                && peekIs(tok!":") && !isBlockHeader(2)))
+                && peekIs(tok!":") && (!isBlockHeader(2) || peek2Is(tok!"if"))))
             {
                 tempIndent--;
             }
