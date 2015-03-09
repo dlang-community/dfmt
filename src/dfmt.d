@@ -293,7 +293,7 @@ private:
         else if (isBlockHeader())
         {
             if (current.type == tok!"if")
-                ifIndents ~= tempIndent;
+                ifIndents.push(tempIndent);
             writeToken();
             write(" ");
             writeParens(false);
@@ -464,9 +464,9 @@ private:
             case tok!";":
                 if (peekIs(tok!"else"))
                 {
-                    tempIndent = ifIndents[$ - 1];
+                    tempIndent = ifIndents.top();
                     if (ifIndents.length)
-                        ifIndents = ifIndents[0 .. $ - 1];
+                        ifIndents.pop();
                 }
                 else if (!peekIs(tok!"}"))
                     tempIndent = 0;
@@ -669,6 +669,7 @@ private:
         {
             if (current.type == tok!"{")
             {
+                braceIndents.push(tempIndent);
                 depth++;
                 if (assumeSorted(astInformation.structInitStartLocations)
                     .equalRange(tokens[index].index).length)
@@ -695,6 +696,7 @@ private:
             }
             else if (current.type == tok!"}")
             {
+                braceIndents.pop();
                 if (assumeSorted(astInformation.structInitEndLocations)
                     .equalRange(tokens[index].index).length)
                 {
@@ -1071,7 +1073,10 @@ private:
         if (hasCurrent)
         {
             if (current.type == tok!"}")
+            {
+                tempIndent = braceIndents.top();
                 indentLevel--;
+            }
             else if ((!assumeSorted(astInformation.attributeDeclarationLines)
                 .equalRange(current.line).empty) || (current.type == tok!"identifier"
                 && peekIs(tok!":") && !isBlockHeader(2)))
@@ -1139,7 +1144,8 @@ private:
 
     size_t[] linebreakHints;
 
-    int[] ifIndents;
+    FixedStack ifIndents;
+    FixedStack braceIndents;
 
     /// Configuration
     FormatterConfig* config;
@@ -1650,6 +1656,34 @@ State[] validMoves(const Token[] tokens, ref const State current,
             currentLineLength, indentLevel);
     }
     return states;
+}
+
+struct FixedStack
+{
+    void push(int i)
+    {
+        index = index == 255 ? index : index + 1;
+        arr[index] = i;
+    }
+
+    void pop()
+    {
+        index = index == 0 ? index : index - 1;
+    }
+
+    int top()
+    {
+        return arr[index];
+    }
+
+    size_t length()
+    {
+        return index;
+    }
+
+private:
+    size_t index;
+    int[256] arr;
 }
 
 unittest
