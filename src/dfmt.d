@@ -345,8 +345,7 @@ private:
             default:
                 if (index + 1 < tokens.length)
                 {
-                    auto next = tokens[index + 1];
-                    if (peekIsOperator())
+                    if (!peekIs(tok!"@") && peekIsOperator())
                         writeToken();
                     else
                     {
