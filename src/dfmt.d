@@ -580,7 +580,8 @@ private:
                 write(" ");
                 break;
             default:
-                assert (false, str(current.type));
+                writeToken();
+                break;
             }
         }
         else if (currentIs(tok!"identifier"))
@@ -594,7 +595,7 @@ private:
             }
         }
         else
-            assert (false, str(current.type));
+            writeToken();
     }
 
     void regenLineBreakHintsIfNecessary(immutable size_t i)
@@ -914,9 +915,11 @@ private:
             }
         }
         indentLevel = l;
-        assert (currentIs(tok!"}"));
-        writeToken();
-        newline();
+        if (currentIs(tok!"}"))
+        {
+            writeToken();
+            newline();
+        }
     }
 
     int currentTokenLength() pure @safe @nogc
