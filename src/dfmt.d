@@ -474,7 +474,7 @@ private:
             case tok!";":
                 if (peekIs(tok!"else") && ifIndents.length)
                     tempIndent = ifIndents.top();
-                else if (!peekIs(tok!"}"))
+                else if (!peekIs(tok!"}") || peekIs(tok!"comment", false))
                 {
                     if (ifIndents.length)
                     {
