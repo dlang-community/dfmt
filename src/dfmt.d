@@ -426,15 +426,10 @@ private:
                 writeToken();
                 break;
             case tok!":":
-                if (!assumeSorted(astInformation.attributeDeclarationLines)
-                    .equalRange(current.line).empty)
-                {
-                    writeToken();
-                    tempIndent = 0;
-                    newline();
-                }
-                else if (!assumeSorted(astInformation.caseEndLocations)
-                    .equalRange(current.index).empty)
+                if (!assumeSorted(astInformation.caseEndLocations)
+                    .equalRange(current.index).empty || !assumeSorted(
+                    astInformation.attributeDeclarationLines).equalRange(
+                    current.line).empty)
                 {
                     indentLevel++;
                     writeToken();
@@ -1043,7 +1038,9 @@ private:
                 && currentIs(tok!"identifier") && peekIs(tok!":")
                 && (!isBlockHeader(2) || peek2Is(tok!"if"))))
             {
-                tempIndent--;
+                popIndent();
+                if (braceIndents.length)
+                    indentLevel = braceIndents.top();
             }
             indent();
         }
