@@ -341,8 +341,12 @@ private:
             case tok!"in":
             case tok!"is":
                 writeToken();
-                if (!currentIs(tok!"("))
+                if (!currentIs(tok!"(") && !currentIs(tok!"{"))
                     write(" ");
+                break;
+            case tok!"case":
+                writeToken();
+                write(" ");
                 break;
             default:
                 if (index + 1 < tokens.length)
