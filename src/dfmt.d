@@ -321,6 +321,8 @@ private:
             }
             else if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
             {
+                if (ifIndents.length)
+                    ifIndents.pop();
                 pushIndent();
                 newline();
             }
@@ -434,31 +436,38 @@ private:
                 else if (!assumeSorted(astInformation.caseEndLocations)
                     .equalRange(current.index).empty)
                 {
-                    if (!(peekIs(tok!"case", false) || peekIs(tok!"default", false)
-                        || peekIs(tok!"}") || peekIsLabel()))
-                    {
-                        indentLevel++;
-                    }
+                    indentLevel++;
                     writeToken();
                     newline();
                 }
-                else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!";", true)
-                    || peekBack2Is(tok!"}", true) || peekBack2Is(tok!"{", true)))
+                else if (peekBackIs(tok!"identifier") && (index <= 1
+                    || peekBack2Is(tok!"{", true) || peekBack2Is(tok!"}", true)
+                    || peekBack2Is(tok!";", true) || peekBack2Is(tok!":", true))
+                    && !peekIs(tok!"{") && !(isBlockHeader(1) && !peekIs(tok!"if")))
                 {
-                    if (tempIndent < 0)
-                        tempIndent = 0;
-                    else
-                        popIndent();
+                    indentLevel++;
                     writeToken();
-                    if (isBlockHeader() && !currentIs(tok!"if"))
-                        write(" ");
-                    else if (!currentIs(tok!"{"))
-                        newline();
+                    newline();
                 }
                 else
                 {
-                    write(" : ");
-                    index++;
+                    if (peekIs(tok!".."))
+                        writeToken();
+                    else if (peekIs(tok!"{"))
+                    {
+                        writeToken();
+                        pushIndent();
+                    }
+                    else if (isBlockHeader(1) && !peekIs(tok!"if"))
+                    {
+                        writeToken();
+                        write(" ");
+                    }
+                    else
+                    {
+                        write(" : ");
+                        index++;
+                    }
                 }
                 break;
             case tok!"]":
@@ -467,18 +476,17 @@ private:
                     write(" ");
                 break;
             case tok!";":
-                if (peekIs(tok!"else"))
-                {
+                if (peekIs(tok!"else") && ifIndents.length)
                     tempIndent = ifIndents.top();
-                    if (ifIndents.length)
-                        ifIndents.pop();
-                }
-                else if (braceIndents.top() < tempIndent)
+                else if (!peekIs(tok!"}"))
                 {
-                    if (!peekIs(tok!"}"))
-                        tempIndent = 0;
+                    if (ifIndents.length)
+                    {
+                        tempIndent = ifIndents.top();
+                        ifIndents.pop();
+                    }
                     else
-                        popIndent();
+                        tempIndent = 0;
                 }
                 writeToken();
                 linebreakHints = [];
@@ -681,7 +689,8 @@ private:
         {
             if (currentIs(tok!"{"))
             {
-                braceIndents.push(tempIndent);
+                braceIndents.push(indentLevel);
+                braceTempIndents.push(tempIndent);
                 depth++;
                 if (assumeSorted(astInformation.structInitStartLocations)
                     .equalRange(tokens[index].index).length)
@@ -708,7 +717,6 @@ private:
             }
             else if (currentIs(tok!"}"))
             {
-                braceIndents.pop();
                 depth--;
                 if (assumeSorted(astInformation.structInitEndLocations)
                     .equalRange(tokens[index].index).length)
@@ -731,8 +739,6 @@ private:
                     if (config.braceStyle == BraceStyle.otbs && currentIs(tok!"else"))
                         write(" ");
                     index++;
-                    if (peekIs(tok!"case") || peekIs(tok!"default"))
-                        indentLevel--;
                     if (ifIndents.length >= 2 && ifIndents.top == tempIndent && !currentIs(tok!"else"))
                     {
                         ifIndents.pop();
@@ -813,7 +819,6 @@ private:
                 formatStep();
         }
         while (index < tokens.length && depth > 0);
-//        popIndent();
         tempIndent = t;
         linebreakHints = [];
     }
@@ -835,92 +840,15 @@ private:
 
     void formatSwitch()
     {
-        immutable l = indentLevel;
+        switchIndents.push(indentLevel);
         writeToken(); // switch
         write(" ");
         writeParens(true);
-        if (currentIs(tok!"with"))
+        while (currentIs(tok!"with"))
         {
             writeToken();
             write(" ");
             writeParens(true);
-        }
-        if (!currentIs(tok!"{"))
-            return;
-        if (config.braceStyle == BraceStyle.otbs)
-            write(" ");
-        else
-            newline();
-        writeToken();
-        if (!currentIs(tok!"case") && !currentIs(tok!"default") && !currentIs(tok!"}"))
-            indentLevel++;
-        newline();
-        while (index < tokens.length)
-        {
-            if (currentIs(tok!"}"))
-            {
-                indentLevel = l;
-                indent();
-                writeToken();
-                newline();
-                return;
-            }
-            else if (currentIs(tok!";") && peekIs(tok!"}", false))
-            {
-                writeToken();
-                newline();
-                indentLevel = l;
-                writeToken();
-                newline();
-                return;
-            }
-            else if (currentIs(tok!"case"))
-            {
-                writeToken();
-                write(" ");
-            }
-            else if (currentIs(tok!":"))
-            {
-                if (peekIs(tok!".."))
-                {
-                    writeToken();
-                    write(" ");
-                    writeToken();
-                    write(" ");
-                }
-                else if (peekIsLabel())
-                {
-                    writeToken();
-                    pushIndent();
-                    newline();
-                    writeToken();
-                    writeToken();
-                    pushIndent();
-                    newline();
-                }
-                else
-                    goto peek;
-            }
-            else if (currentIs(tok!"}", false))
-                break;
-            else
-            {
-            peek:
-                if (peekIs(tok!"case", false) || peekIs(tok!"default", false)
-                    || peekIs(tok!"}", false))
-                {
-                    indentLevel = l;
-                    if (peekIsLabel())
-                        pushIndent();
-                }
-                formatStep();
-            }
-        }
-        indentLevel = l;
-        if (currentIs(tok!"}"))
-        {
-            writeToken();
-            newline();
         }
     }
 
@@ -1089,14 +1017,30 @@ private:
         currentLineLength = 0;
         if (hasCurrent)
         {
+            bool switchLabel = false;
+            if (switchIndents.length && (currentIs(tok!"case") || currentIs(tok!"default")
+                || (currentIs(tok!"identifier") && peekIs(tok!":"))))
+            {
+                indentLevel = switchIndents.top();
+                switchLabel = true;
+            }
             if (currentIs(tok!"}"))
             {
-                tempIndent = braceIndents.top();
-                indentLevel--;
+                if (braceIndents.length)
+                {
+                    assert (braceTempIndents.length);
+                    indentLevel = braceIndents.top();
+                    tempIndent = braceTempIndents.top();
+                    braceIndents.pop();
+                    braceTempIndents.pop();
+                }
+                if (switchIndents.length && indentLevel == switchIndents.top)
+                    switchIndents.pop();
             }
             else if ((!assumeSorted(astInformation.attributeDeclarationLines)
-                .equalRange(current.line).empty) || (currentIs(tok!"identifier")
-                && peekIs(tok!":") && (!isBlockHeader(2) || peek2Is(tok!"if"))))
+                .equalRange(current.line).empty) || (!switchLabel
+                && currentIs(tok!"identifier") && peekIs(tok!":")
+                && (!isBlockHeader(2) || peek2Is(tok!"if"))))
             {
                 tempIndent--;
             }
@@ -1162,7 +1106,9 @@ private:
     size_t[] linebreakHints;
 
     FixedStack ifIndents;
+    FixedStack braceTempIndents;
     FixedStack braceIndents;
+    FixedStack switchIndents;
 
     /// Configuration
     FormatterConfig* config;
