@@ -438,7 +438,8 @@ private:
                 {
                     indentLevel++;
                     writeToken();
-                    newline();
+                    if (!currentIs(tok!"{"))
+                        newline();
                 }
                 else if (peekBackIs(tok!"identifier") && (index <= 1
                     || peekBack2Is(tok!"{", true) || peekBack2Is(tok!"}", true)
