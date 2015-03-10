@@ -292,7 +292,7 @@ private:
         }
         else if (isBlockHeader() && peekIs(tok!"(", false))
         {
-            if (currentIs(tok!"if"))
+            if (currentIs(tok!"if") && !peekBackIs(tok!"else"))
                 ifIndents.push(tempIndent);
             writeToken();
             write(" ");
@@ -728,14 +728,16 @@ private:
                         output.put("\n");
                         justAddedExtraNewline = true;
                     }
-                    if (config.braceStyle == BraceStyle.otbs)
-                    {
-                        if (index < tokens.length && currentIs(tok!"else"))
-                            write(" ");
-                    }
+                    if (config.braceStyle == BraceStyle.otbs && currentIs(tok!"else"))
+                        write(" ");
                     index++;
                     if (peekIs(tok!"case") || peekIs(tok!"default"))
                         indentLevel--;
+                    if (ifIndents.length >= 2 && ifIndents.top == tempIndent && !currentIs(tok!"else"))
+                    {
+                        ifIndents.pop();
+                        tempIndent = ifIndents.top();
+                    }
                     newline();
                 }
             }
@@ -1675,23 +1677,23 @@ State[] validMoves(const Token[] tokens, ref const State current,
 
 struct FixedStack
 {
-    void push(int i)
+    void push(int i) pure nothrow
     {
         index = index == 255 ? index : index + 1;
         arr[index] = i;
     }
 
-    void pop()
+    void pop() pure nothrow
     {
         index = index == 0 ? index : index - 1;
     }
 
-    int top()
+    int top() const pure nothrow @property
     {
         return arr[index];
     }
 
-    size_t length()
+    size_t length() const pure nothrow @property
     {
         return index;
     }
