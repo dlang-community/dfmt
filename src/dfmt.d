@@ -954,6 +954,11 @@ private:
             }
             else if (currentIs(tok!"identifier") && peekIs(tok!":"))
             {
+                while ((peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
+                    && indents.length && isTempIndent(indents.top()))
+                {
+                    indents.pop();
+                }
                 auto l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
                 {
@@ -970,6 +975,11 @@ private:
             }
             else if (currentIs(tok!"case") || currentIs(tok!"default"))
             {
+                while ((peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
+                    && indents.length && isTempIndent(indents.top()))
+                {
+                    indents.pop();
+                }
                 auto l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
                     indentLevel = l;
