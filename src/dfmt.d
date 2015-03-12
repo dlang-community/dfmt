@@ -236,6 +236,7 @@ private:
                     else if ((t == tok!"import" && !currentIs(tok!"import")))
                     {
                         write("\n");
+                        currentLineLength = 0;
                         justAddedExtraNewline = true;
                         newline();
                     }
@@ -490,6 +491,14 @@ private:
                 {
                     writeToken();
                 }
+                else if (assumeSorted(astInformation.funLitStartLocations)
+                    .equalRange(tokens[index].index).length)
+                {
+                    if (peekBackIs(tok!")"))
+                        write(" ");
+                    writeToken();
+                    write(" ");
+                }
                 else
                 {
                     if (!justAddedExtraNewline && !peekBackIs(tok!"{")
@@ -513,6 +522,12 @@ private:
                 {
                     writeToken();
                 }
+                else if (assumeSorted(astInformation.funLitEndLocations)
+                    .equalRange(tokens[index].index).length)
+                {
+                    write(" ");
+                    writeToken();
+                }
                 else
                 {
                     // Silly hack to format enums better.
@@ -523,13 +538,19 @@ private:
                         assumeSorted(astInformation.doubleNewlineLocations)
                         .equalRange(tokens[index].index).length && !peekIs(tok!"}"))
                     {
-                        output.put("\n");
+                        write("\n");
+                        currentLineLength = 0;
                         justAddedExtraNewline = true;
                     }
                     if (config.braceStyle == BraceStyle.otbs && currentIs(tok!"else"))
                         write(" ");
-                    index++;
-                    newline();
+                    if (!peekIs(tok!",") && !peekIs(tok!")"))
+                    {
+                        index++;
+                        newline();
+                    }
+                    else
+                        index++;
                 }
                 break;
             case tok!".":
@@ -711,12 +732,11 @@ private:
         {
             if (currentIs(tok!";"))
             {
-                if (!(peekIs(tok!";") || peekIs(tok!")")))
+                if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
                     write("; ");
                 else
                     write(";");
                 index++;
-                continue;
             }
             else if (currentIs(tok!"("))
             {
@@ -731,7 +751,6 @@ private:
                     newline();
                 }
                 regenLineBreakHintsIfNecessary(index - 1);
-                continue;
             }
             else if (currentIs(tok!")"))
             {
@@ -933,8 +952,17 @@ private:
         if (currentIs(tok!"comment") && current.line == tokenEndLine(tokens[index - 1]))
             return;
 
-        output.put("\n");
         immutable bool hasCurrent = index + 1 < tokens.length;
+
+        if (hasCurrent && tokens[index].type == tok!"}" && !assumeSorted(
+            astInformation.funLitEndLocations).equalRange(tokens[index].index).empty)
+        {
+            write(" ");
+            return;
+        }
+
+        output.put("\n");
+
         if (!justAddedExtraNewline && index > 0
             && hasCurrent && tokens[index].line - tokenEndLine(tokens[index - 1]) > 1)
         {
@@ -986,6 +1014,8 @@ private:
             }
             else if (currentIs(tok!"{") && assumeSorted(
                 astInformation.structInitStartLocations).equalRange(
+                tokens[index].index).empty && assumeSorted(
+                astInformation.funLitStartLocations).equalRange(
                 tokens[index].index).empty)
             {
                 while (indents.length && isWrapIndent(indents.top))
@@ -1142,6 +1172,8 @@ struct ASTInformation
         sort(caseEndLocations);
         sort(structInitStartLocations);
         sort(structInitEndLocations);
+        sort(funLitStartLocations);
+        sort(funLitEndLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -1164,6 +1196,12 @@ struct ASTInformation
 
     /// Closing braces of struct initializers
     size_t[] structInitEndLocations;
+
+    /// Opening braces of function literals
+    size_t[] funLitStartLocations;
+
+    /// Closing braces of function literals
+    size_t[] funLitEndLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -1173,6 +1211,15 @@ final class FormatVisitor : ASTVisitor
     this(ASTInformation* astInformation)
     {
         this.astInformation = astInformation;
+    }
+
+    override void visit(const FunctionLiteralExpression funcLit)
+    {
+        astInformation.funLitStartLocations ~= funcLit.functionBody
+            .blockStatement.startLocation;
+        astInformation.funLitEndLocations ~= funcLit.functionBody
+            .blockStatement.endLocation;
+        funcLit.accept(this);
     }
 
     override void visit(const DefaultStatement defaultStatement)
