@@ -300,8 +300,7 @@ private:
             writeToken(); // switch
             write(" ");
         }
-        else if ((currentIs(tok!"version") || currentIs(tok!"extern"))
-            && peekIs(tok!"("))
+        else if (currentIs(tok!"extern") && peekIs(tok!"("))
         {
             writeToken();
             write(" ");
@@ -326,13 +325,13 @@ private:
             if (currentIs(tok!"if") || (currentIs(tok!"static") && peekIs(tok!"if"))
                 || currentIs(tok!"version"))
             {
-                if (indents.top() == tok!"if")
+                if (indents.top() == tok!"if" || indents.top == tok!"version")
                     indents.pop();
                 write(" ");
             }
             else if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
             {
-                if (indents.top() == tok!"if")
+                if (indents.top() == tok!"if" || indents.top == tok!"version")
                     indents.pop();
                 indents.push(tok!"else");
                 newline();
@@ -941,13 +940,14 @@ private:
         auto t = tokens[i + index].type;
         return t == tok!"for" || t == tok!"foreach"
             || t == tok!"foreach_reverse" || t == tok!"while"
-            || t == tok!"if" || t == tok!"out"
+            || t == tok!"if" || t == tok!"out" || t == tok!"version"
             || t == tok!"catch" || t == tok!"with";
     }
 
     void newline()
     {
         import std.range : assumeSorted;
+        import std.algorithm : max;
 
         if (currentIs(tok!"comment") && current.line == tokenEndLine(tokens[index - 1]))
             return;
@@ -976,9 +976,11 @@ private:
             bool switchLabel = false;
             if (currentIs(tok!"else"))
             {
-                auto l = indents.indentToMostRecent(tok!"if");
-                if (l != -1)
-                    indentLevel = l;
+                auto i = indents.indentToMostRecent(tok!"if");
+                auto v = indents.indentToMostRecent(tok!"version");
+                auto mostRecent = max(i, v);
+                if (mostRecent != -1)
+                    indentLevel = mostRecent;
             }
             else if (currentIs(tok!"identifier") && peekIs(tok!":"))
             {
@@ -1037,7 +1039,8 @@ private:
                     indents.pop();
                 }
                 while (indents.length && isTempIndent(indents.top)
-                    && (indents.top != tok!"if" || !peekIs(tok!"else")))
+                    && ((indents.top != tok!"if" && indents.top != tok!"version")
+                    || !peekIs(tok!"else")))
                 {
                     indents.pop();
                 }
