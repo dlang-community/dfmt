@@ -1024,8 +1024,9 @@ private:
                 while (indents.length && isWrapIndent(indents.top))
                     indents.pop();
                 indents.push(tok!"{");
-                if (index == 1 || peekBackIs(tok!":") || peekBackIs(tok!"{")
-                    || peekBackIs(tok!"}") || peekBackIs(tok!")") || peekBackIs(tok!";"))
+                if (index == 1 || peekBackIs(tok!":", true) || peekBackIs(tok!"{", true)
+                    || peekBackIs(tok!"}", true) || peekBackIs(tok!")", true)
+                    || peekBackIs(tok!";", true))
                 {
                     indentLevel = indents.indentSize - 1;
                 }
