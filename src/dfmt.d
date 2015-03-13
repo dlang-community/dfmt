@@ -166,8 +166,7 @@ private:
 
     void formatStep()
     {
-        import std.range : assumeSorted;
-        import std.algorithm : canFind, startsWith;
+        import std.algorithm : canFind;
 
         assert (index < tokens.length);
         if (currentIs(tok!"comment"))
@@ -310,9 +309,9 @@ private:
             && peekIs(tok!"(", false))
         {
             immutable bool shouldPushIndent = (!currentIs(tok!"version")
-                && !currentIs(tok!"debug")) || !assumeSorted(
-                    astInformation.conditionalWithElseLocations).equalRange(
-                    current.index).empty;
+                && !currentIs(tok!"debug")) || astInformation.conditionalWithElseLocations
+                .canFindIndex(current.index) || astInformation.conditionalStatementLocations.canFindIndex(
+                current.index);
             if (shouldPushIndent)
                 indents.push(current.type);
             writeToken();
@@ -396,8 +395,7 @@ private:
             switch (current.type)
             {
             case tok!"*":
-                if (!assumeSorted(astInformation.spaceAfterLocations)
-                    .equalRange(current.index).empty)
+                if (astInformation.spaceAfterLocations.canFindIndex(current.index))
                 {
                     writeToken();
                     if (!currentIs(tok!"*") && !currentIs(tok!")") && !currentIs(tok!"[")
@@ -407,7 +405,7 @@ private:
                     }
                     break;
                 }
-                else if (assumeSorted(astInformation.unaryLocations).equalRange(current.index).empty)
+                else if (!astInformation.unaryLocations.canFindIndex(current.index))
                     goto binary;
                 else
                     writeToken();
@@ -428,8 +426,7 @@ private:
             case tok!"&":
             case tok!"+":
             case tok!"-":
-                if (!assumeSorted(astInformation.unaryLocations)
-                    .equalRange(current.index).empty)
+                if (astInformation.unaryLocations.canFindIndex(current.index))
                 {
                     writeToken();
                     break;
@@ -451,10 +448,9 @@ private:
                 writeToken();
                 break;
             case tok!":":
-                if (!assumeSorted(astInformation.caseEndLocations)
-                    .equalRange(current.index).empty || !assumeSorted(
-                    astInformation.attributeDeclarationLines).equalRange(
-                    current.line).empty)
+                if (astInformation.caseEndLocations.canFindIndex(current.index)
+                    || astInformation.attributeDeclarationLines.canFindIndex(
+                    current.line))
                 {
                     writeToken();
                     if (!currentIs(tok!"{"))
@@ -496,13 +492,13 @@ private:
                 newline();
                 break;
             case tok!"{":
-                if (assumeSorted(astInformation.structInitStartLocations)
-                    .equalRange(tokens[index].index).length)
+                if (astInformation.structInitStartLocations.canFindIndex(
+                    tokens[index].index))
                 {
                     writeToken();
                 }
-                else if (assumeSorted(astInformation.funLitStartLocations)
-                    .equalRange(tokens[index].index).length)
+                else if (astInformation.funLitStartLocations.canFindIndex(
+                    tokens[index].index))
                 {
                     if (peekBackIs(tok!")"))
                         write(" ");
@@ -527,13 +523,13 @@ private:
                 }
                 break;
             case tok!"}":
-                if (assumeSorted(astInformation.structInitEndLocations)
-                    .equalRange(tokens[index].index).length)
+                if (astInformation.structInitEndLocations.canFindIndex(
+                    tokens[index].index))
                 {
                     writeToken();
                 }
-                else if (assumeSorted(astInformation.funLitEndLocations)
-                    .equalRange(tokens[index].index).length)
+                else if (astInformation.funLitEndLocations.canFindIndex(
+                    tokens[index].index))
                 {
                     write(" ");
                     writeToken();
@@ -545,8 +541,8 @@ private:
                         newline();
                     write("}");
                     if (index < tokens.length - 1 &&
-                        assumeSorted(astInformation.doubleNewlineLocations)
-                        .equalRange(tokens[index].index).length && !peekIs(tok!"}"))
+                        astInformation.doubleNewlineLocations.canFindIndex(
+                        tokens[index].index) && !peekIs(tok!"}"))
                     {
                         write("\n");
                         currentLineLength = 0;
@@ -735,8 +731,6 @@ private:
     }
     body
     {
-        import std.range : assumeSorted;
-
         int depth = 0;
         do
         {
@@ -752,10 +746,8 @@ private:
             {
                 writeToken();
                 depth++;
-                if (!assumeSorted(linebreakHints).equalRange(index - 1).empty
-                    || (linebreakHints.length == 0
-                    && currentLineLength > config.columnSoftLimit
-                    && !currentIs(tok!")")))
+                if (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
+                    && currentLineLength > config.columnSoftLimit && !currentIs(tok!")")))
                 {
                     indents.push(tok!"(");
                     newline();
@@ -1025,11 +1017,9 @@ private:
                 if (l != -1)
                     indentLevel = l;
             }
-            else if (currentIs(tok!"{") && assumeSorted(
-                astInformation.structInitStartLocations).equalRange(
-                tokens[index].index).empty && assumeSorted(
-                astInformation.funLitStartLocations).equalRange(
-                tokens[index].index).empty)
+            else if (currentIs(tok!"{")
+                && !astInformation.structInitStartLocations.canFindIndex(tokens[index].index)
+                && !astInformation.funLitStartLocations.canFindIndex(tokens[index].index))
             {
                 while (indents.length && isWrapIndent(indents.top))
                     indents.pop();
@@ -1056,8 +1046,7 @@ private:
                     indents.pop();
                 }
             }
-            else if ((!assumeSorted(astInformation.attributeDeclarationLines)
-                .equalRange(current.line).empty))
+            else if (astInformation.attributeDeclarationLines.canFindIndex(current.line))
             {
                 auto l = indents.indentToMostRecent(tok!"{");
                 if (l != -1)
@@ -1172,6 +1161,12 @@ struct FormatterConfig
     BraceStyle braceStyle = BraceStyle.allman;
 }
 
+bool canFindIndex(const size_t[] items, size_t index)
+{
+    import std.range : assumeSorted;
+    return !assumeSorted(items).equalRange(index).empty;
+}
+
 ///
 struct ASTInformation
 {
@@ -1219,6 +1214,8 @@ struct ASTInformation
     size_t[] funLitEndLocations;
 
     size_t[] conditionalWithElseLocations;
+
+    size_t[] conditionalStatementLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -1230,11 +1227,11 @@ final class FormatVisitor : ASTVisitor
         this.astInformation = astInformation;
     }
 
-    override void visit(const ConditionalDeclaration conditionalDeclaration)
+    override void visit(const ConditionalDeclaration dec)
     {
-        if (conditionalDeclaration.falseDeclaration !is null)
+        if (dec.falseDeclaration !is null)
         {
-            auto condition = conditionalDeclaration.compileCondition;
+            auto condition = dec.compileCondition;
             if (condition.versionCondition !is null)
             {
                 astInformation.conditionalWithElseLocations ~=
@@ -1248,7 +1245,23 @@ final class FormatVisitor : ASTVisitor
             // Skip "static if" because the formatting for normal "if" handles
             // it properly
         }
-        conditionalDeclaration.accept(this);
+        dec.accept(this);
+    }
+
+    override void visit(const ConditionalStatement statement)
+    {
+        auto condition = statement.compileCondition;
+        if (condition.versionCondition !is null)
+        {
+            astInformation.conditionalStatementLocations ~=
+                condition.versionCondition.versionIndex;
+        }
+        else if (condition.debugCondition !is null)
+        {
+            astInformation.conditionalStatementLocations ~=
+                condition.debugCondition.debugIndex;
+        }
+        statement.accept(this);
     }
 
     override void visit(const FunctionLiteralExpression funcLit)
