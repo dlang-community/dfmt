@@ -982,7 +982,7 @@ private:
                     indents.pop();
                 indents.push(tok!"{");
                 if (index == 1 || peekBackIs(tok!":") || peekBackIs(tok!"{")
-                    || peekBackIs(tok!"}") || peekBackIs(tok!")"))
+                    || peekBackIs(tok!"}") || peekBackIs(tok!")") || peekBackIs(tok!";"))
                 {
                     indentLevel = indents.indentSize - 1;
                 }
