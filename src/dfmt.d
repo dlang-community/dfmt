@@ -236,6 +236,7 @@ private:
                     else if ((t == tok!"import" && !currentIs(tok!"import")))
                     {
                         write("\n");
+                        currentLineLength = 0;
                         justAddedExtraNewline = true;
                         newline();
                     }
@@ -299,8 +300,7 @@ private:
             writeToken(); // switch
             write(" ");
         }
-        else if ((currentIs(tok!"version") || currentIs(tok!"extern"))
-            && peekIs(tok!"("))
+        else if (currentIs(tok!"extern") && peekIs(tok!"("))
         {
             writeToken();
             write(" ");
@@ -325,13 +325,13 @@ private:
             if (currentIs(tok!"if") || (currentIs(tok!"static") && peekIs(tok!"if"))
                 || currentIs(tok!"version"))
             {
-                if (indents.top() == tok!"if")
+                if (indents.top() == tok!"if" || indents.top == tok!"version")
                     indents.pop();
                 write(" ");
             }
             else if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
             {
-                if (indents.top() == tok!"if")
+                if (indents.top() == tok!"if" || indents.top == tok!"version")
                     indents.pop();
                 indents.push(tok!"else");
                 newline();
@@ -490,6 +490,14 @@ private:
                 {
                     writeToken();
                 }
+                else if (assumeSorted(astInformation.funLitStartLocations)
+                    .equalRange(tokens[index].index).length)
+                {
+                    if (peekBackIs(tok!")"))
+                        write(" ");
+                    writeToken();
+                    write(" ");
+                }
                 else
                 {
                     if (!justAddedExtraNewline && !peekBackIs(tok!"{")
@@ -513,6 +521,12 @@ private:
                 {
                     writeToken();
                 }
+                else if (assumeSorted(astInformation.funLitEndLocations)
+                    .equalRange(tokens[index].index).length)
+                {
+                    write(" ");
+                    writeToken();
+                }
                 else
                 {
                     // Silly hack to format enums better.
@@ -523,13 +537,19 @@ private:
                         assumeSorted(astInformation.doubleNewlineLocations)
                         .equalRange(tokens[index].index).length && !peekIs(tok!"}"))
                     {
-                        output.put("\n");
+                        write("\n");
+                        currentLineLength = 0;
                         justAddedExtraNewline = true;
                     }
                     if (config.braceStyle == BraceStyle.otbs && currentIs(tok!"else"))
                         write(" ");
-                    index++;
-                    newline();
+                    if (!peekIs(tok!",") && !peekIs(tok!")"))
+                    {
+                        index++;
+                        newline();
+                    }
+                    else
+                        index++;
                 }
                 break;
             case tok!".":
@@ -711,12 +731,11 @@ private:
         {
             if (currentIs(tok!";"))
             {
-                if (!(peekIs(tok!";") || peekIs(tok!")")))
+                if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
                     write("; ");
                 else
                     write(";");
                 index++;
-                continue;
             }
             else if (currentIs(tok!"("))
             {
@@ -731,7 +750,6 @@ private:
                     newline();
                 }
                 regenLineBreakHintsIfNecessary(index - 1);
-                continue;
             }
             else if (currentIs(tok!")"))
             {
@@ -922,19 +940,29 @@ private:
         auto t = tokens[i + index].type;
         return t == tok!"for" || t == tok!"foreach"
             || t == tok!"foreach_reverse" || t == tok!"while"
-            || t == tok!"if" || t == tok!"out"
+            || t == tok!"if" || t == tok!"out" || t == tok!"version"
             || t == tok!"catch" || t == tok!"with";
     }
 
     void newline()
     {
         import std.range : assumeSorted;
+        import std.algorithm : max;
 
         if (currentIs(tok!"comment") && current.line == tokenEndLine(tokens[index - 1]))
             return;
 
-        output.put("\n");
         immutable bool hasCurrent = index + 1 < tokens.length;
+
+        if (hasCurrent && tokens[index].type == tok!"}" && !assumeSorted(
+            astInformation.funLitEndLocations).equalRange(tokens[index].index).empty)
+        {
+            write(" ");
+            return;
+        }
+
+        output.put("\n");
+
         if (!justAddedExtraNewline && index > 0
             && hasCurrent && tokens[index].line - tokenEndLine(tokens[index - 1]) > 1)
         {
@@ -948,12 +976,19 @@ private:
             bool switchLabel = false;
             if (currentIs(tok!"else"))
             {
-                auto l = indents.indentToMostRecent(tok!"if");
-                if (l != -1)
-                    indentLevel = l;
+                auto i = indents.indentToMostRecent(tok!"if");
+                auto v = indents.indentToMostRecent(tok!"version");
+                auto mostRecent = max(i, v);
+                if (mostRecent != -1)
+                    indentLevel = mostRecent;
             }
             else if (currentIs(tok!"identifier") && peekIs(tok!":"))
             {
+                while ((peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
+                    && indents.length && isTempIndent(indents.top()))
+                {
+                    indents.pop();
+                }
                 auto l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
                 {
@@ -970,12 +1005,19 @@ private:
             }
             else if (currentIs(tok!"case") || currentIs(tok!"default"))
             {
+                while ((peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
+                    && indents.length && isTempIndent(indents.top()))
+                {
+                    indents.pop();
+                }
                 auto l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
                     indentLevel = l;
             }
             else if (currentIs(tok!"{") && assumeSorted(
                 astInformation.structInitStartLocations).equalRange(
+                tokens[index].index).empty && assumeSorted(
+                astInformation.funLitStartLocations).equalRange(
                 tokens[index].index).empty)
             {
                 while (indents.length && isWrapIndent(indents.top))
@@ -997,7 +1039,8 @@ private:
                     indents.pop();
                 }
                 while (indents.length && isTempIndent(indents.top)
-                    && (indents.top != tok!"if" || !peekIs(tok!"else")))
+                    && ((indents.top != tok!"if" && indents.top != tok!"version")
+                    || !peekIs(tok!"else")))
                 {
                     indents.pop();
                 }
@@ -1132,6 +1175,8 @@ struct ASTInformation
         sort(caseEndLocations);
         sort(structInitStartLocations);
         sort(structInitEndLocations);
+        sort(funLitStartLocations);
+        sort(funLitEndLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -1154,6 +1199,12 @@ struct ASTInformation
 
     /// Closing braces of struct initializers
     size_t[] structInitEndLocations;
+
+    /// Opening braces of function literals
+    size_t[] funLitStartLocations;
+
+    /// Closing braces of function literals
+    size_t[] funLitEndLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -1163,6 +1214,15 @@ final class FormatVisitor : ASTVisitor
     this(ASTInformation* astInformation)
     {
         this.astInformation = astInformation;
+    }
+
+    override void visit(const FunctionLiteralExpression funcLit)
+    {
+        astInformation.funLitStartLocations ~= funcLit.functionBody
+            .blockStatement.startLocation;
+        astInformation.funLitEndLocations ~= funcLit.functionBody
+            .blockStatement.endLocation;
+        funcLit.accept(this);
     }
 
     override void visit(const DefaultStatement defaultStatement)
