@@ -306,9 +306,15 @@ private:
             write(" ");
             writeParens(true);
         }
-        else if (isBlockHeader() && peekIs(tok!"(", false))
+        else if ((isBlockHeader() || currentIs(tok!"version") || currentIs(tok!"debug"))
+            && peekIs(tok!"(", false))
         {
-            indents.push(current.type);
+            immutable bool shouldPushIndent = (!currentIs(tok!"version")
+                && !currentIs(tok!"debug")) || !assumeSorted(
+                    astInformation.conditionalWithElseLocations).equalRange(
+                    current.index).empty;
+            if (shouldPushIndent)
+                indents.push(current.type);
             writeToken();
             write(" ");
             writeParens(false);
@@ -316,6 +322,11 @@ private:
                 write(" ");
             else if (currentIs(tok!"comment"))
                 formatStep();
+            else if (!shouldPushIndent)
+            {
+                if (!currentIs(tok!"{") && !currentIs(tok!";"))
+                    write(" ");
+            }
             else if (!currentIs(tok!"{") && !currentIs(tok!";"))
                 newline();
         }
@@ -940,7 +951,7 @@ private:
         auto t = tokens[i + index].type;
         return t == tok!"for" || t == tok!"foreach"
             || t == tok!"foreach_reverse" || t == tok!"while"
-            || t == tok!"if" || t == tok!"out" || t == tok!"version"
+            || t == tok!"if" || t == tok!"out"
             || t == tok!"catch" || t == tok!"with";
     }
 
@@ -1177,6 +1188,7 @@ struct ASTInformation
         sort(structInitEndLocations);
         sort(funLitStartLocations);
         sort(funLitEndLocations);
+        sort(conditionalWithElseLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -1205,6 +1217,8 @@ struct ASTInformation
 
     /// Closing braces of function literals
     size_t[] funLitEndLocations;
+
+    size_t[] conditionalWithElseLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -1214,6 +1228,27 @@ final class FormatVisitor : ASTVisitor
     this(ASTInformation* astInformation)
     {
         this.astInformation = astInformation;
+    }
+
+    override void visit(const ConditionalDeclaration conditionalDeclaration)
+    {
+        if (conditionalDeclaration.falseDeclaration !is null)
+        {
+            auto condition = conditionalDeclaration.compileCondition;
+            if (condition.versionCondition !is null)
+            {
+                astInformation.conditionalWithElseLocations ~=
+                    condition.versionCondition.versionIndex;
+            }
+            else if (condition.debugCondition !is null)
+            {
+                astInformation.conditionalWithElseLocations ~=
+                    condition.debugCondition.debugIndex;
+            }
+            // Skip "static if" because the formatting for normal "if" handles
+            // it properly
+        }
+        conditionalDeclaration.accept(this);
     }
 
     override void visit(const FunctionLiteralExpression funcLit)
