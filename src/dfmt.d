@@ -307,10 +307,11 @@ private:
         else if ((isBlockHeader() || currentIs(tok!"version") || currentIs(tok!"debug"))
             && peekIs(tok!"(", false))
         {
-            immutable bool shouldPushIndent = (!currentIs(tok!"version")
-                && !currentIs(tok!"debug")) || astInformation.conditionalWithElseLocations
-                .canFindIndex(current.index) || astInformation.conditionalStatementLocations.canFindIndex(
-                current.index);
+			immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug") ;
+			immutable bool b = a || astInformation.conditionalWithElseLocations
+				.canFindIndex(current.index);
+			immutable bool shouldPushIndent = b || astInformation.conditionalStatementLocations
+				.canFindIndex(current.index);
             if (shouldPushIndent)
                 indents.push(current.type);
             writeToken();
@@ -1764,7 +1765,7 @@ struct IndentStack
         foreach (i; 1 .. j + 1)
         {
             if ((i + 1 <= index && !isWrapIndent(arr[i]) && isTempIndent(arr[i])
-                && (!isTempIndent(arr[i + 1]))))
+                && (!isTempIndent(arr[i + 1]) || arr[i + 1] == tok!"switch")))
             {
                 continue;
             }
