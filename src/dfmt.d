@@ -303,7 +303,6 @@ private:
         {
             writeToken();
             write(" ");
-            writeParens(true);
         }
         else if ((isBlockHeader() || currentIs(tok!"version") || currentIs(tok!"debug"))
             && peekIs(tok!"(", false))
@@ -356,7 +355,6 @@ private:
                 break;
             case tok!"cast":
                 writeToken();
-                writeParens(true);
                 break;
             case tok!"in":
             case tok!"is":
@@ -433,8 +431,43 @@ private:
                 }
                 goto binary;
             case tok!"(":
-                writeParens(true);
+				spaceAfterParens = true;
+				writeToken();
+                parenDepth++;
+                if (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
+                    && currentLineLength > config.columnSoftLimit && !currentIs(tok!")")))
+                {
+                    indents.push(tok!"(");
+                    newline();
+                }
+                regenLineBreakHintsIfNecessary(index - 1);
                 break;
+			case tok!")":
+				parenDepth--;
+				if (parenDepth == 0)
+					while (indents.length > 0 && isWrapIndent(indents.top))
+						indents.pop();
+                if (parenDepth == 0 && (peekIs(tok!"in") || peekIs(tok!"out")
+                    || peekIs(tok!"body")))
+                {
+                    writeToken(); // )
+                    newline();
+                    writeToken(); // in/out/body
+                }
+                else if (peekIsLiteralOrIdent() || peekIsBasicType() || peekIsKeyword())
+                {
+                    writeToken();
+                    if (spaceAfterParens || parenDepth > 0)
+                        write(" ");
+                }
+                else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens)
+                {
+                    writeToken();
+                    write(" ");
+                }
+                else
+                    writeToken();
+				break;
             case tok!"!":
                 if (peekIs(tok!"is"))
                     write(" ");
@@ -487,9 +520,20 @@ private:
                     write(" ");
                 break;
             case tok!";":
-                writeToken();
-                linebreakHints = [];
-                newline();
+				if (parenDepth > 0)
+				{
+					if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
+						write("; ");
+					else
+						write(";");
+					index++;
+				}
+				else
+				{
+					writeToken();
+					linebreakHints = [];
+					newline();
+				}
                 break;
             case tok!"{":
                 if (astInformation.structInitStartLocations.canFindIndex(
@@ -724,66 +768,21 @@ private:
         return i;
     }
 
-    void writeParens(bool space_afterwards)
-    in
-    {
-        assert (currentIs(tok!"("), str(current.type));
-    }
-    body
-    {
-        int depth = 0;
-        do
-        {
-            if (currentIs(tok!";"))
-            {
-                if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
-                    write("; ");
-                else
-                    write(";");
-                index++;
-            }
-            else if (currentIs(tok!"("))
-            {
-                writeToken();
-                depth++;
-                if (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
-                    && currentLineLength > config.columnSoftLimit && !currentIs(tok!")")))
-                {
-                    indents.push(tok!"(");
-                    newline();
-                }
-                regenLineBreakHintsIfNecessary(index - 1);
-            }
-            else if (currentIs(tok!")"))
-            {
-                depth--;
-                if (depth == 0 && (peekIs(tok!"in") || peekIs(tok!"out")
-                    || peekIs(tok!"body")))
-                {
-                    writeToken(); // )
-                    newline();
-                    writeToken(); // in/out/body
-                }
-                else if (peekIsLiteralOrIdent() || peekIsBasicType() || peekIsKeyword())
-                {
-                    writeToken();
-                    if (space_afterwards || depth > 0)
-                        write(" ");
-                }
-                else if ((peekIsKeyword() || peekIs(tok!"@")) && space_afterwards)
-                {
-                    writeToken();
-                    write(" ");
-                }
-                else
-                    writeToken();
-            }
-            else
-                formatStep();
-        }
-        while (index < tokens.length && depth > 0);
-        linebreakHints = [];
-    }
+		void writeParens(bool spaceAfter)
+		in
+		{
+			assert(currentIs(tok!"("), str(current.type));
+		}
+		body
+		{
+			immutable int depth = parenDepth;
+			do
+			{
+				formatStep();
+				spaceAfterParens = spaceAfter;
+			}
+			while (index < tokens.length && parenDepth > depth);
+		}
 
     bool peekIsKeyword()
     {
@@ -1126,6 +1125,10 @@ private:
     /// Keep track of whether or not an extra newline was just added because of
     /// an import statement.
     bool justAddedExtraNewline;
+
+	int parenDepth;
+
+	bool spaceAfterParens;
 }
 
 bool isWrapIndent(IdType type) pure nothrow @nogc @safe
