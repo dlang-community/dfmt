@@ -1756,7 +1756,7 @@ struct IndentStack
         return arr[index];
     }
 
-    int indentSize(size_t k = size_t.max) const /+pure nothrow+/
+    int indentSize(size_t k = size_t.max) const pure nothrow
     {
         if (index == 0)
             return 0;
