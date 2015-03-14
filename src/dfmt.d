@@ -307,11 +307,11 @@ private:
         else if ((isBlockHeader() || currentIs(tok!"version") || currentIs(tok!"debug"))
             && peekIs(tok!"(", false))
         {
-			immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug") ;
-			immutable bool b = a || astInformation.conditionalWithElseLocations
-				.canFindIndex(current.index);
-			immutable bool shouldPushIndent = b || astInformation.conditionalStatementLocations
-				.canFindIndex(current.index);
+            immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug") ;
+            immutable bool b = a || astInformation.conditionalWithElseLocations
+                    .canFindIndex(current.index);
+            immutable bool shouldPushIndent = b || astInformation.conditionalStatementLocations
+                    .canFindIndex(current.index);
             if (shouldPushIndent)
                 indents.push(current.type);
             writeToken();
@@ -432,8 +432,8 @@ private:
                 }
                 goto binary;
             case tok!"(":
-				spaceAfterParens = true;
-				writeToken();
+                spaceAfterParens = true;
+                writeToken();
                 parenDepth++;
                 if (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
                     && currentLineLength > config.columnSoftLimit && !currentIs(tok!")")))
@@ -443,11 +443,11 @@ private:
                 }
                 regenLineBreakHintsIfNecessary(index - 1);
                 break;
-			case tok!")":
-				parenDepth--;
-				if (parenDepth == 0)
-					while (indents.length > 0 && isWrapIndent(indents.top))
-						indents.pop();
+            case tok!")":
+                parenDepth--;
+                if (parenDepth == 0)
+                    while (indents.length > 0 && isWrapIndent(indents.top))
+                        indents.pop();
                 if (parenDepth == 0 && (peekIs(tok!"in") || peekIs(tok!"out")
                     || peekIs(tok!"body")))
                 {
@@ -468,7 +468,7 @@ private:
                 }
                 else
                     writeToken();
-				break;
+                    break;
             case tok!"!":
                 if (peekIs(tok!"is"))
                     write(" ");
@@ -521,20 +521,20 @@ private:
                     write(" ");
                 break;
             case tok!";":
-				if (parenDepth > 0)
-				{
-					if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
-						write("; ");
-					else
-						write(";");
-					index++;
-				}
-				else
-				{
-					writeToken();
-					linebreakHints = [];
-					newline();
-				}
+                if (parenDepth > 0)
+                {
+                    if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
+                            write("; ");
+                    else
+                            write(";");
+                    index++;
+                }
+                else
+                {
+                    writeToken();
+                    linebreakHints = [];
+                    newline();
+                }
                 break;
             case tok!"{":
                 if (astInformation.structInitStartLocations.canFindIndex(
@@ -558,6 +558,19 @@ private:
                     {
                         if (config.braceStyle == BraceStyle.otbs)
                         {
+                             if (!astInformation.structInitStartLocations.canFindIndex(tokens[index].index)
+                                && !astInformation.funLitStartLocations.canFindIndex(tokens[index].index))
+                            {
+                                while (indents.length && isWrapIndent(indents.top))
+                                    indents.pop();
+                                indents.push(tok!"{");
+                                if (index == 1 || peekBackIs(tok!":", true) || peekBackIs(tok!"{", true)
+                                    || peekBackIs(tok!"}", true) || peekBackIs(tok!")", true)
+                                    || peekBackIs(tok!";", true))
+                                {
+                                    indentLevel = indents.indentSize - 1;
+                                }
+                            }
                             write(" ");
                         }
                         else if (index > 0 && (!peekBackIs(tok!"comment") || tokens[index - 1].text[0 .. 2] != "//"))
@@ -708,6 +721,11 @@ private:
             {
                 write(" ");
             }
+        }
+        else if (currentIs(tok!"scriptLine"))
+        {
+            writeToken();
+            newline();
         }
         else
             writeToken();

@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
-for source in *.d
+for braceStyle in allman otbs
 do
-	echo "${source}.ref" "${source}.out"
-	../bin/dfmt "${source}" >"${source}.out"
-	diff -u "${source}.ref" "${source}.out"
+	for source in *.d
+	do
+		echo "${source}.ref" "${braceStyle}/${source}.out"
+		../bin/dfmt --braces=${braceStyle} "${source}" > "${braceStyle}/${source}.out"
+		diff -u "${braceStyle}/${source}.ref" "${braceStyle}/${source}.out"
+	done
 done
