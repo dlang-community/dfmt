@@ -383,7 +383,8 @@ private:
             case tok!"enum":
                 indents.push(tok!"enum");
                 writeToken();
-                write(" ");
+                if (!currentIs(tok!":"))
+                    write(" ");
                 break;
             default:
                 if (index + 1 < tokens.length)
