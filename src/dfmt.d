@@ -480,11 +480,25 @@ private:
                 else
                     writeToken();
                 break;
+            case tok!"@":
+                writeToken();
+                if (currentIs(tok!"identifier"))
+                    writeToken();
+                if (currentIs(tok!"("))
+                {
+                    writeParens(false);
+                    if (index < tokens.length && tokens[index - 1].line < tokens[index].line)
+                        newline();
+                    else
+                        write(" ");
+                }
+                else if (index < tokens.length && !isOperator(tokens[index].type))
+                    write(" ");
+                break;
             case tok!"!":
                 if (peekIs(tok!"is"))
                     write(" ");
-                goto case ;
-            case tok!"@":
+                goto case;
             case tok!"...":
             case tok!"[":
             case tok!"++":
