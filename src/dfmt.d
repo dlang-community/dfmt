@@ -173,22 +173,26 @@ private:
         assert(index < tokens.length);
         if (currentIs(tok!"comment"))
         {
+            immutable bool currIsSlashSlash = tokens[index].text[0 .. 2] == "//";
             if (index > 0)
             {
                 immutable t = tokens[index - 1].type;
-                if (t != tok!";" && t != tok!"}" && tokens[index - 1].line + 1 < tokens[index]
-                        .line)
+                immutable bool prevWasSlashSlash = t == tok!"comment"
+                    && tokens[index - 1].text[0 .. 2] == "//";
+                immutable bool shouldSkipNewline = prevWasSlashSlash && !currIsSlashSlash
+                    && tokens[index - 1].line + 2 <= tokens[index].line;
+                if (!shouldSkipNewline && t != tok!";" && t != tok!"}"
+                        && tokens[index - 1].line + 1 < tokens[index].line)
                 {
                     newline();
                 }
-                else if (tokens[index - 1].line == tokens[index].line)
+                else if (tokens[index - 1].line == tokens[index].line
+                        || (t == tok!")" && tokens[index + 1].type == tok!"{"))
                     write(" ");
-                else if (isWrapIndent(t))
-                    pushWrapIndent(t);
             }
             writeToken();
             immutable j = justAddedExtraNewline;
-            if (tokens[index - 1].text[0 .. 2] == "//")
+            if (currIsSlashSlash)
             {
                 newline();
                 justAddedExtraNewline = j;
@@ -1019,6 +1023,7 @@ private:
         {
             output.put("\n");
         }
+
         justAddedExtraNewline = false;
         currentLineLength = 0;
 
