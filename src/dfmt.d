@@ -380,6 +380,11 @@ private:
                 if (!currentIs(tok!";"))
                     write(" ");
                 break;
+            case tok!"enum":
+                indents.push(tok!"enum");
+                writeToken();
+                write(" ");
+                break;
             default:
                 if (index + 1 < tokens.length)
                 {
@@ -670,7 +675,12 @@ private:
                 break;
             case tok!",":
                 regenLineBreakHintsIfNecessary(index);
-                if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
+                if (indents.indentToMostRecent(tok!"enum") != -1 && !peekIs(tok!"}"))
+                {
+                    writeToken();
+                    newline();
+                }
+                else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
                         || (linebreakHints.length == 0 && currentLineLength > config.columnSoftLimit)))
                 {
                     writeToken();
