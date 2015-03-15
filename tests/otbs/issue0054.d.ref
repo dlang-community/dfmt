@@ -3,7 +3,7 @@ struct ClassFlags {
     enum Enum : int {
         isCOMclass = 0x1, noPointers = 0x2, hasOffTi = 0x4, hasCtor = 0x8,
             hasGetMembers = 0x10, hasTypeInfo = 0x20, isAbstract = 0x40,
-                isCPPclass = 0x80, hasDtor = 0x100,
+            isCPPclass = 0x80, hasDtor = 0x100,
 
     }
 
