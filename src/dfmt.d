@@ -38,67 +38,70 @@ version (NoMain)
 {
 }
 else
-    int main(string[] args)
 {
-    import std.getopt : getopt;
-
-    bool inplace = false;
-    bool show_usage = false;
-    FormatterConfig formatterConfig;
-    getopt(args, "help|h", &show_usage, "inplace", &inplace, "tabs|t",
-        &formatterConfig.useTabs, "braces", &formatterConfig.braceStyle);
-    if (show_usage)
+    int main(string[] args)
     {
-        import std.path : baseName;
+        import std.getopt : getopt;
 
-        writef(USAGE, baseName(args[0]));
+        bool inplace = false;
+        bool show_usage = false;
+        FormatterConfig formatterConfig;
+        getopt(args, "help|h", &show_usage, "inplace", &inplace, "tabs|t",
+            &formatterConfig.useTabs, "braces", &formatterConfig.braceStyle);
+        if (show_usage)
+        {
+            import std.path : baseName;
+
+            writef(USAGE, baseName(args[0]));
+            return 0;
+        }
+        File output = stdout;
+        ubyte[] buffer;
+        args.popFront();
+        if (args.length == 0)
+        {
+            ubyte[4096] inputBuffer;
+            ubyte[] b;
+            while (true)
+            {
+                b = stdin.rawRead(inputBuffer);
+                if (b.length)
+                    buffer ~= b;
+                else
+                    break;
+            }
+            format("stdin", buffer, output.lockingTextWriter(), &formatterConfig);
+        }
+        else
+        {
+            import std.file : dirEntries, isDir, SpanMode;
+
+            if (args.length >= 2)
+                inplace = true;
+            while (args.length > 0)
+            {
+                const path = args.front;
+                args.popFront();
+                if (isDir(path))
+                {
+                    inplace = true;
+                    foreach (string name; dirEntries(path, "*.d",
+                            SpanMode.depth))
+                    {
+                        args ~= name;
+                    }
+                    continue;
+                }
+                File f = File(path);
+                buffer = new ubyte[](cast(size_t) f.size);
+                f.rawRead(buffer);
+                if (inplace)
+                    output = File(path, "w");
+                format(path, buffer, output.lockingTextWriter(), &formatterConfig);
+            }
+        }
         return 0;
     }
-    File output = stdout;
-    ubyte[] buffer;
-    args.popFront();
-    if (args.length == 0)
-    {
-        ubyte[4096] inputBuffer;
-        ubyte[] b;
-        while (true)
-        {
-            b = stdin.rawRead(inputBuffer);
-            if (b.length)
-                buffer ~= b;
-            else
-                break;
-        }
-        format("stdin", buffer, output.lockingTextWriter(), &formatterConfig);
-    }
-    else
-    {
-        import std.file : dirEntries, isDir, SpanMode;
-
-        if (args.length >= 2)
-            inplace = true;
-        while (args.length > 0)
-        {
-            const path = args.front;
-            args.popFront();
-            if (isDir(path))
-            {
-                inplace = true;
-                foreach (string name; dirEntries(path, "*.d", SpanMode.depth))
-                {
-                    args ~= name;
-                }
-                continue;
-            }
-            File f = File(path);
-            buffer = new ubyte[](cast(size_t) f.size);
-            f.rawRead(buffer);
-            if (inplace)
-                output = File(path, "w");
-            format(path, buffer, output.lockingTextWriter(), &formatterConfig);
-        }
-    }
-    return 0;
 }
 
 private:
@@ -309,10 +312,10 @@ private:
                 && !currentIs(tok!"debug");
             immutable bool b = a
                 || astInformation.conditionalWithElseLocations.canFindIndex(
-                    current.index);
+                current.index);
             immutable bool shouldPushIndent = b
                 || astInformation.conditionalStatementLocations.canFindIndex(
-                    current.index);
+                current.index);
             if (shouldPushIndent)
                 indents.push(current.type);
             writeToken();
@@ -492,7 +495,7 @@ private:
             case tok!":":
                 if (astInformation.caseEndLocations.canFindIndex(current.index)
                         || astInformation.attributeDeclarationLines.canFindIndex(
-                            current.line))
+                        current.line))
                 {
                     writeToken();
                     if (!currentIs(tok!"{"))
@@ -612,7 +615,7 @@ private:
                     write("}");
                     if (index < tokens.length - 1
                             && astInformation.doubleNewlineLocations.canFindIndex(
-                                tokens[index].index) && !peekIs(tok!"}"))
+                            tokens[index].index) && !peekIs(tok!"}"))
                     {
                         write("\n");
                         currentLineLength = 0;
@@ -633,7 +636,7 @@ private:
             case tok!".":
                 if (linebreakHints.canFind(index) || (linebreakHints.length == 0
                         && currentLineLength + nextTokenLength(
-                            ) > config.columnHardLimit))
+                        ) > config.columnHardLimit))
                 {
                     pushWrapIndent();
                     newline();
@@ -1051,9 +1054,9 @@ private:
             }
             else if (currentIs(tok!"{")
                     && !astInformation.structInitStartLocations.canFindIndex(
-                        tokens[index].index)
-                        && !astInformation.funLitStartLocations.canFindIndex(
-                            tokens[index].index))
+                    tokens[index].index)
+                    && !astInformation.funLitStartLocations.canFindIndex(
+                    tokens[index].index))
             {
                 while (indents.length && isWrapIndent(indents.top))
                     indents.pop();
@@ -1603,7 +1606,7 @@ struct State
 {
     this(size_t[] breaks, const Token[] tokens, int depth,
         const FormatterConfig* formatterConfig, int currentLineLength,
-            int indentLevel)
+        int indentLevel)
     {
         this.breaks = breaks;
         this._depth = depth;
@@ -1733,7 +1736,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, const Formatt
 
 State[] validMoves(const Token[] tokens, ref const State current,
     const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel,
-        int depth)
+    int depth)
 {
     import std.algorithm : sort, canFind;
     import std.array : insertInPlace;
