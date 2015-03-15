@@ -463,12 +463,21 @@ private:
                     spaceAfterParens = true;
                     parenDepth++;
                 }
-                if (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
-                        && currentLineLength > config.columnSoftLimit && !currentIs(
-                        tok!")")))
+                immutable bool arrayInitializerStart = p == tok!"["
+                    && linebreakHints.length != 0
+                    && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
+                if (arrayInitializerStart || linebreakHints.canFindIndex(index - 1)
+                        || (linebreakHints.length == 0 && currentLineLength > config.columnSoftLimit
+                        && !currentIs(tok!")")))
                 {
                     pushWrapIndent(p);
                     newline();
+                    if (arrayInitializerStart)
+                    {
+                        immutable size_t j = expressionEndIndex(index);
+                        linebreakHints = chooseLineBreakTokens(index, tokens[index .. j],
+                            config, currentLineLength, indentLevel);
+                    }
                 }
                 break;
             case tok!")":
@@ -560,6 +569,8 @@ private:
                 }
                 break;
             case tok!"]":
+                if (indents.length && indents.top == tok!"[")
+                    newline();
                 writeToken();
                 if (currentIs(tok!"identifier"))
                     write(" ");
@@ -1111,6 +1122,11 @@ private:
                     indents.pop();
                 }
             }
+            else if (currentIs(tok!"]") && indents.length && indents.top == tok!"[")
+            {
+                indents.pop();
+                indentLevel = indents.indentSize;
+            }
             else if (astInformation.attributeDeclarationLines.canFindIndex(current.line))
             {
                 auto l = indents.indentToMostRecent(tok!"{");
@@ -1138,11 +1154,17 @@ private:
 
     void writeToken()
     {
-        currentLineLength += currentTokenLength();
         if (current.text is null)
+        {
+            auto s = str(current.type);
+            currentLineLength += s.length;
             output.put(str(current.type));
+        }
         else
+        {
             output.put(current.text);
+            currentLineLength += current.text.length;
+        }
         index++;
     }
 
@@ -1266,6 +1288,7 @@ struct ASTInformation
         sort(funLitStartLocations);
         sort(funLitEndLocations);
         sort(conditionalWithElseLocations);
+        sort(arrayStartLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -1298,6 +1321,8 @@ struct ASTInformation
     size_t[] conditionalWithElseLocations;
 
     size_t[] conditionalStatementLocations;
+
+    size_t[] arrayStartLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -1307,6 +1332,12 @@ final class FormatVisitor : ASTVisitor
     this(ASTInformation* astInformation)
     {
         this.astInformation = astInformation;
+    }
+
+    override void visit(const ArrayInitializer arrayInitializer)
+    {
+        astInformation.arrayStartLocations ~= arrayInitializer.startLocation;
+        arrayInitializer.accept(this);
     }
 
     override void visit(const ConditionalDeclaration dec)
@@ -1449,30 +1480,39 @@ string generateFixedLengthCases()
     import std.algorithm : map;
     import std.string : format;
 
-    string[] fixedLengthTokens = ["abstract", "alias", "align", "asm", "assert",
-        "auto", "body", "bool", "break", "byte", "case", "cast", "catch", "cdouble",
-        "cent", "cfloat", "char", "class", "const", "continue", "creal", "dchar",
-        "debug", "default", "delegate", "delete", "deprecated", "do", "double",
-        "else", "enum", "export", "extern", "false", "final", "finally", "float",
-        "for", "foreach", "foreach_reverse", "function", "goto", "idouble", "if",
+    string[] spacedOperatorTokens = [
+        ",", "..", "...", "/", "/=", "!", "!<", "!<=", "!<>", "!<>=", "!=", "!>",
+        "!>=", "%", "%=", "&", "&&", "&=", "*", "*=", "+", "+=", "-", "-=", ":",
+        ";", "<", "<<", "<<=", "<=", "<>", "<>=", "=", "==", "=>", ">", ">=",
+        ">>", ">>=", ">>>", ">>>=", "?", "@", "^", "^=", "^^", "^^=", "|", "|=", "||",
+        "~", "~="
+    ];
+    immutable spacedOperatorTokenCases = spacedOperatorTokens.map!(a => format(
+        `case tok!"%s": return %d + 1;`, a, a.length)).join("\n\t");
+
+    string[] identifierTokens = [
+        "abstract", "alias", "align", "asm", "assert", "auto", "body", "bool",
+        "break", "byte", "case", "cast", "catch", "cdouble", "cent", "cfloat",
+        "char", "class", "const", "continue", "creal", "dchar", "debug",
+        "default", "delegate", "delete", "deprecated", "do", "double", "else",
+        "enum", "export", "extern", "false", "final", "finally", "float", "for",
+        "foreach", "foreach_reverse", "function", "goto", "idouble", "if",
         "ifloat", "immutable", "import", "in", "inout", "int", "interface",
-        "invariant", "ireal", "is", "lazy", "long", "macro", "mixin", "module", "new",
-        "nothrow", "null", "out", "override", "package", "pragma", "private",
-        "protected", "public", "pure", "real", "ref", "return", "scope", "shared",
-        "short", "static", "struct", "super", "switch", "synchronized", "template",
-        "this", "throw", "true", "try", "typedef", "typeid", "typeof", "ubyte",
-        "ucent", "uint", "ulong", "union", "unittest", "ushort", "version", "void",
-        "volatile", "wchar", "while", "with", "__DATE__", "__EOF__", "__FILE__",
-        "__FUNCTION__", "__gshared", "__LINE__", "__MODULE__", "__parameters",
-        "__PRETTY_FUNCTION__", "__TIME__", "__TIMESTAMP__", "__traits", "__vector",
-        "__VENDOR__", "__VERSION__", ",", ".", "..", "...", "/", "/=", "!", "!<",
-        "!<=", "!<>", "!<>=", "!=", "!>", "!>=", "$", "%", "%=", "&", "&&", "&=",
-        "(", ")", "*", "*=", "+", "++", "+=", "-", "--", "-=", ":", ";", "<", "<<",
-        "<<=", "<=", "<>", "<>=", "=", "==", "=>", ">", ">=", ">>", ">>=", ">>>",
-        ">>>=", "?", "@", "[", "]", "^", "^=", "^^", "^^=", "{", "|", "|=", "||", "}",
-        "~", "~="];
-    return fixedLengthTokens.map!(a => format(`case tok!"%s": return %d;`, a, a.length)).join(
-        "\n\t");
+        "invariant", "ireal", "is", "lazy", "long", "macro", "mixin", "module",
+        "new", "nothrow", "null", "out", "override", "package", "pragma",
+        "private", "protected", "public", "pure", "real", "ref", "return",
+        "scope", "shared", "short", "static", "struct", "super", "switch",
+        "synchronized", "template", "this", "throw", "true", "try", "typedef",
+        "typeid", "typeof", "ubyte", "ucent", "uint", "ulong", "union",
+        "unittest", "ushort", "version", "void", "volatile", "wchar", "while",
+        "with", "__DATE__", "__EOF__", "__FILE__", "__FUNCTION__", "__gshared",
+        "__LINE__", "__MODULE__", "__parameters", "__PRETTY_FUNCTION__",
+        "__TIME__", "__TIMESTAMP__", "__traits", "__vector", "__VENDOR__",
+        "__VERSION__", "$", "++", "--", ".", "[", "]", "(", ")", "{", "}"
+    ];
+    immutable identifierTokenCases = identifierTokens.map!(a => format(
+        `case tok!"%s": return %d;`, a, a.length)).join("\n\t");
+    return spacedOperatorTokenCases ~ identifierTokenCases;
 }
 
 int tokenLength(ref const Token t) pure @safe @nogc

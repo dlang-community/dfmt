@@ -11,8 +11,8 @@ version (AArch64)
             {
                 if (alpha < beta && alpha > golf && hotel < alpha && bravo >= charlie && echo < delta)
                 {
-                    if (alpha < beta && alpha > golf && hotel < alpha && bravo >= charlie
-                            && echo < delta)
+                    if (alpha < beta && alpha > golf && hotel < alpha
+                            && bravo >= charlie && echo < delta)
                     {
                     }
                 }
