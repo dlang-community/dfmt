@@ -167,8 +167,6 @@ private:
 
     void formatStep()
     {
-        import std.algorithm : canFind;
-
         assert(index < tokens.length);
         if (currentIs(tok!"comment"))
         {
@@ -207,10 +205,7 @@ private:
         }
         else if (currentIs(tok!"switch"))
         {
-            if (indents.length == 0 || indents.top != tok!"with")
-                indents.push(tok!"switch");
-            writeToken(); // switch
-            write(" ");
+            formatSwitch();
         }
         else if (currentIs(tok!"extern") && peekIs(tok!"("))
         {
@@ -220,88 +215,15 @@ private:
         else if ((isBlockHeader() || currentIs(tok!"version")
                 || currentIs(tok!"debug")) && peekIs(tok!"(", false))
         {
-            immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug");
-            immutable bool b = a
-                || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
-            immutable bool shouldPushIndent = b
-                || astInformation.conditionalStatementLocations.canFindIndex(current.index);
-            if (shouldPushIndent)
-                indents.push(current.type);
-            writeToken();
-            write(" ");
-            writeParens(false);
-            if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch")))
-                write(" ");
-            else if (currentIs(tok!"comment"))
-                formatStep();
-            else if (!shouldPushIndent)
-            {
-                if (!currentIs(tok!"{") && !currentIs(tok!";"))
-                    write(" ");
-            }
-            else if (!currentIs(tok!"{") && !currentIs(tok!";"))
-                newline();
+            formatBlockHeader();
         }
         else if (currentIs(tok!"else"))
         {
-            writeToken();
-            if (currentIs(tok!"if") || (currentIs(tok!"static") && peekIs(tok!"if"))
-                    || currentIs(tok!"version"))
-            {
-                if (indents.top() == tok!"if" || indents.top == tok!"version")
-                    indents.pop();
-                write(" ");
-            }
-            else if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
-            {
-                if (indents.top() == tok!"if" || indents.top == tok!"version")
-                    indents.pop();
-                indents.push(tok!"else");
-                newline();
-            }
+            formatElse();
         }
         else if (isKeyword(current.type))
         {
-            switch (current.type)
-            {
-            case tok!"default":
-                writeToken();
-                break;
-            case tok!"cast":
-                writeToken();
-                break;
-            case tok!"in":
-            case tok!"is":
-                writeToken();
-                if (!currentIs(tok!"(") && !currentIs(tok!"{"))
-                    write(" ");
-                break;
-            case tok!"case":
-                writeToken();
-                if (!currentIs(tok!";"))
-                    write(" ");
-                break;
-            case tok!"enum":
-                indents.push(tok!"enum");
-                writeToken();
-                if (!currentIs(tok!":"))
-                    write(" ");
-                break;
-            default:
-                if (index + 1 < tokens.length)
-                {
-                    if (!peekIs(tok!"@") && peekIsOperator())
-                        writeToken();
-                    else
-                    {
-                        writeToken();
-                        write(" ");
-                    }
-                }
-                else
-                    writeToken();
-                break;
-            }
+            formatKeyword();
         }
         else if (isBasicType(current.type))
         {
@@ -311,318 +233,7 @@ private:
         }
         else if (isOperator(current.type))
         {
-            switch (current.type)
-            {
-            case tok!"*":
-                if (astInformation.spaceAfterLocations.canFindIndex(current.index))
-                {
-                    writeToken();
-                    if (!currentIs(tok!"*") && !currentIs(tok!")") && !currentIs(
-                            tok!"[") && !currentIs(tok!",") && !currentIs(tok!";"))
-                    {
-                        write(" ");
-                    }
-                    break;
-                }
-                else if (!astInformation.unaryLocations.canFindIndex(current.index))
-                    goto binary;
-                else
-                    writeToken();
-                break;
-            case tok!"~":
-                if (peekIs(tok!"this"))
-                {
-                    if (!(index == 0 || peekBackIs(tok!"{")
-                            || peekBackIs(tok!"}") || peekBackIs(tok!";")))
-                    {
-                        write(" ");
-                    }
-                    writeToken();
-                    break;
-                }
-                else
-                    goto case;
-            case tok!"&":
-            case tok!"+":
-            case tok!"-":
-                if (astInformation.unaryLocations.canFindIndex(current.index))
-                {
-                    writeToken();
-                    break;
-                }
-                goto binary;
-            case tok!"[":
-            case tok!"(":
-                immutable p = tokens[index].type;
-                regenLineBreakHintsIfNecessary(index);
-                writeToken();
-                if (p == tok!"(")
-                {
-                    spaceAfterParens = true;
-                    parenDepth++;
-                }
-                immutable bool arrayInitializerStart = p == tok!"[" && linebreakHints.length != 0
-                    && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
-                if (arrayInitializerStart)
-                {
-                    // Use the close bracket as the indent token to distinguish
-                    // the array initialiazer from an array index in the newling
-                    // handling code
-                    pushWrapIndent(tok!"]");
-                    newline();
-                    immutable size_t j = expressionEndIndex(index);
-                    linebreakHints = chooseLineBreakTokens(index,
-                        tokens[index .. j], config, currentLineLength, indentLevel);
-                }
-                else if (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
-                        && currentLineLength > config.columnSoftLimit && !currentIs(
-                        tok!")")))
-                {
-                    pushWrapIndent(p);
-                    newline();
-                }
-                break;
-            case tok!")":
-                parenDepth--;
-                if (parenDepth == 0)
-                    while (indents.length > 0 && isWrapIndent(indents.top))
-                        indents.pop();
-                if (parenDepth == 0 && (peekIs(tok!"in") || peekIs(tok!"out")
-                        || peekIs(tok!"body")))
-                {
-                    writeToken(); // )
-                    newline();
-                    writeToken(); // in/out/body
-                }
-                else if (peekIsLiteralOrIdent() || peekIsBasicType() || peekIsKeyword())
-                {
-                    writeToken();
-                    if (spaceAfterParens || parenDepth > 0)
-                        write(" ");
-                }
-                else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens)
-                {
-                    writeToken();
-                    write(" ");
-                }
-                else
-                    writeToken();
-                break;
-            case tok!"@":
-                writeToken();
-                if (currentIs(tok!"identifier"))
-                    writeToken();
-                if (currentIs(tok!"("))
-                {
-                    writeParens(false);
-                    if (index < tokens.length && tokens[index - 1].line < tokens[
-                            index].line)
-                        newline();
-                    else
-                        write(" ");
-                }
-                else if (index < tokens.length && (currentIs(tok!"@")
-                        || !isOperator(tokens[index].type)))
-                    write(" ");
-                break;
-            case tok!"!":
-                if (peekIs(tok!"is"))
-                    write(" ");
-                goto case;
-            case tok!"...":
-            case tok!"++":
-            case tok!"--":
-            case tok!"$":
-                writeToken();
-                break;
-            case tok!":":
-                if (astInformation.caseEndLocations.canFindIndex(current.index)
-                        || astInformation.attributeDeclarationLines.canFindIndex(
-                        current.line))
-                {
-                    writeToken();
-                    if (!currentIs(tok!"{"))
-                        newline();
-                }
-                else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!"{",
-                        true) || peekBack2Is(tok!"}", true) || peekBack2Is(tok!";",
-                        true) || peekBack2Is(tok!":", true))
-                        && !(isBlockHeader(1) && !peekIs(tok!"if")))
-                {
-                    writeToken();
-                    if (!currentIs(tok!"{"))
-                        newline();
-                }
-                else
-                {
-                    if (peekIs(tok!".."))
-                        writeToken();
-                    else if (isBlockHeader(1) && !peekIs(tok!"if"))
-                    {
-                        writeToken();
-                        write(" ");
-                    }
-                    else
-                    {
-                        write(" : ");
-                        index++;
-                    }
-                }
-                break;
-            case tok!"]":
-                while (indents.length && isWrapIndent(indents.top))
-                    indents.pop();
-                if (indents.length && indents.top == tok!"]")
-                    newline();
-                writeToken();
-                if (currentIs(tok!"identifier"))
-                    write(" ");
-                break;
-            case tok!";":
-                if (parenDepth > 0)
-                {
-                    if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
-                        write("; ");
-                    else
-                        write(";");
-                    index++;
-                }
-                else
-                {
-                    writeToken();
-                    linebreakHints = [];
-                    newline();
-                }
-                break;
-            case tok!"{":
-                formatLeftBrace();
-                break;
-            case tok!"}":
-                if (astInformation.structInitEndLocations.canFindIndex(tokens[index].index))
-                {
-                    writeToken();
-                }
-                else if (astInformation.funLitEndLocations.canFindIndex(tokens[index].index))
-                {
-                    write(" ");
-                    writeToken();
-                }
-                else
-                {
-                    // Silly hack to format enums better.
-                    if (peekBackIsLiteralOrIdent() || peekBackIs(tok!","))
-                        newline();
-                    write("}");
-                    if (index < tokens.length - 1 && astInformation.doubleNewlineLocations.canFindIndex(
-                            tokens[index].index) && !peekIs(tok!"}"))
-                    {
-                        write("\n");
-                        currentLineLength = 0;
-                        justAddedExtraNewline = true;
-                    }
-                    if (config.braceStyle == BraceStyle.otbs && currentIs(tok!"else"))
-                        write(" ");
-                    if (!peekIs(tok!",") && !peekIs(tok!")"))
-                    {
-                        index++;
-                        newline();
-                    }
-                    else
-                        index++;
-                }
-                break;
-            case tok!".":
-                if (linebreakHints.canFind(index) || (linebreakHints.length == 0
-                        && currentLineLength + nextTokenLength() > config.columnHardLimit))
-                {
-                    pushWrapIndent();
-                    newline();
-                }
-                writeToken();
-                break;
-            case tok!",":
-                regenLineBreakHintsIfNecessary(index);
-                if (indents.indentToMostRecent(tok!"enum") != -1 && !peekIs(tok!"}"))
-                {
-                    writeToken();
-                    newline();
-                }
-                else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
-                        || (linebreakHints.length == 0 && currentLineLength > config.columnSoftLimit)))
-                {
-                    writeToken();
-                    pushWrapIndent(tok!",");
-                    newline();
-                }
-                else
-                {
-                    writeToken();
-                    if (!currentIs(tok!")", false) && !currentIs(tok!"]",
-                            false) && !currentIs(tok!"}", false)
-                            && !currentIs(tok!"comment", false))
-                    {
-                        write(" ");
-                    }
-                }
-                regenLineBreakHintsIfNecessary(index - 1);
-                break;
-            case tok!"&&":
-            case tok!"||":
-                regenLineBreakHintsIfNecessary(index);
-                goto case;
-            case tok!"=":
-            case tok!">=":
-            case tok!">>=":
-            case tok!">>>=":
-            case tok!"|=":
-            case tok!"-=":
-            case tok!"/=":
-            case tok!"*=":
-            case tok!"&=":
-            case tok!"%=":
-            case tok!"+=":
-            case tok!"^^":
-            case tok!"^=":
-            case tok!"^":
-            case tok!"~=":
-            case tok!"<<=":
-            case tok!"<<":
-            case tok!"<=":
-            case tok!"<>=":
-            case tok!"<>":
-            case tok!"<":
-            case tok!"==":
-            case tok!"=>":
-            case tok!">>>":
-            case tok!">>":
-            case tok!">":
-            case tok!"|":
-            case tok!"!<=":
-            case tok!"!<>=":
-            case tok!"!<>":
-            case tok!"!<":
-            case tok!"!=":
-            case tok!"!>=":
-            case tok!"!>":
-            case tok!"?":
-            case tok!"/":
-            case tok!"..":
-            case tok!"%":
-            binary:
-                if (linebreakHints.canFind(index) || peekIs(tok!"comment", false))
-                {
-                    pushWrapIndent();
-                    newline();
-                }
-                else
-                    write(" ");
-                writeToken();
-                write(" ");
-                break;
-            default:
-                writeToken();
-                break;
-            }
+            formatOperator();
         }
         else if (currentIs(tok!"identifier"))
         {
@@ -645,8 +256,6 @@ private:
 
     void formatComment()
     {
-        immutable bool prevIsComment = index > 0
-            && tokens[index - 1].type == tok!"comment";
         immutable bool currIsSlashSlash = tokens[index].text[0 .. 2] == "//";
         immutable prevTokenEndLine = index == 0 ? size_t.max : tokenEndLine(tokens[index - 1]);
         immutable size_t currTokenLine = tokens[index].line;
@@ -744,6 +353,133 @@ private:
         }
     }
 
+    void formatLeftParenOrBracket()
+    {
+        immutable p = tokens[index].type;
+        regenLineBreakHintsIfNecessary(index);
+        writeToken();
+        if (p == tok!"(")
+        {
+            spaceAfterParens = true;
+            parenDepth++;
+        }
+        immutable bool arrayInitializerStart = p == tok!"[" && linebreakHints.length != 0
+            && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
+        if (arrayInitializerStart)
+        {
+            // Use the close bracket as the indent token to distinguish
+            // the array initialiazer from an array index in the newling
+            // handling code
+            pushWrapIndent(tok!"]");
+            newline();
+            immutable size_t j = expressionEndIndex(index);
+            linebreakHints = chooseLineBreakTokens(index, tokens[index .. j], config,
+                currentLineLength, indentLevel);
+        }
+        else if (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
+                && currentLineLength > config.columnSoftLimit && !currentIs(tok!")")))
+        {
+            pushWrapIndent(p);
+            newline();
+        }
+    }
+
+    void formatRightParen()
+    {
+        parenDepth--;
+        if (parenDepth == 0)
+            while (indents.length > 0 && isWrapIndent(indents.top))
+                indents.pop();
+        if (parenDepth == 0 && (peekIs(tok!"in") || peekIs(tok!"out") || peekIs(tok!"body")))
+        {
+            writeToken(); // )
+            newline();
+            writeToken(); // in/out/body
+        }
+        else if (peekIsLiteralOrIdent() || peekIsBasicType() || peekIsKeyword())
+        {
+            writeToken();
+            if (spaceAfterParens || parenDepth > 0)
+                write(" ");
+        }
+        else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens)
+        {
+            writeToken();
+            write(" ");
+        }
+        else
+            writeToken();
+    }
+
+    void formatAt()
+    {
+        writeToken();
+        if (currentIs(tok!"identifier"))
+            writeToken();
+        if (currentIs(tok!"("))
+        {
+            writeParens(false);
+            if (index < tokens.length && tokens[index - 1].line < tokens[index].line)
+                newline();
+            else
+                write(" ");
+        }
+        else if (index < tokens.length && (currentIs(tok!"@") || !isOperator(tokens[index].type)))
+            write(" ");
+    }
+
+    void formatColon()
+    {
+        if (astInformation.caseEndLocations.canFindIndex(current.index)
+                || astInformation.attributeDeclarationLines.canFindIndex(current.line))
+        {
+            writeToken();
+            if (!currentIs(tok!"{"))
+                newline();
+        }
+        else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!"{", true)
+                || peekBack2Is(tok!"}", true) || peekBack2Is(tok!";", true)
+                || peekBack2Is(tok!":", true)) && !(isBlockHeader(1) && !peekIs(tok!"if")))
+        {
+            writeToken();
+            if (!currentIs(tok!"{"))
+                newline();
+        }
+        else
+        {
+            if (peekIs(tok!".."))
+                writeToken();
+            else if (isBlockHeader(1) && !peekIs(tok!"if"))
+            {
+                writeToken();
+                write(" ");
+            }
+            else
+            {
+                write(" : ");
+                index++;
+            }
+        }
+    }
+
+    void formatSemicolon()
+    {
+        if (parenDepth > 0)
+        {
+            if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
+                write("; ");
+            else
+                write(";");
+            index++;
+        }
+        else
+        {
+            writeToken();
+            linebreakHints = [];
+            newline();
+        }
+    }
+
     void formatLeftBrace()
     {
         if (astInformation.structInitStartLocations.canFindIndex(tokens[index].index))
@@ -787,6 +523,323 @@ private:
             writeToken();
             newline();
         }
+    }
+
+    void formatRightBrace()
+    {
+        if (astInformation.structInitEndLocations.canFindIndex(tokens[index].index))
+        {
+            writeToken();
+        }
+        else if (astInformation.funLitEndLocations.canFindIndex(tokens[index].index))
+        {
+            write(" ");
+            writeToken();
+        }
+        else
+        {
+            // Silly hack to format enums better.
+            if (peekBackIsLiteralOrIdent() || peekBackIs(tok!","))
+                newline();
+            write("}");
+            if (index < tokens.length - 1 && astInformation.doubleNewlineLocations.canFindIndex(
+                    tokens[index].index) && !peekIs(tok!"}"))
+            {
+                write("\n");
+                currentLineLength = 0;
+                justAddedExtraNewline = true;
+            }
+            if (config.braceStyle == BraceStyle.otbs && currentIs(tok!"else"))
+                write(" ");
+            if (!peekIs(tok!",") && !peekIs(tok!")"))
+            {
+                index++;
+                newline();
+            }
+            else
+                index++;
+        }
+    }
+
+    void formatSwitch()
+    {
+        if (indents.length == 0 || indents.top != tok!"with")
+            indents.push(tok!"switch");
+        writeToken(); // switch
+        write(" ");
+    }
+
+    void formatBlockHeader()
+    {
+        immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug");
+        immutable bool b = a || astInformation.conditionalWithElseLocations.canFindIndex(
+            current.index);
+        immutable bool shouldPushIndent = b
+            || astInformation.conditionalStatementLocations.canFindIndex(current.index);
+        if (shouldPushIndent)
+            indents.push(current.type);
+        writeToken();
+        write(" ");
+        writeParens(false);
+        if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch")))
+            write(" ");
+        else if (currentIs(tok!"comment"))
+            formatStep();
+        else if (!shouldPushIndent)
+        {
+            if (!currentIs(tok!"{") && !currentIs(tok!";"))
+                write(" ");
+        }
+        else if (!currentIs(tok!"{") && !currentIs(tok!";"))
+            newline();
+    }
+
+    void formatElse()
+    {
+        writeToken();
+        if (currentIs(tok!"if") || (currentIs(tok!"static") && peekIs(tok!"if"))
+                || currentIs(tok!"version"))
+        {
+            if (indents.top() == tok!"if" || indents.top == tok!"version")
+                indents.pop();
+            write(" ");
+        }
+        else if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
+        {
+            if (indents.top() == tok!"if" || indents.top == tok!"version")
+                indents.pop();
+            indents.push(tok!"else");
+            newline();
+        }
+    }
+
+    void formatKeyword()
+    {
+        switch (current.type)
+        {
+        case tok!"default":
+            writeToken();
+            break;
+        case tok!"cast":
+            writeToken();
+            break;
+        case tok!"in":
+        case tok!"is":
+            writeToken();
+            if (!currentIs(tok!"(") && !currentIs(tok!"{"))
+                write(" ");
+            break;
+        case tok!"case":
+            writeToken();
+            if (!currentIs(tok!";"))
+                write(" ");
+            break;
+        case tok!"enum":
+            indents.push(tok!"enum");
+            writeToken();
+            if (!currentIs(tok!":"))
+                write(" ");
+            break;
+        default:
+            if (index + 1 < tokens.length)
+            {
+                if (!peekIs(tok!"@") && peekIsOperator())
+                    writeToken();
+                else
+                {
+                    writeToken();
+                    write(" ");
+                }
+            }
+            else
+                writeToken();
+            break;
+        }
+    }
+
+    void formatOperator()
+    {
+        import std.algorithm : canFind;
+
+        switch (current.type)
+        {
+        case tok!"*":
+            if (astInformation.spaceAfterLocations.canFindIndex(current.index))
+            {
+                writeToken();
+                if (!currentIs(tok!"*") && !currentIs(tok!")") && !currentIs(tok!"[")
+                        && !currentIs(tok!",") && !currentIs(tok!";"))
+                {
+                    write(" ");
+                }
+                break;
+            }
+            else if (!astInformation.unaryLocations.canFindIndex(current.index))
+                goto binary;
+            else
+                writeToken();
+            break;
+        case tok!"~":
+            if (peekIs(tok!"this"))
+            {
+                if (!(index == 0 || peekBackIs(tok!"{") || peekBackIs(tok!"}") || peekBackIs(
+                        tok!";")))
+                {
+                    write(" ");
+                }
+                writeToken();
+                break;
+            }
+            else
+                goto case;
+        case tok!"&":
+        case tok!"+":
+        case tok!"-":
+            if (astInformation.unaryLocations.canFindIndex(current.index))
+            {
+                writeToken();
+                break;
+            }
+            goto binary;
+        case tok!"[":
+        case tok!"(":
+            formatLeftParenOrBracket();
+            break;
+        case tok!")":
+            formatRightParen();
+            break;
+        case tok!"@":
+            formatAt();
+            break;
+        case tok!"!":
+            if (peekIs(tok!"is"))
+                write(" ");
+            goto case;
+        case tok!"...":
+        case tok!"++":
+        case tok!"--":
+        case tok!"$":
+            writeToken();
+            break;
+        case tok!":":
+            formatColon();
+            break;
+        case tok!"]":
+            while (indents.length && isWrapIndent(indents.top))
+                indents.pop();
+            if (indents.length && indents.top == tok!"]")
+                newline();
+            writeToken();
+            if (currentIs(tok!"identifier"))
+                write(" ");
+            break;
+        case tok!";":
+            formatSemicolon();
+            break;
+        case tok!"{":
+            formatLeftBrace();
+            break;
+        case tok!"}":
+            formatRightBrace();
+            break;
+        case tok!".":
+            if (linebreakHints.canFind(index) || (linebreakHints.length == 0
+                    && currentLineLength + nextTokenLength() > config.columnHardLimit))
+            {
+                pushWrapIndent();
+                newline();
+            }
+            writeToken();
+            break;
+        case tok!",":
+            formatComma();
+            break;
+        case tok!"&&":
+        case tok!"||":
+            regenLineBreakHintsIfNecessary(index);
+            goto case;
+        case tok!"=":
+        case tok!">=":
+        case tok!">>=":
+        case tok!">>>=":
+        case tok!"|=":
+        case tok!"-=":
+        case tok!"/=":
+        case tok!"*=":
+        case tok!"&=":
+        case tok!"%=":
+        case tok!"+=":
+        case tok!"^^":
+        case tok!"^=":
+        case tok!"^":
+        case tok!"~=":
+        case tok!"<<=":
+        case tok!"<<":
+        case tok!"<=":
+        case tok!"<>=":
+        case tok!"<>":
+        case tok!"<":
+        case tok!"==":
+        case tok!"=>":
+        case tok!">>>":
+        case tok!">>":
+        case tok!">":
+        case tok!"|":
+        case tok!"!<=":
+        case tok!"!<>=":
+        case tok!"!<>":
+        case tok!"!<":
+        case tok!"!=":
+        case tok!"!>=":
+        case tok!"!>":
+        case tok!"?":
+        case tok!"/":
+        case tok!"..":
+        case tok!"%":
+        binary:
+            if (linebreakHints.canFind(index) || peekIs(tok!"comment", false))
+            {
+                pushWrapIndent();
+                newline();
+            }
+            else
+                write(" ");
+            writeToken();
+            write(" ");
+            break;
+        default:
+            writeToken();
+            break;
+        }
+    }
+
+    void formatComma()
+    {
+        import std.algorithm : canFind;
+
+        regenLineBreakHintsIfNecessary(index);
+        if (indents.indentToMostRecent(tok!"enum") != -1 && !peekIs(tok!"}"))
+        {
+            writeToken();
+            newline();
+        }
+        else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
+                || (linebreakHints.length == 0 && currentLineLength > config.columnSoftLimit)))
+        {
+            writeToken();
+            pushWrapIndent(tok!",");
+            newline();
+        }
+        else
+        {
+            writeToken();
+            if (!currentIs(tok!")", false) && !currentIs(tok!"]", false) && !currentIs(
+                    tok!"}", false) && !currentIs(tok!"comment", false))
+            {
+                write(" ");
+            }
+        }
+        regenLineBreakHintsIfNecessary(index - 1);
     }
 
     void regenLineBreakHintsIfNecessary(immutable size_t i)
@@ -1628,7 +1681,7 @@ int breakCost(IdType t)
     case tok!"(":
         return 60;
     case tok!"[":
-        return 100;
+        return 400;
     case tok!"^^":
     case tok!"^=":
     case tok!"^":
@@ -1670,9 +1723,9 @@ int breakCost(IdType t)
     case tok!"-":
     case tok!"~":
     case tok!"+=":
-        return 300;
+        return 200;
     case tok!".":
-        return 700;
+        return 900;
     default:
         return 1000;
     }
