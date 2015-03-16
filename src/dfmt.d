@@ -133,9 +133,36 @@ void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
     visitor.visit(mod);
     astInformation.cleanup();
     auto tokens = byToken(buffer, config, &cache).array();
-    auto tokenFormatter = TokenFormatter!OutputRange(tokens, output,
+    auto depths = generateDepthInfo(tokens);
+    auto tokenFormatter = TokenFormatter!OutputRange(tokens, depths, output,
         &astInformation, formatterConfig);
     tokenFormatter.format();
+}
+
+immutable(short[]) generateDepthInfo(const Token[] tokens)
+{
+    import std.exception : assumeUnique;
+
+    short[] retVal = new short[](tokens.length);
+    short depth = 0;
+    foreach (i, ref t; tokens)
+    {
+        switch (t.type)
+        {
+        case tok!"(":
+        case tok!"[":
+            depth++;
+            break;
+        case tok!")":
+        case tok!"]":
+            depth--;
+            break;
+        default:
+            break;
+        }
+        retVal[i] = depth;
+    }
+    return assumeUnique(retVal);
 }
 
 struct TokenFormatter(OutputRange)
@@ -147,10 +174,11 @@ struct TokenFormatter(OutputRange)
      *     astInformation = information about the AST used to inform formatting
      *         decisions.
      */
-    this(const(Token)[] tokens, OutputRange output, ASTInformation* astInformation,
-        FormatterConfig* config)
+    this(const(Token)[] tokens, immutable short[] depths, OutputRange output,
+        ASTInformation* astInformation, FormatterConfig* config)
     {
         this.tokens = tokens;
+        this.depths = depths;
         this.output = output;
         this.astInformation = astInformation;
         this.config = config;
@@ -373,11 +401,11 @@ private:
             pushWrapIndent(tok!"]");
             newline();
             immutable size_t j = expressionEndIndex(index);
-            linebreakHints = chooseLineBreakTokens(index, tokens[index .. j], config,
-                currentLineLength, indentLevel);
+            linebreakHints = chooseLineBreakTokens(index, tokens[index .. j],
+                depths[index .. j], config, currentLineLength, indentLevel);
         }
         else if (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
-                && currentLineLength > config.columnSoftLimit && !currentIs(tok!")")))
+                && currentLineLength > config.columnHardLimit && !currentIs(tok!")")))
         {
             pushWrapIndent(p);
             newline();
@@ -847,54 +875,16 @@ private:
         if (linebreakHints.length == 0 || linebreakHints[$ - 1] <= i - 1)
         {
             immutable size_t j = expressionEndIndex(i);
-            linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], config,
-                currentLineLength, indentLevel);
+            linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], depths[i .. j],
+                config, currentLineLength, indentLevel);
         }
     }
 
     size_t expressionEndIndex(size_t i) const pure @safe @nogc
     {
-        int parDepth = 0;
-        int bracketDepth = 0;
-        int braceDepth = 0;
-        loop: while (i < tokens.length) switch (tokens[i].type)
-        {
-        case tok!"(":
-            parDepth++;
+        immutable d = depths[i];
+        while (i < tokens.length && depths[i] >= d && tokens[i].type != tok!";")
             i++;
-            break;
-        case tok!"{":
-            braceDepth++;
-            i++;
-            break;
-        case tok!"[":
-            bracketDepth++;
-            i++;
-            break;
-        case tok!")":
-            parDepth--;
-            if (parDepth <= 0 && braceDepth <= 0 && bracketDepth <= 0)
-                break loop;
-            i++;
-            break;
-        case tok!"}":
-            braceDepth--;
-            if (parDepth <= 0 && braceDepth <= 0 && bracketDepth <= 0)
-                break loop;
-            i++;
-            break;
-        case tok!"]":
-            bracketDepth--;
-            if (parDepth <= 0 && braceDepth <= 0 && bracketDepth <= 0)
-                break loop;
-            i++;
-            break;
-        case tok!";":
-            break loop;
-        default:
-            i++;
-            break;
-        }
         return i;
     }
 
@@ -1272,6 +1262,9 @@ private:
 
     /// Tokens being formatted
     const(Token)[] tokens;
+
+    /// Paren depth info
+    immutable short[] depths;
 
     /// Information about the AST
     ASTInformation* astInformation;
@@ -1740,9 +1733,11 @@ unittest
 
 struct State
 {
-    this(size_t[] breaks, const Token[] tokens, int depth,
+    this(size_t[] breaks, const Token[] tokens, immutable short[] depths, int depth,
         const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel)
     {
+        import std.math : abs;
+
         immutable remainingCharsMultiplier = 40;
         immutable newlinePenalty = 800;
 
@@ -1751,15 +1746,11 @@ struct State
         import std.algorithm : map, sum;
 
         this._cost = 0;
-        int parenDepth = 0;
         for (size_t i = 0; i != breaks.length; ++i)
         {
             immutable b = tokens[breaks[i]].type;
-            if (b == tok!"(" || b == tok!"[")
-                parenDepth++;
-            else if (b == tok!")" || b == tok!"]")
-                parenDepth--;
-            immutable bc = breakCost(b) * (parenDepth == 0 ? 1 : parenDepth * 2);
+            immutable p = abs(depths[breaks[i]]);
+            immutable bc = breakCost(b) * (p == 0 ? 1 : p * 2);
             this._cost += bc;
         }
         int ll = currentLineLength;
@@ -1844,7 +1835,7 @@ private:
     bool _solved;
 }
 
-size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
+size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, immutable short[] depths,
     const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel)
 {
     import std.container.rbtree : RedBlackTree;
@@ -1855,8 +1846,8 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
     immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
     int depth = 0;
     auto open = new RedBlackTree!State;
-    open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd], depth,
-        formatterConfig, currentLineLength, indentLevel));
+    open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
+        depth, formatterConfig, currentLineLength, indentLevel));
     State lowest;
     GC.disable();
     scope(exit) GC.enable();
@@ -1871,8 +1862,8 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
             current.breaks[] += index;
             return current.breaks;
         }
-        foreach (next; validMoves(tokens[0 .. tokensEnd], current,
-                formatterConfig, currentLineLength, indentLevel, depth))
+        foreach (next; validMoves(tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
+                current,formatterConfig, currentLineLength, indentLevel, depth))
         {
             open.insert(next);
         }
@@ -1890,7 +1881,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
     assert(false);
 }
 
-State[] validMoves(const Token[] tokens, ref const State current,
+State[] validMoves(const Token[] tokens, immutable short[] depths, ref const State current,
     const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel,
     int depth)
 {
@@ -1906,7 +1897,7 @@ State[] validMoves(const Token[] tokens, ref const State current,
         breaks ~= current.breaks;
         breaks ~= i;
         sort(breaks);
-        states ~= State(breaks, tokens, depth + 1, formatterConfig,
+        states ~= State(breaks, tokens, depths, depth + 1, formatterConfig,
             currentLineLength, indentLevel);
     }
     return states;
@@ -1985,19 +1976,4 @@ struct IndentStack
 private:
     size_t index;
     IdType[256] arr;
-}
-
-version (none) unittest
-{
-    import std.string : format;
-
-    auto sourceCode = q{const Token[] tokens, ref const State current, const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel, int depth};
-    LexerConfig config;
-    config.stringBehavior = StringBehavior.source;
-    config.whitespaceBehavior = WhitespaceBehavior.skip;
-    StringCache cache = StringCache(StringCache.defaultBucketCount);
-    auto tokens = byToken(cast(ubyte[]) sourceCode, config, &cache).array();
-    FormatterConfig formatterConfig;
-    auto result = chooseLineBreakTokens(0, tokens, &formatterConfig, 0, 0);
-    assert([15] == result, "%s".format(result));
 }

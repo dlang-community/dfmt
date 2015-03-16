@@ -18,3 +18,14 @@ void doStuff(const Token[] tokens, ref const State current, const FormatterConfi
 {
 	return;
 }
+
+unittest
+{
+	if (x)
+	{
+		if (y)
+		{
+			auto z = doCond(e.thisexp) || doCond(e.newargs) || doCond(e.arguments) || applyTo(e);
+		}
+	}
+}
