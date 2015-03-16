@@ -223,8 +223,7 @@ private:
             write(" ");
             if (currentIs(tok!"("))
                 writeParens(false);
-            if (!currentIs(tok!"switch") && !currentIs(tok!"with") && !currentIs(
-                    tok!"{"))
+            if (!currentIs(tok!"switch") && !currentIs(tok!"with") && !currentIs(tok!"{"))
             {
                 newline();
             }
@@ -267,8 +266,7 @@ private:
         {
             writeToken();
             if (index < tokens.length && (currentIs(tok!"identifier")
-                    || isKeyword(current.type) || isBasicType(current.type) || currentIs(
-                    tok!"@")))
+                    || isKeyword(current.type) || isBasicType(current.type) || currentIs(tok!"@")))
             {
                 write(" ");
             }
@@ -529,15 +527,16 @@ private:
                 if (config.braceStyle == BraceStyle.otbs)
                 {
                     if (!astInformation.structInitStartLocations.canFindIndex(tokens[index].index)
-                            && !astInformation.funLitStartLocations.canFindIndex(tokens[
-                            index].index))
+                            && !astInformation.funLitStartLocations.canFindIndex(
+                            tokens[index].index))
                     {
                         while (indents.length && isWrapIndent(indents.top))
                             indents.pop();
                         indents.push(tok!"{");
                         if (index == 1 || peekBackIs(tok!":", true)
                                 || peekBackIs(tok!"{", true) || peekBackIs(tok!"}", true)
-                                || peekBackIs(tok!")", true) || peekBackIs(tok!";", true))
+                                || peekBackIs(tok!")", true) || peekBackIs(tok!";",
+                                true))
                         {
                             indentLevel = indents.indentSize - 1;
                         }
@@ -570,8 +569,9 @@ private:
             if (peekBackIsLiteralOrIdent() || peekBackIs(tok!","))
                 newline();
             write("}");
-            if (index < tokens.length - 1 && astInformation.doubleNewlineLocations.canFindIndex(
-                    tokens[index].index) && !peekIs(tok!"}"))
+            if (index < tokens.length - 1
+                    && astInformation.doubleNewlineLocations.canFindIndex(tokens[index].index)
+                    && !peekIs(tok!"}"))
             {
                 write("\n");
                 currentLineLength = 0;
@@ -600,8 +600,8 @@ private:
     void formatBlockHeader()
     {
         immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug");
-        immutable bool b = a || astInformation.conditionalWithElseLocations.canFindIndex(
-            current.index);
+        immutable bool b = a
+            || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
         immutable bool shouldPushIndent = b
             || astInformation.conditionalStatementLocations.canFindIndex(current.index);
         if (shouldPushIndent)
@@ -695,8 +695,8 @@ private:
             if (astInformation.spaceAfterLocations.canFindIndex(current.index))
             {
                 writeToken();
-                if (!currentIs(tok!"*") && !currentIs(tok!")") && !currentIs(tok!"[")
-                        && !currentIs(tok!",") && !currentIs(tok!";"))
+                if (!currentIs(tok!"*") && !currentIs(tok!")")
+                        && !currentIs(tok!"[") && !currentIs(tok!",") && !currentIs(tok!";"))
                 {
                     write(" ");
                 }
@@ -710,8 +710,8 @@ private:
         case tok!"~":
             if (peekIs(tok!"this"))
             {
-                if (!(index == 0 || peekBackIs(tok!"{") || peekBackIs(tok!"}") || peekBackIs(
-                        tok!";")))
+                if (!(index == 0 || peekBackIs(tok!"{") || peekBackIs(tok!"}")
+                        || peekBackIs(tok!";")))
                 {
                     write(" ");
                 }
@@ -861,8 +861,8 @@ private:
         else
         {
             writeToken();
-            if (!currentIs(tok!")", false) && !currentIs(tok!"]", false) && !currentIs(
-                    tok!"}", false) && !currentIs(tok!"comment", false))
+            if (!currentIs(tok!")", false) && !currentIs(tok!"]", false)
+                    && !currentIs(tok!"}", false) && !currentIs(tok!"comment", false))
             {
                 write(" ");
             }
@@ -875,8 +875,8 @@ private:
         if (linebreakHints.length == 0 || linebreakHints[$ - 1] <= i - 1)
         {
             immutable size_t j = expressionEndIndex(i);
-            linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], depths[i .. j],
-                config, currentLineLength, indentLevel);
+            linebreakHints = chooseLineBreakTokens(i, tokens[i .. j],
+                depths[i .. j], config, currentLineLength, indentLevel);
         }
     }
 
@@ -1078,8 +1078,7 @@ private:
         immutable bool hasCurrent = index + 1 < tokens.length;
 
         if (hasCurrent && tokens[index].type == tok!"}"
-                && !assumeSorted(astInformation.funLitEndLocations).equalRange(tokens[
-                index].index).empty)
+                && !assumeSorted(astInformation.funLitEndLocations).equalRange(tokens[index].index).empty)
         {
             write(" ");
             return;
@@ -1147,8 +1146,8 @@ private:
                     indents.pop();
                 indents.push(tok!"{");
                 if (index == 1 || peekBackIs(tok!":", true) || peekBackIs(tok!"{",
-                        true) || peekBackIs(tok!"}", true) || peekBackIs(tok!")", true)
-                        || peekBackIs(tok!";", true))
+                        true) || peekBackIs(tok!"}", true) || peekBackIs(tok!")",
+                        true) || peekBackIs(tok!";", true))
                 {
                     indentLevel = indents.indentSize - 1;
                 }
@@ -1544,8 +1543,8 @@ string generateFixedLengthCases()
         ">>", ">>=", ">>>", ">>>=", "?", "@", "^", "^=", "^^", "^^=", "|", "|=", "||",
         "~", "~="
     ];
-    immutable spacedOperatorTokenCases = spacedOperatorTokens.map!(a => format(
-        `case tok!"%s": return %d + 1;`, a, a.length)).join("\n\t");
+    immutable spacedOperatorTokenCases = spacedOperatorTokens.map!(
+        a => format(`case tok!"%s": return %d + 1;`, a, a.length)).join("\n\t");
 
     string[] identifierTokens = [
         "abstract", "alias", "align", "asm", "assert", "auto", "body", "bool",
@@ -1567,8 +1566,8 @@ string generateFixedLengthCases()
         "__TIME__", "__TIMESTAMP__", "__traits", "__vector", "__VENDOR__",
         "__VERSION__", "$", "++", "--", ".", "[", "]", "(", ")", "{", "}"
     ];
-    immutable identifierTokenCases = identifierTokens.map!(a => format(
-        `case tok!"%s": return %d;`, a, a.length)).join("\n\t");
+    immutable identifierTokenCases = identifierTokens.map!(
+        a => format(`case tok!"%s": return %d;`, a, a.length)).join("\n\t");
     return spacedOperatorTokenCases ~ identifierTokenCases;
 }
 
@@ -1846,8 +1845,8 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, immutable sho
     immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
     int depth = 0;
     auto open = new RedBlackTree!State;
-    open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
-        depth, formatterConfig, currentLineLength, indentLevel));
+    open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd],
+        depths[0 .. tokensEnd], depth, formatterConfig, currentLineLength, indentLevel));
     State lowest;
     GC.disable();
     scope(exit) GC.enable();
@@ -1863,7 +1862,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, immutable sho
             return current.breaks;
         }
         foreach (next; validMoves(tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
-                current,formatterConfig, currentLineLength, indentLevel, depth))
+                current, formatterConfig, currentLineLength, indentLevel, depth))
         {
             open.insert(next);
         }
