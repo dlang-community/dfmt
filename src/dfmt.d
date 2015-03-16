@@ -95,7 +95,7 @@ else
                 buffer = new ubyte[](cast(size_t) f.size);
                 f.rawRead(buffer);
                 if (inplace)
-                    output = File(path, "w");
+                    output = File(path, "wb");
                 format(path, buffer, output.lockingTextWriter(), &formatterConfig);
             }
         }
