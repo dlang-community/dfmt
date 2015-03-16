@@ -223,7 +223,8 @@ private:
             write(" ");
             if (currentIs(tok!"("))
                 writeParens(false);
-            if (!currentIs(tok!"switch") && !currentIs(tok!"with") && !currentIs(tok!"{"))
+            if (!currentIs(tok!"switch") && !currentIs(tok!"with")
+                    && !currentIs(tok!"{") && !(currentIs(tok!"final") && peekIs(tok!"switch")))
             {
                 newline();
             }
@@ -457,15 +458,7 @@ private:
 
     void formatColon()
     {
-        regenLineBreakHintsIfNecessary(index);
-        if (linebreakHints.canFindIndex(index))
-        {
-            pushWrapIndent();
-            newline();
-            writeToken();
-            write(" ");
-        }
-        else if (astInformation.caseEndLocations.canFindIndex(current.index)
+        if (astInformation.caseEndLocations.canFindIndex(current.index)
                 || astInformation.attributeDeclarationLines.canFindIndex(current.line))
         {
             writeToken();
@@ -482,10 +475,18 @@ private:
         }
         else
         {
+            regenLineBreakHintsIfNecessary(index);
             if (peekIs(tok!".."))
                 writeToken();
             else if (isBlockHeader(1) && !peekIs(tok!"if"))
             {
+                writeToken();
+                write(" ");
+            }
+            else if (linebreakHints.canFindIndex(index))
+            {
+                pushWrapIndent();
+                newline();
                 writeToken();
                 write(" ");
             }
@@ -563,6 +564,7 @@ private:
             }
             writeToken();
             newline();
+            linebreakHints = [];
         }
     }
 
