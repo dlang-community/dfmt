@@ -457,10 +457,10 @@ private:
 
     void formatColon()
     {
-		regenLineBreakHintsIfNecessary(index);
+        regenLineBreakHintsIfNecessary(index);
         if (linebreakHints.canFindIndex(index))
         {
-			pushWrapIndent();
+            pushWrapIndent();
             newline();
             writeToken();
             write(" ");
@@ -605,8 +605,9 @@ private:
 
     void formatSwitch()
     {
-        if (indents.length == 0 || indents.top != tok!"with")
-            indents.push(tok!"switch");
+        if (indents.length > 0 && indents.top == tok!"with")
+            indents.pop();
+        indents.push(tok!"switch");
         writeToken(); // switch
         write(" ");
     }
