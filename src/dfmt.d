@@ -502,16 +502,20 @@ private:
     {
         if (parenDepth > 0)
         {
-            if (linebreakHints.canFindIndex(index))
+            if (currentLineLength > config.columnSoftLimit)
             {
                 writeToken();
+                pushWrapIndent(tok!";");
                 newline();
             }
-            else if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
-                write("; ");
             else
-                write(";");
-            index++;
+            {
+                if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
+                    write("; ");
+                else
+                    write(";");
+                index++;
+            }
         }
         else
         {
@@ -1203,8 +1207,9 @@ private:
             }
             else
             {
-                while ((peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
-                        && indents.length && isTempIndent(indents.top()))
+                while (indents.length && (peekBackIs(tok!"}", true)
+                        || (peekBackIs(tok!";", true) && indents.top != tok!";"))
+                        && isTempIndent(indents.top()))
                 {
                     indents.pop();
                 }
