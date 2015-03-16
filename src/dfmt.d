@@ -402,8 +402,9 @@ private:
             linebreakHints = chooseLineBreakTokens(index, tokens[index .. j],
                 depths[index .. j], config, currentLineLength, indentLevel);
         }
-        else if (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
-                && currentLineLength > config.columnHardLimit && !currentIs(tok!")")))
+        else if (!currentIs(tok!")") && !currentIs(tok!"]")
+                && (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
+                && currentLineLength > config.columnHardLimit)))
         {
             pushWrapIndent(p);
             newline();
@@ -456,7 +457,15 @@ private:
 
     void formatColon()
     {
-        if (astInformation.caseEndLocations.canFindIndex(current.index)
+		regenLineBreakHintsIfNecessary(index);
+        if (linebreakHints.canFindIndex(index))
+        {
+			pushWrapIndent();
+            newline();
+            writeToken();
+            write(" ");
+        }
+        else if (astInformation.caseEndLocations.canFindIndex(current.index)
                 || astInformation.attributeDeclarationLines.canFindIndex(current.line))
         {
             writeToken();
@@ -492,7 +501,12 @@ private:
     {
         if (parenDepth > 0)
         {
-            if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
+            if (linebreakHints.canFindIndex(index))
+            {
+                writeToken();
+                newline();
+            }
+            else if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
                 write("; ");
             else
                 write(";");
@@ -1614,6 +1628,7 @@ bool isBreakToken(IdType t)
     case tok!"(":
     case tok!"[":
     case tok!",":
+    case tok!":":
     case tok!"^^":
     case tok!"^=":
     case tok!"^":
@@ -1674,6 +1689,7 @@ int breakCost(IdType t)
         return 60;
     case tok!"[":
         return 400;
+    case tok!":":
     case tok!"^^":
     case tok!"^=":
     case tok!"^":
