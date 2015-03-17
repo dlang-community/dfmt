@@ -204,6 +204,13 @@ private:
                 || currentIs(tok!"characterLiteral"))
         {
             writeToken();
+            if (index < tokens.length)
+            {
+                immutable t = tokens[index].type;
+                if (t == tok!"identifier" || isStringLiteral(t) || isNumberLiteral(t)
+						|| t == tok!"characterLiteral")
+                    write(" ");
+            }
         }
         else if (currentIs(tok!"module") || currentIs(tok!"import"))
         {
