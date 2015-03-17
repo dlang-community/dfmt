@@ -1235,7 +1235,12 @@ private:
         }
         else
         {
-            output.put(current.text);
+            // You know what's awesome? Windows can't handle its own line
+            // endings correctly.
+            version(Windows)
+                output.put(current.text.replace("\r", ""));
+            else
+                output.put(current.text);
             currentLineLength += current.text.length;
         }
         index++;
