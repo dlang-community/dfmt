@@ -1,7 +1,7 @@
 {
     "name": "dfmt",
     "description": "Dfmt is a formatter for D source code",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "targetType": "executable",
     "dependencies": {
       "libdparse": "~master"
