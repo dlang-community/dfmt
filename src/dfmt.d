@@ -746,8 +746,8 @@ private:
 		case tok!"~":
 			if (peekIs(tok!"this"))
 			{
-				if (!(index == 0 || peekBackIs(tok!"{") || peekBackIs(tok!"}")
-						|| peekBackIs(tok!";")))
+				if (!(index == 0 || peekBackIs(tok!"{", true) || peekBackIs(tok!"}", true)
+						|| peekBackIs(tok!";", true)))
 				{
 					write(" ");
 				}
