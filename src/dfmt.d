@@ -601,7 +601,7 @@ private:
 		else
 		{
 			// Silly hack to format enums better.
-			if (peekBackIsLiteralOrIdent() || peekBackIs(tok!",", true))
+			if (peekBackIsLiteralOrIdent() || (peekBackIs(tok!",", true) && !peekBackIsSlashSlash))
 				newline();
 			write("}");
 			if (index < tokens.length - 1
