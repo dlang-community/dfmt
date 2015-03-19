@@ -149,10 +149,12 @@ immutable(short[]) generateDepthInfo(const Token[] tokens)
     {
         switch (t.type)
         {
+        case tok!"{":
         case tok!"(":
         case tok!"[":
             depth++;
             break;
+        case tok!"}":
         case tok!")":
         case tok!"]":
             depth--;
@@ -363,18 +365,18 @@ private:
             else if (currentIs(tok!","))
             {
                 // compute length until next , or ;
-                int length_of_next_chunk = INVALID_TOKEN_LENGTH;
+                int lengthOfNextChunk = INVALID_TOKEN_LENGTH;
                 for (size_t i = index + 1; i < tokens.length; i++)
                 {
                     if (tokens[i].type == tok!"," || tokens[i].type == tok!";")
                         break;
                     const len = tokenLength(tokens[i]);
                     assert(len >= 0);
-                    length_of_next_chunk += len;
+                    lengthOfNextChunk += len;
                 }
-                assert(length_of_next_chunk > 0);
+                assert(lengthOfNextChunk > 0);
                 writeToken();
-                if (currentLineLength + 1 + length_of_next_chunk >= config.columnSoftLimit)
+                if (currentLineLength + 1 + lengthOfNextChunk >= config.columnSoftLimit)
                 {
                     pushWrapIndent(tok!",");
                     newline();
@@ -507,7 +509,7 @@ private:
 
     void formatSemicolon()
     {
-        if (parenDepth > 0)
+        if ((parenDepth > 0 && sBraceDepth == 0) || (sBraceDepth > 0 && niBraceDepth > 0))
         {
             if (currentLineLength > config.columnSoftLimit)
             {
@@ -534,16 +536,40 @@ private:
 
     void formatLeftBrace()
     {
+        import std.algorithm : map, sum;
+
         if (astInformation.structInitStartLocations.canFindIndex(tokens[index].index))
         {
+            sBraceDepth++;
+            auto e = expressionEndIndex(index);
+            immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a)).sum();
             writeToken();
+            if (l > config.columnSoftLimit)
+            {
+                indents.push(tok!"{");
+                newline();
+            }
+            else
+                niBraceDepth++;
         }
         else if (astInformation.funLitStartLocations.canFindIndex(tokens[index].index))
         {
+            sBraceDepth++;
             if (peekBackIs(tok!")"))
                 write(" ");
+            auto e = expressionEndIndex(index);
+            immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a)).sum();
             writeToken();
-            write(" ");
+            if (l > config.columnSoftLimit)
+            {
+                indents.push(tok!"{");
+                newline();
+            }
+            else
+            {
+                niBraceDepth++;
+                write(" ");
+            }
         }
         else
         {
@@ -579,23 +605,26 @@ private:
         }
     }
 
-    bool peekBackIsSlashSlash()
-    {
-        return index > 0 && tokens[index - 1].type == tok!"comment"
-            && tokens[index - 1].text[0 .. 2] == "//";
-    }
-
     void formatRightBrace()
     {
-        if (!peekBackIsSlashSlash()
-                && astInformation.structInitEndLocations.canFindIndex(tokens[index].index))
+        if (astInformation.structInitEndLocations.canFindIndex(tokens[index].index))
         {
+            if (sBraceDepth > 0)
+                sBraceDepth--;
+            if (niBraceDepth > 0)
+                niBraceDepth--;
             writeToken();
         }
-        else if (!peekBackIsSlashSlash()
-                && astInformation.funLitEndLocations.canFindIndex(tokens[index].index))
+        else if (astInformation.funLitEndLocations.canFindIndex(tokens[index].index))
         {
-            write(" ");
+            if (niBraceDepth > 0)
+            {
+                if (!peekBackIsSlashSlash())
+                    write(" ");
+                niBraceDepth--;
+            }
+            if (sBraceDepth > 0)
+                sBraceDepth--;
             writeToken();
         }
         else
@@ -908,21 +937,33 @@ private:
         regenLineBreakHintsIfNecessary(index - 1);
     }
 
+    void regenLineBreakHints(immutable size_t i)
+    {
+        immutable size_t j = expressionEndIndex(i);
+        linebreakHints = chooseLineBreakTokens(i, tokens[i .. j],
+            depths[i .. j], config, currentLineLength, indentLevel);
+    }
+
     void regenLineBreakHintsIfNecessary(immutable size_t i)
     {
         if (linebreakHints.length == 0 || linebreakHints[$ - 1] <= i - 1)
-        {
-            immutable size_t j = expressionEndIndex(i);
-            linebreakHints = chooseLineBreakTokens(i, tokens[i .. j],
-                depths[i .. j], config, currentLineLength, indentLevel);
-        }
+            regenLineBreakHints(i);
     }
 
     size_t expressionEndIndex(size_t i) const pure @safe @nogc
     {
+        immutable bool braces = i < tokens.length && tokens[i].type == tok!"{";
         immutable d = depths[i];
-        while (i < tokens.length && depths[i] >= d && tokens[i].type != tok!";")
+        while (true)
+        {
+            if (i >= tokens.length)
+                break;
+            if (depths[i] < d)
+                break;
+            if (!braces && tokens[i].type == tok!";")
+                break;
             i++;
+        }
         return i;
     }
 
@@ -1073,6 +1114,12 @@ private:
         return peekImplementation(tokenType, 1, ignoreComments);
     }
 
+    bool peekBackIsSlashSlash()
+    {
+        return index > 0 && tokens[index - 1].type == tok!"comment"
+            && tokens[index - 1].text[0 .. 2] == "//";
+    }
+
     bool currentIs(IdType tokenType, bool ignoreComments = false)
     {
         return peekImplementation(tokenType, 0, ignoreComments);
@@ -1115,8 +1162,10 @@ private:
 
         immutable bool hasCurrent = index + 1 < tokens.length;
 
-        if (!peekBackIsSlashSlash() && hasCurrent && tokens[index].type == tok!"}"
-                && !assumeSorted(astInformation.funLitEndLocations).equalRange(tokens[index].index).empty)
+        if (niBraceDepth > 0 && !peekBackIsSlashSlash() && hasCurrent
+                && tokens[index].type == tok!"}"
+                && !assumeSorted(astInformation.funLitEndLocations).equalRange(
+                tokens[index].index).empty)
         {
             write(" ");
             return;
@@ -1324,6 +1373,10 @@ private:
     bool justAddedExtraNewline;
 
     int parenDepth;
+
+    int sBraceDepth;
+
+    int niBraceDepth;
 
     bool spaceAfterParens;
 }
@@ -1659,6 +1712,7 @@ bool isBreakToken(IdType t)
     case tok!"[":
     case tok!",":
     case tok!":":
+    case tok!";":
     case tok!"^^":
     case tok!"^=":
     case tok!"^":
@@ -1720,6 +1774,7 @@ int breakCost(IdType t)
     case tok!"[":
         return 400;
     case tok!":":
+    case tok!";":
     case tok!"^^":
     case tok!"^=":
     case tok!"^":
