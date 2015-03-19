@@ -1,7 +1,5 @@
-# dfmt
+# dfmt [![Build Status](https://travis-ci.org/Hackerpilot/dfmt.svg)](https://travis-ci.org/Hackerpilot/dfmt)
 **dfmt** is a formatter for D source code
-
-[![Build Status](https://travis-ci.org/Hackerpilot/dfmt.svg)](https://travis-ci.org/Hackerpilot/dfmt)
 
 ## Status
 **dfmt** is alpha-quality. Make backups of your files or use source control.
