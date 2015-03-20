@@ -24,20 +24,34 @@ else
 {
     int main(string[] args)
     {
-        import std.getopt : getopt;
+        import std.getopt : getopt, defaultGetoptPrinter;
 
         bool inplace = false;
-        bool show_usage = false;
-        FormatterConfig formatterConfig;
-        getopt(args, "help|h", &show_usage, "inplace", &inplace, "tabs|t",
-            &formatterConfig.useTabs, "braces", &formatterConfig.braceStyle);
-        if (show_usage)
-        {
-            import std.path : baseName;
+        Config config;
+        auto getOptResult = getopt(args,
+            "inplace", "Modify files in-place", &inplace,
+            "tabs|t", getHelp!(Config.useTabs), &config.useTabs,
+            "braces", getHelp!(Config.braceStyle), &config.braceStyle,
+            "colSoft", getHelp!(Config.columnSoftLimit), &config.columnSoftLimit,
+            "colHard", getHelp!(Config.columnHardLimit), &config.columnHardLimit,
+            "tabSize", getHelp!(Config.tabSize), &config.tabSize,
+            "indentSize", getHelp!(Config.indentSize), &config.indentSize,
+            "alignSwitchCases", getHelp!(Config.alignSwitchStatements), &config.alignSwitchStatements,
+            "outdentLabels", getHelp!(Config.outdentLabels), &config.outdentLabels,
+            "outdentAttributes", getHelp!(Config.outdentAttributes), &config.outdentAttributes,
+            "splitOperatorAtEnd", getHelp!(Config.splitOperatorAtEnd), &config.splitOperatorAtEnd,
+            "spaceAfterCast", getHelp!(Config.spaceAfterCast), &config.spaceAfterCast,
+            "newlineType", getHelp!(Config.newlineType), &config.newlineType);
 
-            writef(USAGE, baseName(args[0]));
+        if (getOptResult.helpWanted)
+        {
+            defaultGetoptPrinter("dfmt 0.3.0-dev\nOptions:", getOptResult.options);
             return 0;
         }
+
+        if (!config.isValid())
+            return 1;
+
         File output = stdout;
         ubyte[] buffer;
         args.popFront();
@@ -53,7 +67,7 @@ else
                 else
                     break;
             }
-            format("stdin", buffer, output.lockingTextWriter(), &formatterConfig);
+            format("stdin", buffer, output.lockingTextWriter(), &config);
         }
         else
         {
@@ -79,7 +93,7 @@ else
                 f.rawRead(buffer);
                 if (inplace)
                     output = File(path, "wb");
-                format(path, buffer, output.lockingTextWriter(), &formatterConfig);
+                format(path, buffer, output.lockingTextWriter(), &config);
             }
         }
         return 0;
@@ -88,19 +102,8 @@ else
 
 private:
 
-immutable USAGE = "usage: %s [--inplace] [<path>...]
-Formats D code.
-
-    --inplace        Change file in-place instead of outputing to stdout
-                     (implicit in case of multiple files)
-    --tabs | -t      Use tabs instead of spaces for indentation
-    --braces=allman  Use Allman indent style (default)
-    --braces=otbs    Use the One True Brace Style
-    --help | -h      Display this help and exit
-";
-
 void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
-    FormatterConfig* formatterConfig)
+    Config* formatterConfig)
 {
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
@@ -160,7 +163,7 @@ struct TokenFormatter(OutputRange)
      *         decisions.
      */
     this(const(Token)[] tokens, immutable short[] depths, OutputRange output,
-        ASTInformation* astInformation, FormatterConfig* config)
+        ASTInformation* astInformation, Config* config)
     {
         this.tokens = tokens;
         this.depths = depths;
@@ -206,7 +209,7 @@ private:
     IndentStack indents;
 
     /// Configuration
-    const FormatterConfig* config;
+    const Config* config;
 
     /// Keep track of whether or not an extra newline was just added because of
     /// an import statement.
@@ -601,7 +604,8 @@ private:
         }
         else
         {
-            if (!justAddedExtraNewline && !peekBackIsOneOf(false, tok!"{", tok!"}", tok!";", tok!";"))
+            if (!justAddedExtraNewline && !peekBackIsOneOf(false, tok!"{",
+                    tok!"}", tok!";", tok!";"))
             {
                 if (config.braceStyle == BraceStyle.otbs)
                 {
@@ -611,7 +615,8 @@ private:
                     {
                         indents.popWrapIndents();
                         indents.push(tok!"{");
-                        if (index == 1 || peekBackIsOneOf(true, tok!":", tok!"{", tok!"}", tok!")", tok!";"))
+                        if (index == 1 || peekBackIsOneOf(true, tok!":", tok!"{",
+                                tok!"}", tok!")", tok!";"))
                         {
                             indentLevel = indents.indentSize - 1;
                         }
@@ -653,8 +658,8 @@ private:
         else
         {
             // Silly hack to format enums better.
-            if ((peekBackIsLiteralOrIdent() || peekBackIsOneOf(true, tok!")", tok!","))
-                    && !peekBackIsSlashSlash())
+            if ((peekBackIsLiteralOrIdent() || peekBackIsOneOf(true, tok!")",
+                    tok!",")) && !peekBackIsSlashSlash())
                 newline();
             write("}");
             if (index + 1 < tokens.length
@@ -950,7 +955,8 @@ private:
         else
         {
             writeToken();
-            if (!currentIs(tok!")") && !currentIs(tok!"]") && !currentIs(tok!"}") && !currentIs(tok!"comment"))
+            if (!currentIs(tok!")") && !currentIs(tok!"]")
+                    && !currentIs(tok!"}") && !currentIs(tok!"comment"))
             {
                 write(" ");
             }
@@ -1034,8 +1040,8 @@ private:
             }
             else if (currentIs(tok!"case") || currentIs(tok!"default"))
             {
-                while (indents.length && (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
-                        && isTempIndent(indents.top()))
+                while (indents.length && (peekBackIs(tok!"}", true)
+                        || peekBackIs(tok!";", true)) && isTempIndent(indents.top()))
                 {
                     indents.pop();
                 }
@@ -1049,7 +1055,8 @@ private:
             {
                 indents.popWrapIndents();
                 indents.push(tok!"{");
-                if (index == 1 || peekBackIsOneOf(true, tok!":", tok!"{", tok!"}", tok!")", tok!";"))
+                if (index == 1 || peekBackIsOneOf(true, tok!":", tok!"{",
+                        tok!"}", tok!")", tok!";"))
                 {
                     indentLevel = indents.indentSize - 1;
                 }
@@ -1086,8 +1093,8 @@ private:
             }
             else
             {
-                while (indents.length && (peekBackIsOneOf(true, tok!"}", tok!";")
-                        && indents.top != tok!";") && isTempIndent(indents.top()))
+                while (indents.length && (peekBackIsOneOf(true, tok!"}",
+                        tok!";") && indents.top != tok!";") && isTempIndent(indents.top()))
                 {
                     indents.pop();
                 }
@@ -1216,8 +1223,7 @@ const pure @safe @nogc:
         return tokenLength(tokens[i]);
     }
 
-    ref current() nothrow
-    in
+    ref current() nothrow in
     {
         assert(index < tokens.length);
     }

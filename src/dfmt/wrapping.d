@@ -12,7 +12,7 @@ import dfmt.config;
 struct State
 {
 	this(size_t[] breaks, const Token[] tokens, immutable short[] depths, int depth,
-		const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel) pure @safe
+		const Config* config, int currentLineLength, int indentLevel) pure @safe
 	{
 		import std.math : abs;
 
@@ -39,9 +39,9 @@ struct State
 		{
 			immutable int l = currentLineLength + tokens.map!(a => tokenLength(a)).sum();
 			_cost = l;
-			if (l > formatterConfig.columnSoftLimit)
+			if (l > config.columnSoftLimit)
 			{
-				immutable longPenalty = (l - formatterConfig.columnSoftLimit) * remainingCharsMultiplier;
+				immutable longPenalty = (l - config.columnSoftLimit) * remainingCharsMultiplier;
 				_cost += longPenalty;
 				this._solved = longPenalty < newlinePenalty;
 			}
@@ -54,15 +54,15 @@ struct State
 			{
 				immutable size_t j = breakIndex < breaks.length ? breaks[breakIndex] : tokens.length;
 				ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
-				if (ll > formatterConfig.columnHardLimit)
+				if (ll > config.columnHardLimit)
 				{
 					this._solved = false;
 					break;
 				}
-				else if (ll > formatterConfig.columnSoftLimit)
-					_cost += (ll - formatterConfig.columnSoftLimit) * remainingCharsMultiplier;
+				else if (ll > config.columnSoftLimit)
+					_cost += (ll - config.columnSoftLimit) * remainingCharsMultiplier;
 				i = j;
-				ll = indentLevel * formatterConfig.indentSize;
+				ll = indentLevel * config.indentSize;
 				breakIndex++;
 			}
 			while (i + 1 < tokens.length);
@@ -113,7 +113,7 @@ private:
 }
 
 size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, immutable short[] depths,
-	const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel) pure
+	const Config* config, int currentLineLength, int indentLevel) pure
 {
 	import std.container.rbtree : RedBlackTree;
 	import std.algorithm : filter, min;
@@ -123,7 +123,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, immutable sho
 	int depth = 0;
 	auto open = new RedBlackTree!State;
 	open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd],
-		depths[0 .. tokensEnd], depth, formatterConfig, currentLineLength, indentLevel));
+		depths[0 .. tokensEnd], depth, config, currentLineLength, indentLevel));
 	State lowest;
 	while (!open.empty)
 	{
@@ -137,7 +137,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, immutable sho
 			return current.breaks;
 		}
 		foreach (next; validMoves(tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
-				current, formatterConfig, currentLineLength, indentLevel, depth))
+				current, config, currentLineLength, indentLevel, depth))
 		{
 			open.insert(next);
 		}
@@ -156,7 +156,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, immutable sho
 }
 
 State[] validMoves(const Token[] tokens, immutable short[] depths, ref const State current,
-	const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel,
+	const Config* config, int currentLineLength, int indentLevel,
 	int depth) pure @safe
 {
 	import std.algorithm : sort, canFind;
@@ -171,7 +171,7 @@ State[] validMoves(const Token[] tokens, immutable short[] depths, ref const Sta
 		breaks ~= current.breaks;
 		breaks ~= i;
 		sort(breaks);
-		states ~= State(breaks, tokens, depths, depth + 1, formatterConfig,
+		states ~= State(breaks, tokens, depths, depth + 1, config,
 			currentLineLength, indentLevel);
 	}
 	return states;
