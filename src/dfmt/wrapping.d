@@ -113,7 +113,7 @@ private:
 }
 
 size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, immutable short[] depths,
-	const Config* config, int currentLineLength, int indentLevel) pure
+	const Config* config, int currentLineLength, int indentLevel)
 {
 	import std.container.rbtree : RedBlackTree;
 	import std.algorithm : filter, min;
