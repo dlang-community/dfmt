@@ -2,5 +2,4 @@
 bin
 *.d.out
 .dub
-dfmt
 dub.selections.json

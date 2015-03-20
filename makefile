@@ -1,5 +1,5 @@
 SRC := $(shell find src -name "*.d") $(shell find libdparse/src -name "*.d")
-INCLUDE_PATHS := -Ilibdparse/src
+INCLUDE_PATHS := -Ilibdparse/src -Isrc
 DMD_FLAGS := -g -w $(INCLUDE_PATHS)
 LDC_FLAGS := -g -w -oq $(INCLUDE_PATHS)
 
