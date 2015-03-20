@@ -8,7 +8,7 @@ module dfmt.ast_info;
 import std.d.lexer;
 import std.d.ast;
 
-///
+/// AST information that is needed by the formatter.
 struct ASTInformation
 {
     /// Sorts the arrays so that binary search will work on them
@@ -56,17 +56,23 @@ struct ASTInformation
     /// Closing braces of function literals
     size_t[] funLitEndLocations;
 
+    /// Conditional statements that have matching "else" statements
     size_t[] conditionalWithElseLocations;
 
+    /// Conditional statement locations
     size_t[] conditionalStatementLocations;
 
+    /// Locations of start locations of array initializers
     size_t[] arrayStartLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
 final class FormatVisitor : ASTVisitor
 {
-    ///
+    /**
+     * Params:
+     *     astInformation = the AST information that will be filled in
+     */
     this(ASTInformation* astInformation)
     {
         this.astInformation = astInformation;
