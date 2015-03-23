@@ -174,7 +174,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
 
 void validMoves(OR)(auto ref OR output, const Token[] tokens,
     immutable short[] depths, uint current, const Config* config,
-    int currentLineLength, int indentLevel) pure
+    int currentLineLength, int indentLevel)
     {
     import std.algorithm : sort, canFind;
     import std.array : insertInPlace;
