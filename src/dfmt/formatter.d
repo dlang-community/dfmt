@@ -519,7 +519,7 @@ private:
             if (!justAddedExtraNewline && !peekBackIsOneOf(false, tok!"{",
                     tok!"}", tok!";", tok!";"))
             {
-                if (config.braceStyle == BraceStyle.otbs)
+                if (config.braceStyle != BraceStyle.allman)
                 {
                     if (!astInformation.structInitStartLocations.canFindIndex(tokens[index].index)
                             && !astInformation.funLitStartLocations.canFindIndex(
