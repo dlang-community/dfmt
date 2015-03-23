@@ -9,8 +9,6 @@ import std.d.lexer;
 import dfmt.tokens;
 import dfmt.config;
 
-version = WTF_DMD;
-
 struct State
 {
     this(uint breaks, const Token[] tokens, immutable short[] depths,
@@ -18,75 +16,64 @@ struct State
     {
         import std.math : abs;
         import core.bitop : popcnt, bsf;
-        import std.algorithm : min;
-        import std.algorithm : map, sum;
+        import std.algorithm : min, map, sum;
 
-        // TODO: Figure out what is going on here.
-        version (WTF_DMD)
-        {
-            enum int remainingCharsMultiplier = 40;
-            enum int newlinePenalty = 800;
-        }
-        else
-        {
-            immutable int remainingCharsMultiplier = config.columnHardLimit - config.columnSoftLimit;
-            immutable int newlinePenalty = remainingCharsMultiplier * 20;
-            assert(remainingCharsMultiplier == 40);
-            assert(newlinePenalty == 800);
-        }
+        immutable int remainingCharsMultiplier = config.columnHardLimit - config.columnSoftLimit;
+        immutable int newlinePenalty = remainingCharsMultiplier * 20;
 
-        int cost = 0;
-        for (size_t i = 0; i != uint.sizeof * 8; ++i)
-        {
-            if (((1 << i) & breaks) == 0)
-                continue;
-            immutable b = tokens[i].type;
-            immutable p = abs(depths[i]);
-            immutable bc = breakCost(b) * (p == 0 ? 1 : p * 2);
-            cost += bc;
-        }
+        this.breaks = breaks;
+        this._cost = 0;
+        this._solved = true;
         int ll = currentLineLength;
-        bool solved = true;
+
         if (breaks == 0)
         {
             immutable int l = currentLineLength + tokens.map!(a => tokenLength(a)).sum();
-            cost = l;
             if (l > config.columnSoftLimit)
             {
                 immutable int longPenalty = (l - config.columnSoftLimit) * remainingCharsMultiplier;
-                cost += longPenalty;
-                solved = longPenalty < newlinePenalty;
+                this._cost += longPenalty;
+                this._solved = longPenalty < newlinePenalty;
             }
             else
-                solved = true;
+                this._solved = true;
         }
         else
         {
+            for (size_t i = 0; i != uint.sizeof * 8; ++i)
+            {
+                if (((1 << i) & breaks) == 0)
+                    continue;
+                immutable b = tokens[i].type;
+                immutable p = abs(depths[i]);
+                immutable bc = breakCost(b) * (p == 0 ? 1 : p * 2);
+                this._cost += bc;
+            }
+
             size_t i = 0;
             foreach (_; 0 .. uint.sizeof * 8)
             {
-                immutable size_t k = breaks >>> i;
+                immutable uint k = breaks >>> i;
                 immutable bool b = k == 0;
                 immutable size_t j = min(i + bsf(k) + 1, tokens.length);
                 ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
+                if (ll > config.columnSoftLimit)
+                {
+                    immutable int longPenalty = (ll - config.columnSoftLimit) * remainingCharsMultiplier;
+                    this._cost += longPenalty;
+                }
                 if (ll > config.columnHardLimit)
                 {
-                    solved = false;
+                    this._solved = false;
                     break;
                 }
-                else if (ll > config.columnSoftLimit)
-                    cost += (ll - config.columnSoftLimit) * remainingCharsMultiplier;
                 i = j;
                 ll = indentLevel * config.indentSize;
                 if (b)
                     break;
             }
         }
-        cost += popcnt(breaks) * newlinePenalty;
-
-        this.breaks = breaks;
-        this._cost = cost;
-        this._solved = solved;
+        this._cost += popcnt(breaks) * newlinePenalty;
     }
 
     int cost() const pure nothrow @safe @property
@@ -103,13 +90,13 @@ struct State
     {
         import core.bitop : bsf, popcnt;
 
-        if (cost < other.cost || (cost == other.cost && ((popcnt(breaks)
+        if (_cost < other._cost || (_cost == other._cost && ((popcnt(breaks)
                 && popcnt(other.breaks) && bsf(breaks) > bsf(other.breaks))
                 || (_solved && !other.solved))))
         {
             return -1;
         }
-        return other.cost > _cost;
+        return other._cost > _cost;
     }
 
     bool opEquals(ref const State other) const pure nothrow @safe
@@ -149,8 +136,8 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
     enum ALGORITHMIC_COMPLEXITY_SUCKS = uint.sizeof * 8;
     immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
     auto open = new RedBlackTree!State;
-    open.insert(State(0, tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
-        config, currentLineLength, indentLevel));
+    open.insert(State(0, tokens[0 .. tokensEnd], depths[0 .. tokensEnd], config,
+        currentLineLength, indentLevel));
     State lowest;
     while (!open.empty)
     {
@@ -175,7 +162,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
 void validMoves(OR)(auto ref OR output, const Token[] tokens,
     immutable short[] depths, uint current, const Config* config,
     int currentLineLength, int indentLevel)
-    {
+{
     import std.algorithm : sort, canFind;
     import std.array : insertInPlace;
 
@@ -184,7 +171,6 @@ void validMoves(OR)(auto ref OR output, const Token[] tokens,
         if (!isBreakToken(token.type) || (((1 << i) & current) != 0))
             continue;
         immutable uint breaks = current | (1 << i);
-        output.insert(State(breaks, tokens, depths, config,
-            currentLineLength, indentLevel));
+        output.insert(State(breaks, tokens, depths, config, currentLineLength, indentLevel));
     }
 }
