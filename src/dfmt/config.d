@@ -83,6 +83,10 @@ struct Config
     @Help("Newline style can be 'cr', 'lf', or 'crlf'")
     Newlines newlineType;
 
+    ///
+    @Help("Insert spaces after 'if', 'while', 'foreach', etc, and before the '('")
+    bool spaceAfterBlockKeywords;
+
     /**
      * Returns:
      *     true if the configuration is valid
@@ -98,6 +102,28 @@ struct Config
         }
         return true;
     }
+}
+
+/**
+ * Reads arguments from a file at the given path into the given string array
+ */
+void readConfig(string path, ref string[] args)
+{
+    import std.stdio : File;
+    import std.file : exists;
+    import std.array : empty, RefAppender;
+
+    if (!exists(path))
+        return;
+    auto f = File(path);
+
+    auto app = RefAppender!(string[])(&args);
+
+	import std.algorithm : map, copy, sort, uniq, filter;
+
+	foreach (a; f.byLine().filter!(a => !a.empty).map!(a => a.idup))
+		app.put(a);
+    app.data[1 .. $].sort();
 }
 
 private struct Help

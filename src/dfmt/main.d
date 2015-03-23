@@ -12,13 +12,17 @@ else
 {
     import std.array : front, popFront;
     import std.stdio : stdout, stdin, stderr, writeln, File;
-    import dfmt.config : Config, getHelp;
+    import dfmt.config : Config, getHelp, readConfig;
     import dfmt.formatter : format;
+    import std.path : buildPath, expandTilde;
 
     int main(string[] args)
     {
         bool inplace = false;
         Config config;
+        string configPath = expandTilde("~/.config/dfmt/dfmtrc");
+        readConfig(configPath, args);
+
         static if (__VERSION__ >= 2067)
         {
             import std.getopt : getopt, defaultGetoptPrinter;
@@ -35,7 +39,8 @@ else
                 "outdentAttributes", getHelp!(Config.outdentAttributes), &config.outdentAttributes,
                 "splitOperatorAtEnd", getHelp!(Config.splitOperatorAtEnd), &config.splitOperatorAtEnd,
                 "spaceAfterCast", getHelp!(Config.spaceAfterCast), &config.spaceAfterCast,
-                "newlineType", getHelp!(Config.newlineType), &config.newlineType);
+                "newlineType", getHelp!(Config.newlineType), &config.newlineType,
+                "spaceAfterBlockKeywords", getHelp!(Config.spaceAfterBlockKeywords), &config.spaceAfterBlockKeywords);
 
             if (getOptResult.helpWanted)
             {
