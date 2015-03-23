@@ -11,10 +11,12 @@ import dfmt.config;
 
 struct State
 {
-	this(size_t[] breaks, const Token[] tokens, immutable short[] depths, int depth,
+	this(uint breaks, const Token[] tokens, immutable short[] depths, int depth,
 		const Config* config, int currentLineLength, int indentLevel) pure @safe
 	{
 		import std.math : abs;
+		import core.bitop : popcnt, bsf;
+		import std.algorithm:min;
 
 		immutable remainingCharsMultiplier = 40;
 		immutable newlinePenalty = 800;
@@ -24,18 +26,18 @@ struct State
 		import std.algorithm : map, sum;
 
 		this._cost = 0;
-		for (size_t i = 0; i != breaks.length; ++i)
+		for (size_t i = 0; i != uint.sizeof * 8; ++i)
 		{
-			immutable b = tokens[breaks[i]].type;
-			immutable p = abs(depths[breaks[i]]);
+			if (((1 << i) & breaks) == 0)
+				continue;
+			immutable b = tokens[i].type;
+			immutable p = abs(depths[i]);
 			immutable bc = breakCost(b) * (p == 0 ? 1 : p * 2);
 			this._cost += bc;
 		}
 		int ll = currentLineLength;
-		size_t breakIndex = 0;
-		size_t i = 0;
 		this._solved = true;
-		if (breaks.length == 0)
+		if (breaks == 0)
 		{
 			immutable int l = currentLineLength + tokens.map!(a => tokenLength(a)).sum();
 			_cost = l;
@@ -50,9 +52,12 @@ struct State
 		}
 		else
 		{
-			do
+			size_t i = 0;
+			foreach (_; 0 .. 32)
 			{
-				immutable size_t j = breakIndex < breaks.length ? breaks[breakIndex] : tokens.length;
+				immutable size_t k = breaks >>> i;
+				immutable bool b = k == 0;
+				immutable size_t j = min(i + bsf(k) + 1, tokens.length);
 				ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
 				if (ll > config.columnHardLimit)
 				{
@@ -63,11 +68,11 @@ struct State
 					_cost += (ll - config.columnSoftLimit) * remainingCharsMultiplier;
 				i = j;
 				ll = indentLevel * config.indentSize;
-				breakIndex++;
+				if (b)
+					break;
 			}
-			while (i + 1 < tokens.length);
 		}
-		this._cost += breaks.length * newlinePenalty;
+		this._cost += popcnt(breaks) * newlinePenalty;
 	}
 
 	int cost() const pure nothrow @safe @property
@@ -87,8 +92,9 @@ struct State
 
 	int opCmp(ref const State other) const pure nothrow @safe
 	{
-		if (cost < other.cost || (cost == other.cost && ((breaks.length
-				&& other.breaks.length && breaks[0] > other.breaks[0]) || (_solved && !other.solved))))
+		import core.bitop : bsf , popcnt;
+		if (cost < other.cost || (cost == other.cost && ((popcnt(breaks)
+				&& popcnt(other.breaks) && bsf(breaks) > bsf(other.breaks)) || (_solved && !other.solved))))
 		{
 			return -1;
 		}
@@ -105,7 +111,7 @@ struct State
 		return typeid(breaks).getHash(&breaks);
 	}
 
-	size_t[] breaks;
+	uint breaks;
 private:
 	int _cost;
 	int _depth;
@@ -117,12 +123,23 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, immutable sho
 {
 	import std.container.rbtree : RedBlackTree;
 	import std.algorithm : filter, min;
+	import core.bitop:popcnt;
 
-	enum ALGORITHMIC_COMPLEXITY_SUCKS = 25;
+	static size_t[] genRetVal(uint breaks, size_t index) pure nothrow @safe
+	{
+		auto retVal = new size_t[](popcnt(breaks));
+		size_t j = 0;
+		foreach (uint i; 0 .. uint.sizeof * 8)
+			if ((1 << i) & breaks)
+				retVal[j++] = index + i;
+		return retVal;
+	}
+
+	enum ALGORITHMIC_COMPLEXITY_SUCKS = uint.sizeof * 8;
 	immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
 	int depth = 0;
 	auto open = new RedBlackTree!State;
-	open.insert(State(cast(size_t[])[], tokens[0 .. tokensEnd],
+	open.insert(State(0, tokens[0 .. tokensEnd],
 		depths[0 .. tokensEnd], depth, config, currentLineLength, indentLevel));
 	State lowest;
 	while (!open.empty)
@@ -133,46 +150,31 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens, immutable sho
 		open.removeFront();
 		if (current.solved)
 		{
-			current.breaks[] += index;
-			return current.breaks;
+			return genRetVal(current.breaks, index);
 		}
-		foreach (next; validMoves(tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
-				current, config, currentLineLength, indentLevel, depth))
-		{
-			open.insert(next);
-		}
+		validMoves!(typeof(open))(open, tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
+			current.breaks, config, currentLineLength, indentLevel, depth);
 	}
 	if (open.empty)
-	{
-		lowest.breaks[] += index;
-		return lowest.breaks;
-	}
+		return genRetVal(lowest.breaks, index);
 	foreach (r; open[].filter!(a => a.solved))
-	{
-		r.breaks[] += index;
-		return r.breaks;
-	}
+		return genRetVal(r.breaks, index);
 	assert(false);
 }
 
-State[] validMoves(const Token[] tokens, immutable short[] depths, ref const State current,
-	const Config* config, int currentLineLength, int indentLevel,
-	int depth) pure @safe
+void validMoves(OR)(auto ref OR output, const Token[] tokens, immutable short[] depths,
+	uint current, const Config* config, int currentLineLength, int indentLevel,
+	int depth) pure
 {
 	import std.algorithm : sort, canFind;
 	import std.array : insertInPlace;
 
-	State[] states;
 	foreach (i, token; tokens)
 	{
-		if (!isBreakToken(token.type) || current.breaks.canFind(i))
+		if (!isBreakToken(token.type) || (((1 << i) & current) != 0))
 			continue;
-		size_t[] breaks;
-		breaks ~= current.breaks;
-		breaks ~= i;
-		sort(breaks);
-		states ~= State(breaks, tokens, depths, depth + 1, config,
-			currentLineLength, indentLevel);
+		immutable uint breaks = current | (1 << i);
+		output.insert(State(breaks, tokens, depths, depth + 1, config,
+			currentLineLength, indentLevel));
 	}
-	return states;
 }
