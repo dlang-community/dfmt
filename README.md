@@ -24,3 +24,8 @@ file instead, and output will be written to ```stdout```.
 * ```--braces=allman```: Use ["Allman Style"](https://en.wikipedia.org/wiki/Indent_style#Allman_style),
   placing opening braces on their own line. This is the default.
 * ```--tabs```: Use tabs for indentation instead of spaces.
+
+## Terminology
+* Braces - `{` and `}`
+* Brackets - `[` and `]`
+* Parenthesis / Parens  - `(` and `)`
