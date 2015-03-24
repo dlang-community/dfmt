@@ -968,7 +968,7 @@ private:
                 indents.popWrapIndents();
                 indents.push(tok!"{");
                 if (index == 1 || peekBackIsOneOf(true, tok!":", tok!"{",
-                        tok!"}", tok!")", tok!";"))
+                        tok!"}", tok!")", tok!";", tok!"identifier") || peekBackIsKeyword())
                 {
                     indentLevel = indents.indentSize - 1;
                 }
@@ -1208,6 +1208,21 @@ const pure @safe @nogc:
     {
         return peekImplementation(tokenType, -1, ignoreComments);
     }
+
+	bool peekBackIsKeyword(bool ignoreComments = true)
+	{
+		if (index == 0)
+            return false;
+        auto i = index - 1;
+        if (ignoreComments)
+            while (tokens[i].type == tok!"comment")
+            {
+                if (i == 0)
+                    return false;
+                i--;
+            }
+		return isKeyword(tokens[i].type);
+	}
 
     bool peekBackIsOneOf(bool ignoreComments, IdType[] tokenTypes...)
     {
