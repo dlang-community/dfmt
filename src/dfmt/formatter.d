@@ -295,7 +295,7 @@ private:
                 {
                     break;
                 }
-                else if ((t == tok!"import" && !currentIs(tok!"import")))
+                else if ((t == tok!"import" && !currentIs(tok!"import") && !currentIs(tok!"}")))
                 {
                     write("\n");
                     currentLineLength = 0;
