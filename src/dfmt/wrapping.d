@@ -55,7 +55,8 @@ struct State
             {
                 immutable uint k = breaks >>> i;
                 immutable bool b = k == 0;
-                immutable size_t j = min(i + bsf(k) + 1, tokens.length);
+                immutable uint bits = b ? 0 : bsf(k);
+                immutable size_t j = min(i + bits + 1, tokens.length);
                 ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
                 if (ll > config.columnSoftLimit)
                 {
@@ -90,8 +91,8 @@ struct State
     {
         import core.bitop : bsf, popcnt;
 
-        if (_cost < other._cost || (_cost == other._cost && ((popcnt(breaks)
-                && popcnt(other.breaks) && bsf(breaks) > bsf(other.breaks))
+        if (_cost < other._cost || (_cost == other._cost && ((breaks != 0
+                && other.breaks != 0 && bsf(breaks) > bsf(other.breaks))
                 || (_solved && !other.solved))))
         {
             return -1;
