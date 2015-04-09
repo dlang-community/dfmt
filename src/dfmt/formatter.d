@@ -657,6 +657,16 @@ private:
         case tok!"cast":
             writeToken();
             break;
+        case tok!"try":
+            if (peekIs(tok!"{"))
+                writeToken();
+            else
+            {
+                writeToken();
+                indents.push(tok!"try");
+                newline();
+            }
+            break;
         case tok!"in":
         case tok!"is":
             writeToken();
