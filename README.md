@@ -44,7 +44,7 @@ found in .editorconfig files.
 ### Example
 ```
 dfmt --inplace --space_after_cast=false --max_line_length=80 \
-    --soft_max_line_length=70 file.d
+    --soft_max_line_length=70 --brace_style=otbs file.d
 ```
 
 ## Configuration
