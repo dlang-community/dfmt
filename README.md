@@ -25,6 +25,32 @@ file instead, and output will be written to ```stdout```.
   placing opening braces on their own line. This is the default.
 * ```--tabs```: Use tabs for indentation instead of spaces.
 
+## Configuration
+**dfmt** uses [EditorConfig](http://editorconfig.org/) configuration files.
+**dfmt**-specific properties are prefixed with *dfmt_*.
+### Standard EditorConfig properties
+Property Name | Allowed Values | Default Value | Description
+--------------|----------------|---------------|------------
+end_of_line | | TODO | Not yet supported
+insert_final_newline | | `true` | Not supported. **dfmt** always inserts a final newline
+charset | | `UTf-8` | Not supported. **dfmt** only works correctly on UTF-8.
+indent_style | `tab`, `space` | `space` | Supported
+indent_size | positive integers | `4` | Supported
+tab_width | positive integers | `8` | Supported
+trim_trailing_whitespace | | `true` | Not supported. **dfmt** does not emit trailing whitespace
+max_line_length | positive integers | `120` | Supported
+### dfmt-specific properties
+Property Name | Allowed Values | Default Value | Description
+--------------|----------------|---------------|------------
+dfmt_brace_style | `allman`, `otbs`, or `stroustrup` | https://en.wikipedia.org/wiki/Brace_style
+dfmt_soft_max_line_length | positive integers | The formatting process will usually keep lines below this length, but they may be up to max_line_length columns long.
+dfmt_outdent_labels (Not yet implemented) | `true`, `false` | Decrease the indentation of labels
+dfmt_align_switch_statements (Not yet implemented) | `true`, `false` | Align labels, cases, and defaults with their enclosing switch
+dfmt_outdent_attributes (Not yet implemented) | `true`, `false` | Decrease the indentation level of attributes
+dfmt_split_operator_at_line_end (Not yet implemented) | `true`, `false` | Place operators on the end of the previous line when splitting lines
+dfmt_space_after_cast (Not yet implemented) | `true`, `false` | Insert space after the closing paren of a `cast` expression
+dfmt_space_after_keywords (Not yet implemented) | `true`, `false` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`
+
 ## Terminology
 * Braces - `{` and `}`
 * Brackets - `[` and `]`

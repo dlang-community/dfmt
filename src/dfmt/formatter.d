@@ -321,7 +321,7 @@ private:
                 }
                 assert(lengthOfNextChunk > 0);
                 writeToken();
-                if (currentLineLength + 1 + lengthOfNextChunk >= config.columnSoftLimit)
+                if (currentLineLength + 1 + lengthOfNextChunk >= config.dfmt_soft_max_line_length)
                 {
                     pushWrapIndent(tok!",");
                     newline();
@@ -359,7 +359,7 @@ private:
         }
         else if (!currentIs(tok!")") && !currentIs(tok!"]")
                 && (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
-                && currentLineLength > config.columnHardLimit)))
+                && currentLineLength > config.max_line_length)))
         {
             pushWrapIndent(p);
             newline();
@@ -455,7 +455,7 @@ private:
     {
         if ((parenDepth > 0 && sBraceDepth == 0) || (sBraceDepth > 0 && niBraceDepth > 0))
         {
-            if (currentLineLength > config.columnSoftLimit)
+            if (currentLineLength > config.dfmt_soft_max_line_length)
             {
                 writeToken();
                 pushWrapIndent(tok!";");
@@ -488,7 +488,7 @@ private:
             auto e = expressionEndIndex(index);
             immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a)).sum();
             writeToken();
-            if (l > config.columnSoftLimit)
+            if (l > config.dfmt_soft_max_line_length)
             {
                 indents.push(tok!"{");
                 newline();
@@ -504,7 +504,7 @@ private:
             auto e = expressionEndIndex(index);
             immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a)).sum();
             writeToken();
-            if (l > config.columnSoftLimit)
+            if (l > config.dfmt_soft_max_line_length)
             {
                 indents.push(tok!"{");
                 newline();
@@ -520,7 +520,7 @@ private:
             if (!justAddedExtraNewline && !peekBackIsOneOf(false, tok!"{",
                     tok!"}", tok!";", tok!";"))
             {
-                if (config.braceStyle != BraceStyle.allman)
+                if (config.dfmt_brace_style != BraceStyle.allman)
                 {
                     if (!astInformation.structInitStartLocations.canFindIndex(tokens[index].index)
                             && !astInformation.funLitStartLocations.canFindIndex(
@@ -583,7 +583,7 @@ private:
                 currentLineLength = 0;
                 justAddedExtraNewline = true;
             }
-            if (config.braceStyle == BraceStyle.otbs && currentIs(tok!"else"))
+            if (config.dfmt_brace_style == BraceStyle.otbs && currentIs(tok!"else"))
                 write(" ");
             if (!peekIs(tok!",") && !peekIs(tok!")") && !peekIs(tok!";"))
             {
@@ -788,7 +788,7 @@ private:
             break;
         case tok!".":
             if (linebreakHints.canFind(index) || (linebreakHints.length == 0
-                    && currentLineLength + nextTokenLength() > config.columnHardLimit))
+                    && currentLineLength + nextTokenLength() > config.max_line_length))
             {
                 pushWrapIndent();
                 newline();
@@ -869,7 +869,7 @@ private:
             newline();
         }
         else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
-                || (linebreakHints.length == 0 && currentLineLength > config.columnSoftLimit)))
+                || (linebreakHints.length == 0 && currentLineLength > config.dfmt_soft_max_line_length)))
         {
             writeToken();
             pushWrapIndent(tok!",");
@@ -1072,15 +1072,16 @@ private:
 
     void indent()
     {
-        if (config.useTabs)
+        import dfmt.editorconfig : IndentStyle;
+        if (config.indent_style == IndentStyle.tab)
             foreach (i; 0 .. indentLevel)
             {
-                currentLineLength += config.tabSize;
+                currentLineLength += config.tab_width;
                 output.put("\t");
             }
         else
             foreach (i; 0 .. indentLevel)
-                foreach (j; 0 .. config.indentSize)
+                foreach (j; 0 .. config.indent_size)
                 {
                     output.put(" ");
                     currentLineLength++;

@@ -1,12 +1,21 @@
-[*.d]
-end_of_line = lf
-insert_final_newline = true
-indent_size = 4
-tab_width = 8
-trim_trailing_whitespace = true
-indent_style = space
-
 [*]
 trim_trailing_whitespace = true
 end_of_line = lf
 insert_final_newline = true
+
+[*.d]
+dfmt_align_switch_statements = true
+dfmt_brace_style = otbs
+dfmt_outdent_attributes = true
+dfmt_outdent_labels = true
+dfmt_soft_max_line_length = 80
+dfmt_space_after_cast = true
+dfmt_space_after_keywords = true
+dfmt_split_operator_at_line_end = false
+end_of_line = lf
+indent_size = 8
+indent_style = tab
+insert_final_newline = true
+max_line_length = 120
+tab_width = 8
+trim_trailing_whitespace = true

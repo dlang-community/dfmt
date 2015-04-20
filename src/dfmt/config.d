@@ -5,9 +5,12 @@
 
 module dfmt.config;
 
+import dfmt.editorconfig;
+
 /// Brace styles
 enum BraceStyle
 {
+    unspecified,
     /// $(LINK https://en.wikipedia.org/wiki/Indent_style#Allman_style)
     allman,
     /// $(LINK https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS)
@@ -16,76 +19,42 @@ enum BraceStyle
     stroustrup
 }
 
-/// Newline styles
-enum Newlines
-{
-    /// Old Mac
-    cr,
-    /// UNIX, Linux, BSD, New Mac, iOS, Android, etc...
-    lf,
-    /// Windows
-    crlf
-}
-
-template getHelp(alias S)
-{
-    enum getHelp = __traits(getAttributes, S)[0].text;
-}
-
 /// Configuration options for formatting
 struct Config
 {
     ///
-    @Help("Number of spaces used for indentation")
-    uint indentSize = 4;
-
+    OptionalBoolean dfmt_align_switch_statements = OptionalBoolean.t;
     ///
-    @Help("Use tabs or spaces")
-    bool useTabs = false;
-
+    BraceStyle dfmt_brace_style = BraceStyle.allman;
     ///
-    @Help("Size of a tab character")
-    uint tabSize = 4;
-
+    OptionalBoolean dfmt_outdent_attributes = OptionalBoolean.t;
     ///
-    @Help("Soft line wrap limit")
-    uint columnSoftLimit = 80;
-
+    OptionalBoolean dfmt_outdent_labels = OptionalBoolean.t;
     ///
-    @Help("Hard line wrap limit")
-    uint columnHardLimit = 120;
-
+    int dfmt_soft_max_line_length = 80;
     ///
-    @Help("Brace style can be 'otbs', 'allman', or 'stroustrup'")
-    BraceStyle braceStyle = BraceStyle.allman;
-
+    OptionalBoolean dfmt_space_after_cast = OptionalBoolean.t;
     ///
-    @Help("Align labels, cases, and defaults with their enclosing switch")
-    bool alignSwitchStatements = true;
-
+    OptionalBoolean dfmt_space_after_keywords = OptionalBoolean.t;
     ///
-    @Help("Decrease the indentation of labels")
-    bool outdentLabels = true;
+    OptionalBoolean dfmt_split_operator_at_line_end = OptionalBoolean.f;
 
-    ///
-    @Help("Decrease the indentation level of attributes")
-    bool outdentAttributes = true;
+    mixin StandardEditorConfigFields;
 
-    ///
-    @Help("Place operators on the end of the previous line when splitting lines")
-    bool splitOperatorAtEnd = false;
 
-    ///
-    @Help("Insert spaces after the closing paren of a cast expression")
-    bool spaceAfterCast = true;
-
-    ///
-    @Help("Newline style can be 'cr', 'lf', or 'crlf'")
-    Newlines newlineType;
-
-    ///
-    @Help("Insert spaces after 'if', 'while', 'foreach', etc, and before the '('")
-    bool spaceAfterBlockKeywords;
+    /**
+     * Initializes the standard EditorConfig properties with default values that
+     * make sense for D code.
+     */
+    void initializeWithDefaults()
+    {
+		pattern = "*.d";
+        end_of_line = EOL.lf;
+        indent_style = IndentStyle.space;
+        indent_size = 4;
+        tab_width = 4;
+        max_line_length = 120;
+    }
 
     /**
      * Returns:
@@ -95,38 +64,11 @@ struct Config
     {
         import std.stdio : stderr;
 
-        if (columnSoftLimit > columnHardLimit)
+        if (dfmt_soft_max_line_length > max_line_length)
         {
             stderr.writeln("Column hard limit must be greater than or equal to column soft limit");
             return false;
         }
         return true;
     }
-}
-
-/**
- * Reads arguments from a file at the given path into the given string array
- */
-void readConfig(string path, ref string[] args)
-{
-    import std.stdio : File;
-    import std.file : exists;
-    import std.array : empty, RefAppender;
-
-    if (!exists(path))
-        return;
-    auto f = File(path);
-
-    auto app = RefAppender!(string[])(&args);
-
-	import std.algorithm : map, copy, sort, uniq, filter;
-
-	foreach (a; f.byLine().filter!(a => !a.empty).map!(a => a.idup))
-		app.put(a);
-    app.data[1 .. $].sort();
-}
-
-private struct Help
-{
-    string text;
 }

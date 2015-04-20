@@ -12,93 +12,57 @@ else
 {
     import std.array : front, popFront;
     import std.stdio : stdout, stdin, stderr, writeln, File;
-    import dfmt.config : Config, getHelp, readConfig;
+    import dfmt.config : Config;
     import dfmt.formatter : format;
     import std.path : buildPath, expandTilde;
+    import dfmt.editorconfig : getConfigFor;
+    import std.getopt : getopt;
 
     int main(string[] args)
     {
         bool inplace = false;
+        Config optConfig;
+        optConfig.pattern = "*.d";
+        bool showHelp;
+        getopt(args,
+            "align_switch_statements", &optConfig.dfmt_align_switch_statements,
+            "brace_style", &optConfig.dfmt_brace_style,
+            "end_of_line", &optConfig.end_of_line,
+            "help|h", &showHelp,
+            "indent_size", &optConfig.indent_size,
+            "indent_style|t", &optConfig.indent_style,
+            "inplace", &inplace,
+            "max_line_length", &optConfig.max_line_length,
+            "max_line_length", &optConfig.max_line_length,
+            "outdent_attributes", &optConfig.dfmt_outdent_attributes,
+            "outdent_labels", &optConfig.dfmt_outdent_labels,
+            "space_after_cast", &optConfig.dfmt_space_after_cast,
+            "split_operator_at_line_end", &optConfig.dfmt_split_operator_at_line_end,
+            "tab_width", &optConfig.tab_width);
+
+        if (showHelp)
+        {
+            printHelp();
+            return 0;
+        }
+
+        args.popFront();
+        immutable bool readFromStdin = args.length == 0;
+        immutable string filePath = createFilePath(readFromStdin, readFromStdin ? null : args[0]);
         Config config;
-        string configPath = expandTilde("~/.config/dfmt/dfmtrc");
-        readConfig(configPath, args);
-
-        static if (__VERSION__ >= 2067)
-        {
-            import std.getopt : getopt, defaultGetoptPrinter;
-            auto getOptResult = getopt(args,
-                "inplace", "Modify files in-place", &inplace,
-                "tabs|t", getHelp!(Config.useTabs), &config.useTabs,
-                "braces", getHelp!(Config.braceStyle), &config.braceStyle,
-                "colSoft", getHelp!(Config.columnSoftLimit), &config.columnSoftLimit,
-                "colHard", getHelp!(Config.columnHardLimit), &config.columnHardLimit,
-                "tabSize", getHelp!(Config.tabSize), &config.tabSize,
-                "indentSize", getHelp!(Config.indentSize), &config.indentSize,
-                "alignSwitchCases", getHelp!(Config.alignSwitchStatements), &config.alignSwitchStatements,
-                "outdentLabels", getHelp!(Config.outdentLabels), &config.outdentLabels,
-                "outdentAttributes", getHelp!(Config.outdentAttributes), &config.outdentAttributes,
-                "splitOperatorAtEnd", getHelp!(Config.splitOperatorAtEnd), &config.splitOperatorAtEnd,
-                "spaceAfterCast", getHelp!(Config.spaceAfterCast), &config.spaceAfterCast,
-                "newlineType", getHelp!(Config.newlineType), &config.newlineType,
-                "spaceAfterBlockKeywords", getHelp!(Config.spaceAfterBlockKeywords), &config.spaceAfterBlockKeywords);
-
-            if (getOptResult.helpWanted)
-            {
-                defaultGetoptPrinter("dfmt 0.3.0-dev\n\nOptions:", getOptResult.options);
-                return 0;
-            }
-        }
-        else
-        {
-            import std.getopt : getopt;
-            bool showHelp;
-            getopt(args,
-                "help|h", &showHelp,
-                "inplace", &inplace,
-                "tabs|t", &config.useTabs,
-                "braces", &config.braceStyle,
-                "colSoft", &config.columnSoftLimit,
-                "colHard", &config.columnHardLimit,
-                "tabSize", &config.tabSize,
-                "indentSize", &config.indentSize,
-                "alignSwitchCases", &config.alignSwitchStatements,
-                "outdentLabels", &config.outdentLabels,
-                "outdentAttributes", &config.outdentAttributes,
-                "splitOperatorAtEnd", &config.splitOperatorAtEnd,
-                "spaceAfterCast", &config.spaceAfterCast,
-                "newlineType", &config.newlineType);
-            if (showHelp)
-            {
-                writeln(`dfmt 0.3.0-dev
-
-Options:
-    --help | -h            Print this help message
-    --inplace              Edit files in place
-    --tabs | -t            Use tabs instead of spaces
-    --braces               Brace style can be 'otbs', 'allman', or 'stroustrup'
-    --colSoft              Column soft limit
-    --colHard              Column hard limit
-    --tabSize              Size of tabs
-    --indentSize           Number of spaces used for indentation
-    --alignSwitchCases     Align cases, defaults, and labels with enclosing
-                           switches
-    --outdentLabels        Outdent labels
-    --outdentAttributes    Outdent attribute declarations
-    --splitOperatorAtEnd   Place operators at the end of the previous line when
-                           wrapping
-    --spaceAfterCast       Insert spaces after cast expressions
-    --newlineType          Newline type can be 'cr', 'lf', or 'crlf'`);
-                return 0;
-            }
-        }
+        config.initializeWithDefaults();
+        Config fileConfig = getConfigFor!Config(filePath);
+        fileConfig.pattern = "*.d";
+        config.merge(fileConfig, filePath);
+        config.merge(optConfig, filePath);
 
         if (!config.isValid())
             return 1;
 
         File output = stdout;
         ubyte[] buffer;
-        args.popFront();
-        if (args.length == 0)
+
+        if (readFromStdin)
         {
             ubyte[4096] inputBuffer;
             ubyte[] b;
@@ -141,4 +105,47 @@ Options:
         }
         return 0;
     }
+}
+
+private void printHelp()
+{
+    writeln(`dfmt 0.3.0-dev
+
+Options:
+    --help | -h            Print this help message
+    --inplace              Edit files in place
+
+Formatting Options:
+    --align_switch_statements
+    --brace_style
+    --end_of_line
+    --help|h
+    --indent_size
+    --indent_style|t
+    --inplace
+    --max_line_length
+    --max_line_length
+    --outdent_attributes
+    --outdent_labels
+    --space_after_cast
+    --split_operator_at_line_end`);
+}
+
+private string createFilePath(bool readFromStdin, string fileName)
+//out (result)
+//{
+//    stderr.writeln(__FUNCTION__, ": ", result);
+//}
+//body
+{
+    import std.file : getcwd;
+    import std.path : isRooted;
+
+    immutable string cwd = getcwd();
+    if (readFromStdin)
+        return buildPath(cwd, "dummy.d");
+    if (isRooted(fileName))
+        return fileName;
+    else
+        return buildPath(cwd, fileName);
 }

@@ -18,7 +18,7 @@ struct State
         import core.bitop : popcnt, bsf;
         import std.algorithm : min, map, sum;
 
-        immutable int remainingCharsMultiplier = config.columnHardLimit - config.columnSoftLimit;
+        immutable int remainingCharsMultiplier = config.max_line_length - config.dfmt_soft_max_line_length;
         immutable int newlinePenalty = remainingCharsMultiplier * 20;
 
         this.breaks = breaks;
@@ -29,9 +29,9 @@ struct State
         if (breaks == 0)
         {
             immutable int l = currentLineLength + tokens.map!(a => tokenLength(a)).sum();
-            if (l > config.columnSoftLimit)
+            if (l > config.dfmt_soft_max_line_length)
             {
-                immutable int longPenalty = (l - config.columnSoftLimit) * remainingCharsMultiplier;
+                immutable int longPenalty = (l - config.dfmt_soft_max_line_length) * remainingCharsMultiplier;
                 this._cost += longPenalty;
                 this._solved = longPenalty < newlinePenalty;
             }
@@ -58,18 +58,18 @@ struct State
                 immutable uint bits = b ? 0 : bsf(k);
                 immutable size_t j = min(i + bits + 1, tokens.length);
                 ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
-                if (ll > config.columnSoftLimit)
+                if (ll > config.dfmt_soft_max_line_length)
                 {
-                    immutable int longPenalty = (ll - config.columnSoftLimit) * remainingCharsMultiplier;
+                    immutable int longPenalty = (ll - config.dfmt_soft_max_line_length) * remainingCharsMultiplier;
                     this._cost += longPenalty;
                 }
-                if (ll > config.columnHardLimit)
+                if (ll > config.max_line_length)
                 {
                     this._solved = false;
                     break;
                 }
                 i = j;
-                ll = indentLevel * config.indentSize;
+                ll = indentLevel * config.indent_size;
                 if (b)
                     break;
             }
