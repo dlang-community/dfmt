@@ -3,6 +3,11 @@ trim_trailing_whitespace = true
 end_of_line = lf
 insert_final_newline = true
 
+[*.sh]
+tab_width = 4
+indent_size = 4
+indent_style = tab
+
 [*.d]
 dfmt_align_switch_statements = true
 dfmt_brace_style = allman

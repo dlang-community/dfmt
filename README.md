@@ -48,7 +48,7 @@ dfmt_outdent_labels (Not yet implemented) | `true`, `false` | `true` | Decrease 
 dfmt_align_switch_statements (Not yet implemented) | `true`, `false` | `true` | Align labels, cases, and defaults with their enclosing switch
 dfmt_outdent_attributes (Not yet implemented) | `true`, `false` | `true` | Decrease the indentation level of attributes
 dfmt_split_operator_at_line_end (Not yet implemented) | `true`, `false` | `false` | Place operators on the end of the previous line when splitting lines
-dfmt_space_after_cast (Not yet implemented) | `true`, `false` | `false` | Insert space after the closing paren of a `cast` expression
+dfmt_space_after_cast | `true`, `false` | `false` | Insert space after the closing paren of a `cast` expression
 dfmt_space_after_keywords (Not yet implemented) | `true`, `false` | `true` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`
 
 ## Terminology

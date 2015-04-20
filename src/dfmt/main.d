@@ -24,6 +24,30 @@ else
         Config optConfig;
         optConfig.pattern = "*.d";
         bool showHelp;
+
+        void handleBooleans(string option, string value)
+        {
+            import dfmt.editorconfig : OptionalBoolean;
+            import std.exception : enforce;
+            enforce(value == "true" || value == "false", "Invalid argument");
+            switch (option)
+            {
+            case "outdent_attributes":
+                optConfig.dfmt_outdent_attributes = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                break;
+            case "outdent_labels":
+                optConfig.dfmt_outdent_labels = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                break;
+            case "space_after_cast":
+                optConfig.dfmt_space_after_cast = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                break;
+            case "split_operator_at_line_end":
+                optConfig.dfmt_split_operator_at_line_end = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                break;
+            default: assert(false, "Invalid command-line switch");
+            }
+        }
+
         getopt(args,
             "align_switch_statements", &optConfig.dfmt_align_switch_statements,
             "brace_style", &optConfig.dfmt_brace_style,
@@ -34,10 +58,10 @@ else
             "inplace", &inplace,
             "max_line_length", &optConfig.max_line_length,
             "max_line_length", &optConfig.max_line_length,
-            "outdent_attributes", &optConfig.dfmt_outdent_attributes,
-            "outdent_labels", &optConfig.dfmt_outdent_labels,
-            "space_after_cast", &optConfig.dfmt_space_after_cast,
-            "split_operator_at_line_end", &optConfig.dfmt_split_operator_at_line_end,
+            "outdent_attributes", &handleBooleans,
+            "outdent_labels", &handleBooleans,
+            "space_after_cast", &handleBooleans,
+            "split_operator_at_line_end", &handleBooleans,
             "tab_width", &optConfig.tab_width);
 
         if (showHelp)
@@ -132,11 +156,6 @@ Formatting Options:
 }
 
 private string createFilePath(bool readFromStdin, string fileName)
-//out (result)
-//{
-//    stderr.writeln(__FUNCTION__, ": ", result);
-//}
-//body
 {
     import std.file : getcwd;
     import std.path : isRooted;

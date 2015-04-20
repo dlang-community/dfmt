@@ -650,6 +650,8 @@ private:
 
     void formatKeyword()
     {
+        import dfmt.editorconfig : OptionalBoolean;
+
         switch (current.type)
         {
         case tok!"default":
@@ -657,6 +659,8 @@ private:
             break;
         case tok!"cast":
             writeToken();
+            if (currentIs(tok!"("))
+                writeParens(config.dfmt_space_after_cast == OptionalBoolean.t);
             break;
         case tok!"try":
             if (peekIs(tok!"{"))
@@ -1062,12 +1066,15 @@ private:
     body
     {
         immutable int depth = parenDepth;
+        parenDepth = 0;
         do
         {
-            formatStep();
             spaceAfterParens = spaceAfter;
+            formatStep();
         }
-        while (index < tokens.length && parenDepth > depth);
+        while (index < tokens.length && parenDepth > 0);
+        parenDepth = depth;
+        spaceAfterParens = spaceAfter;
     }
 
     void indent()
