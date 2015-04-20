@@ -31,14 +31,14 @@ file instead, and output will be written to ```stdout```.
 ### Standard EditorConfig properties
 Property Name | Allowed Values | Default Value | Description
 --------------|----------------|---------------|------------
-end_of_line | | TODO | Not yet supported
-insert_final_newline | | `true` | Not supported. **dfmt** always inserts a final newline
+end_of_line | `cr`, `crlf` and `lf` | `lf` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#end_of_line)
+insert_final_newline | | `true` | Not supported. **dfmt** always inserts a final newline.
 charset | | `UTf-8` | Not supported. **dfmt** only works correctly on UTF-8.
-indent_style | `tab`, `space` | `space` | Supported
-indent_size | positive integers | `4` | Supported
-tab_width | positive integers | `8` | Supported
-trim_trailing_whitespace | | `true` | Not supported. **dfmt** does not emit trailing whitespace
-max_line_length | positive integers | `120` | Supported
+indent_style | `tab`, `space` | `space` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#indent_style)
+indent_size | positive integers | `4` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#indent_size)
+tab_width | positive integers | `8` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#tab_width)
+trim_trailing_whitespace | | `true` | Not supported. **dfmt** does not emit trailing whitespace.
+max_line_length | positive integers | `120` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#max_line_length)
 ### dfmt-specific properties
 Property Name | Allowed Values | Default Value | Description
 --------------|----------------|---------------|------------
