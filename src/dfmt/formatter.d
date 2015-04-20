@@ -298,7 +298,7 @@ private:
                 }
                 else if ((t == tok!"import" && !currentIs(tok!"import") && !currentIs(tok!"}")))
                 {
-                    write("\n");
+                    simpleNewline();
                     currentLineLength = 0;
                     justAddedExtraNewline = true;
                     newline();
@@ -581,7 +581,7 @@ private:
                     && astInformation.doubleNewlineLocations.canFindIndex(tokens[index].index)
                     && !peekIs(tok!"}") && !peekIs(tok!";"))
             {
-                write("\n");
+                simpleNewline();
                 currentLineLength = 0;
                 justAddedExtraNewline = true;
             }
@@ -926,10 +926,24 @@ private:
             regenLineBreakHints(i);
     }
 
+    void simpleNewline()
+    {
+        import dfmt.editorconfig : EOL;
+
+        final switch (config.end_of_line)
+        {
+        case EOL.cr: output.put("\r"); break;
+        case EOL.lf: output.put("\n"); break;
+        case EOL.crlf: output.put("\r\n"); break;
+        case EOL.unspecified: assert(false, "config.end_of_line was unspecified");
+        }
+    }
+
     void newline()
     {
         import std.range : assumeSorted;
         import std.algorithm : max;
+        import dfmt.editorconfig : OptionalBoolean;
 
         if (currentIs(tok!"comment") && index > 0 && current.line == tokenEndLine(tokens[index - 1]))
             return;
@@ -944,12 +958,12 @@ private:
             return;
         }
 
-        output.put("\n");
+        simpleNewline();
 
         if (!justAddedExtraNewline && index > 0 && hasCurrent
                 && tokens[index].line - tokenEndLine(tokens[index - 1]) > 1)
         {
-            output.put("\n");
+            simpleNewline();
         }
 
         justAddedExtraNewline = false;
