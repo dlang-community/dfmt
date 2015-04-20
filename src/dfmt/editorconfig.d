@@ -1,6 +1,25 @@
 module dfmt.editorconfig;
 import std.regex : ctRegex;
 
+static if (__VERSION__ >= 2067)
+    import std.traits : FieldNameTuple;
+else
+{
+    private enum NameOf(alias T) = T.stringof;
+    template FieldNameTuple(T)
+    {
+        import std.typetuple : staticMap;
+        import std.traits : isNested;
+
+        static if (is(T == struct) || is(T == union))
+            alias FieldNameTuple = staticMap!(NameOf, T.tupleof[0 .. $ - isNested!T]);
+        else static if (is(T == class))
+            alias FieldNameTuple = staticMap!(NameOf, T.tupleof);
+        else
+            alias FieldNameTuple = TypeTuple!"";
+    }
+}
+
 private auto headerRe = ctRegex!(`^\s*\[([^\n]+)\]\s*(:?#.*)?$`);
 private auto propertyRe = ctRegex!(`^\s*([\w_]+)\s*=\s*([\w_]+)\s*[#;]?.*$`);
 private auto commentRe = ctRegex!(`^\s*[#;].*$`);
@@ -43,7 +62,6 @@ mixin template StandardEditorConfigFields()
     void merge(ref const typeof(this) other, const string fileName)
     {
         import std.path : globMatch;
-        import std.traits : FieldNameTuple;
 
         if (other.pattern is null || !fileName.globMatch(other.pattern))
             return;
@@ -77,7 +95,7 @@ EC getConfigFor(EC)(string path)
     import std.stdio : File;
     import std.regex : regex, match;
     import std.path : globMatch, dirName, baseName, pathSplitter, buildPath;
-    import std.algorithm : reverse, map, filter, each;
+    import std.algorithm : reverse, map, filter;
     import std.array : array;
 
     EC result;
@@ -94,7 +112,17 @@ EC getConfigFor(EC)(string path)
             break;
     }
     reverse(configs);
-    configs.each!(a => a.each!(b => result.merge(b, fileName)))();
+    static if (__VERSION__ >= 2067)
+    {
+        import std.algorithm : each;
+        configs.each!(a => a.each!(b => result.merge(b, fileName)))();
+    }
+    else
+    {
+        foreach (c; configs)
+            foreach (d; c)
+                result.merge(d, fileName);
+    }
     return result;
 }
 
@@ -104,7 +132,6 @@ private EC[] parseConfig(EC)(string dir)
     import std.file : exists;
     import std.path : buildPath;
     import std.regex : matchAll;
-    import std.traits : FieldNameTuple;
     import std.conv : to;
     import std.uni : toLower;
 
@@ -115,9 +142,10 @@ private EC[] parseConfig(EC)(string dir)
         return sections;
 
     File f = File(path);
-    foreach (line; f.byLineCopy())
+    foreach (line; f.byLine())
     {
-        auto headerMatch = line.matchAll(headerRe);
+        auto l = line.idup;
+        auto headerMatch = l.matchAll(headerRe);
         if (headerMatch)
         {
             sections ~= section;
@@ -128,7 +156,7 @@ private EC[] parseConfig(EC)(string dir)
         }
         else
         {
-            auto propertyMatch = line.matchAll(propertyRe);
+            auto propertyMatch = l.matchAll(propertyRe);
             if (propertyMatch)
             {
                 auto c = propertyMatch.captures;
