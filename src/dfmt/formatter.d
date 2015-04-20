@@ -599,7 +599,7 @@ private:
 
     void formatSwitch()
     {
-        if (indents.topIs(tok!"with"))
+        while (indents.topIs(tok!"with"))
             indents.pop();
         indents.push(tok!"switch");
         writeToken(); // switch
@@ -847,15 +847,35 @@ private:
         case tok!"..":
         case tok!"%":
         binary:
-            if (linebreakHints.canFind(index) || peekIs(tok!"comment", false))
+            immutable bool isWrapToken = linebreakHints.canFind(index) || peekIs(tok!"comment", false);
+            if (config.dfmt_split_operator_at_line_end)
             {
-                pushWrapIndent();
-                newline();
+                if (isWrapToken)
+                {
+                    pushWrapIndent();
+                    write(" ");
+                    writeToken();
+                    newline();
+                }
+                else
+                {
+                    write(" ");
+                    writeToken();
+                    write(" ");
+                }
             }
             else
+            {
+                if (isWrapToken)
+                {
+                    pushWrapIndent();
+                    newline();
+                }
+                else
+                    write(" ");
+                writeToken();
                 write(" ");
-            writeToken();
-            write(" ");
+            }
             break;
         default:
             writeToken();

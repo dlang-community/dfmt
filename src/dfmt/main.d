@@ -16,7 +16,7 @@ else
     import dfmt.formatter : format;
     import std.path : buildPath, expandTilde;
     import dfmt.editorconfig : getConfigFor;
-    import std.getopt : getopt;
+    import std.getopt : getopt, GetOptException;
 
     int main(string[] args)
     {
@@ -28,10 +28,13 @@ else
         void handleBooleans(string option, string value)
         {
             import dfmt.editorconfig : OptionalBoolean;
-            import std.exception : enforce;
-            enforce(value == "true" || value == "false", "Invalid argument");
+            import std.exception : enforceEx;
+            enforceEx!GetOptException(value == "true" || value == "false", "Invalid argument");
             switch (option)
             {
+            case "align_switch_statements":
+                optConfig.dfmt_align_switch_statements = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                break;
             case "outdent_attributes":
                 optConfig.dfmt_outdent_attributes = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
                 break;
@@ -48,21 +51,29 @@ else
             }
         }
 
-        getopt(args,
-            "align_switch_statements", &optConfig.dfmt_align_switch_statements,
-            "brace_style", &optConfig.dfmt_brace_style,
-            "end_of_line", &optConfig.end_of_line,
-            "help|h", &showHelp,
-            "indent_size", &optConfig.indent_size,
-            "indent_style|t", &optConfig.indent_style,
-            "inplace", &inplace,
-            "max_line_length", &optConfig.max_line_length,
-            "max_line_length", &optConfig.max_line_length,
-            "outdent_attributes", &handleBooleans,
-            "outdent_labels", &handleBooleans,
-            "space_after_cast", &handleBooleans,
-            "split_operator_at_line_end", &handleBooleans,
-            "tab_width", &optConfig.tab_width);
+        try
+        {
+            getopt(args,
+                "align_switch_statements", &handleBooleans,
+                "brace_style", &optConfig.dfmt_brace_style,
+                "end_of_line", &optConfig.end_of_line,
+                "help|h", &showHelp,
+                "indent_size", &optConfig.indent_size,
+                "indent_style|t", &optConfig.indent_style,
+                "inplace", &inplace,
+                "max_line_length", &optConfig.max_line_length,
+                "max_line_length", &optConfig.max_line_length,
+                "outdent_attributes", &handleBooleans,
+                "outdent_labels", &handleBooleans,
+                "space_after_cast", &handleBooleans,
+                "split_operator_at_line_end", &handleBooleans,
+                "tab_width", &optConfig.tab_width);
+        }
+        catch (GetOptException e)
+        {
+            stderr.writeln(e.msg);
+            return 1;
+        }
 
         if (showHelp)
         {
