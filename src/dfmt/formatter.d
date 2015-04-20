@@ -474,6 +474,8 @@ private:
         {
             writeToken();
             linebreakHints = [];
+            while (indents.topIs(tok!"enum"))
+                indents.pop();
             newline();
         }
     }
