@@ -17,6 +17,14 @@ when using the **--inplace** option.
 By default, dfmt reads its input from **stdin** and writes to **stdout**.
 If a file name is specified on the command line, input will be read from the
 file instead, and output will be written to **stdout**.
+
+**dfmt** uses EditorConfig files for configuration. If you run **dfmt** on a
+source file it will look for .editorconfig files that apply to that source file.
+If no file is specified on the command line, **dfmt** will look for .editorconfig
+files that would apply to a D file in the current working directory. Command
+line options can be used instead of .editorconfig files, or to override options
+found in .editorconfig files.
+
 ### Options
 * **--help**: Display command line options
 * **--inplace**: A file name is required and the file will be edited in-place.
