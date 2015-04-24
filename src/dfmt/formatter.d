@@ -154,8 +154,7 @@ private:
             {
                 immutable t = tokens[index].type;
                 if (t == tok!"identifier" || isStringLiteral(t)
-                        || isNumberLiteral(t) || t == tok!"characterLiteral"
-                        || isKeyword(t))
+                        || isNumberLiteral(t) || t == tok!"characterLiteral")
                     write(" ");
             }
         }
@@ -221,7 +220,7 @@ private:
         {
             writeToken();
             if (index < tokens.length && (currentIs(tok!"identifier")
-                    || isKeyword(current.type) || isBasicType(current.type) || currentIs(tok!"@")))
+                    || isBasicType(current.type) || currentIs(tok!"@")))
             {
                 write(" ");
             }
@@ -377,7 +376,7 @@ private:
             newline();
             writeToken(); // in/out/body
         }
-        else if (peekIsLiteralOrIdent() || peekIsBasicType() || peekIsKeyword())
+        else if (peekIsLiteralOrIdent() || peekIsBasicType())
         {
             writeToken();
             if (spaceAfterParens || parenDepth > 0)
@@ -676,6 +675,8 @@ private:
             break;
         case tok!"in":
         case tok!"is":
+            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!","))
+                write(" ");
             writeToken();
             if (!currentIs(tok!"(") && !currentIs(tok!"{"))
                 write(" ");
