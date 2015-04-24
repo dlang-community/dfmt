@@ -62,7 +62,7 @@ else
                 "indent_style|t", &optConfig.indent_style,
                 "inplace", &inplace,
                 "max_line_length", &optConfig.max_line_length,
-                "max_line_length", &optConfig.max_line_length,
+                "soft_max_line_length", &optConfig.dfmt_soft_max_line_length,
                 "outdent_attributes", &handleBooleans,
                 "outdent_labels", &handleBooleans,
                 "space_after_cast", &handleBooleans,
@@ -144,7 +144,7 @@ else
 
 private void printHelp()
 {
-    writeln(`dfmt 0.3.0-dev
+    writeln(`dfmt 0.3.1
 
 Options:
     --help | -h            Print this help message
@@ -158,7 +158,7 @@ Formatting Options:
     --indent_size
     --indent_style|t
     --inplace
-    --max_line_length
+    --soft_max_line_length
     --max_line_length
     --outdent_attributes
     --outdent_labels

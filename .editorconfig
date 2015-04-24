@@ -8,6 +8,11 @@ tab_width = 4
 indent_size = 4
 indent_style = tab
 
+[makefile]
+tab_width = 4
+indent_size = 4
+indent_style = tab
+
 [*.d]
 dfmt_align_switch_statements = true
 dfmt_brace_style = allman

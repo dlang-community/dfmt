@@ -763,7 +763,7 @@ private:
             formatAt();
             break;
         case tok!"!":
-            if (peekIs(tok!"is") && !peekBackIsOneOf(false, tok!"(", tok!"="))
+            if ((peekIs(tok!"is") || peekIs(tok!"in")) && !peekBackIsOneOf(false, tok!"(", tok!"="))
                 write(" ");
             goto case;
         case tok!"...":
