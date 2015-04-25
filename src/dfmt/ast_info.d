@@ -26,7 +26,9 @@ struct ASTInformation
         sort(funLitStartLocations);
         sort(funLitEndLocations);
         sort(conditionalWithElseLocations);
+        sort(conditionalStatementLocations);
         sort(arrayStartLocations);
+        sort(contractLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -64,6 +66,9 @@ struct ASTInformation
 
     /// Locations of start locations of array initializers
     size_t[] arrayStartLocations;
+
+    /// Locations of "in" and "out" tokens that begin contracts
+    size_t[] contractLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -210,6 +215,18 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.attributeDeclarationLines ~= attributeDeclaration.line;
         attributeDeclaration.accept(this);
+    }
+
+    override void visit(const InStatement inStatement)
+    {
+        astInformation.contractLocations ~= inStatement.inTokenLocation;
+        inStatement.accept(this);
+    }
+
+    override void visit(const OutStatement outStatement)
+    {
+        astInformation.contractLocations ~= outStatement.outTokenLocation;
+        outStatement.accept(this);
     }
 
 private:

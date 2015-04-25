@@ -663,6 +663,15 @@ private:
             if (currentIs(tok!"("))
                 writeParens(config.dfmt_space_after_cast == OptionalBoolean.t);
             break;
+        case tok!"out":
+            if (!peekBackIs(tok!"}") && astInformation.contractLocations.canFindIndex(current.index))
+                newline();
+            else if (peekBackIsKeyword)
+                write(" ");
+            writeToken();
+            if (!currentIs(tok!"(") && !currentIs(tok!"{"))
+                write(" ");
+            break;
         case tok!"try":
             if (peekIs(tok!"{"))
                 writeToken();
@@ -674,8 +683,17 @@ private:
             }
             break;
         case tok!"in":
+            auto isContract = astInformation.contractLocations.canFindIndex(current.index);
+            if (isContract)
+                newline();
+            else if (!peekBackIsOneOf(false, tok!"(", tok!",", tok!"!"))
+                write(" ");
+            writeToken();
+            if (!isContract)
+                write(" ");
+            break;
         case tok!"is":
-            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!","))
+            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",", tok!"}") && !peekBackIsKeyword())
                 write(" ");
             writeToken();
             if (!currentIs(tok!"(") && !currentIs(tok!"{"))
@@ -695,7 +713,7 @@ private:
         default:
             if (index + 1 < tokens.length)
             {
-                if (!peekIs(tok!"@") && peekIsOperator())
+                if (!peekIs(tok!"@") && (peekIsOperator() || peekIs(tok!"out") || peekIs(tok!"in")))
                     writeToken();
                 else
                 {
