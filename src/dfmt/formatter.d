@@ -220,7 +220,7 @@ private:
         {
             writeToken();
             if (index < tokens.length && (currentIs(tok!"identifier")
-                    || isBasicType(current.type) || currentIs(tok!"@")))
+                    || isBasicType(current.type) || currentIs(tok!"@") || currentIs(tok!"if")))
             {
                 write(" ");
             }
@@ -1385,7 +1385,7 @@ const pure @safe @nogc:
         auto t = tokens[i + index].type;
         return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
             || t == tok!"while" || t == tok!"if" || t == tok!"out"
-            || t == tok!"catch" || t == tok!"with";
+            || t == tok!"catch" || t == tok!"with" || t == tok!"synchronized";
     }
 }
 
