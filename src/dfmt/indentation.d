@@ -75,6 +75,16 @@ struct IndentStack
         return index > 0 && arr[index] == type;
     }
 
+    bool topIsTemp()
+    {
+        return index > 0 && index < arr.length && isTempIndent(arr[index]);
+    }
+
+    bool topIsWrap()
+    {
+        return index > 0 && index < arr.length && isWrapIndent(arr[index]);
+    }
+
     bool topIsOneOf(IdType[] types...) const pure nothrow @safe @nogc
     {
         if (index <= 0)

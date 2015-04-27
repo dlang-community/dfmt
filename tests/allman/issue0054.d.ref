@@ -24,4 +24,5 @@ struct ClassFlags
     alias isAbstract = Enum.isAbstract;
     alias isCPPclass = Enum.isCPPclass;
     alias hasDtor = Enum.hasDtor;
+
 }

@@ -475,7 +475,18 @@ private:
             linebreakHints = [];
             while (indents.topIs(tok!"enum"))
                 indents.pop();
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+            {
+                if (!currentIs(tok!"{"))
+                    newline();
+            }
+            else
+            {
+                if (currentIs(tok!"{"))
+                    indents.popTempIndents();
+                indentLevel = indents.indentSize;
+                newline();
+            }
         }
     }
 
@@ -518,31 +529,29 @@ private:
         }
         else
         {
-            if (!justAddedExtraNewline && !peekBackIsOneOf(false, tok!"{",
-                    tok!"}", tok!";", tok!";"))
+            indents.popWrapIndents();
+            if (indents.length && isTempIndent(indents.top))
+                indentLevel = indents.indentSize - 1;
+            else
+                indentLevel = indents.indentSize;
+
+            if (!peekBackIsSlashSlash())
             {
-                if (config.dfmt_brace_style != BraceStyle.allman)
-                {
-                    if (!astInformation.structInitStartLocations.canFindIndex(tokens[index].index)
-                            && !astInformation.funLitStartLocations.canFindIndex(
-                            tokens[index].index))
-                    {
-                        indents.popWrapIndents();
-                        indents.push(tok!"{");
-                        if (index == 1 || peekBackIsOneOf(true, tok!":", tok!"{",
-                                tok!"}", tok!")", tok!";"))
-                        {
-                            indentLevel = indents.indentSize - 1;
-                        }
-                    }
-                    write(" ");
-                }
-                else if (index > 0 && (!peekBackIs(tok!"comment")
-                        || tokens[index - 1].text[0 .. 2] != "//"))
+                if (config.dfmt_brace_style == BraceStyle.allman || peekBackIsOneOf(true, tok!"{", tok!"}"))
                     newline();
+                else if (!peekBackIsOneOf(true, tok!"{", tok!"}", tok!";"))
+                    write(" ");
+                writeToken();
             }
-            writeToken();
-            newline();
+            else
+            {
+                writeToken();
+                indents.popTempIndents();
+                indentLevel = indents.indentSize - 1;
+            }
+            indents.push(tok!"{");
+            if (!currentIs(tok!"{"))
+                newline();
             linebreakHints = [];
         }
     }
@@ -584,9 +593,9 @@ private:
                 currentLineLength = 0;
                 justAddedExtraNewline = true;
             }
-            if (config.dfmt_brace_style == BraceStyle.otbs && currentIs(tok!"else"))
+            if (config.dfmt_brace_style != BraceStyle.allman && currentIs(tok!"else"))
                 write(" ");
-            if (!peekIs(tok!",") && !peekIs(tok!")") && !peekIs(tok!";"))
+            if (!peekIs(tok!",") && !peekIs(tok!")") && !peekIs(tok!";") && !peekIs(tok!"{"))
             {
                 index++;
                 newline();
@@ -967,7 +976,7 @@ private:
         if (currentIs(tok!"comment") && index > 0 && current.line == tokenEndLine(tokens[index - 1]))
             return;
 
-        immutable bool hasCurrent = index + 1 < tokens.length;
+        immutable bool hasCurrent = index < tokens.length;
 
         if (niBraceDepth > 0 && !peekBackIsSlashSlash() && hasCurrent
                 && tokens[index].type == tok!"}" && !assumeSorted(
@@ -1031,16 +1040,13 @@ private:
                 if (l != -1)
                     indentLevel = l;
             }
-            else if (currentIs(tok!"{")
-                    && !astInformation.structInitStartLocations.canFindIndex(tokens[index].index)
-                    && !astInformation.funLitStartLocations.canFindIndex(tokens[index].index))
+            else if (currentIs(tok!"{"))
             {
                 indents.popWrapIndents();
-                indents.push(tok!"{");
-                if (index == 1 || peekBackIsOneOf(true, tok!":", tok!"{",
-                        tok!"}", tok!")", tok!";", tok!"identifier") || peekBackIsKeyword())
+                if (peekBackIsSlashSlash())
                 {
-                    indentLevel = indents.indentSize - 1;
+                    indents.popTempIndents();
+                    indentLevel = indents.indentSize;
                 }
             }
             else if (currentIs(tok!"}"))
@@ -1051,8 +1057,7 @@ private:
                     indentLevel = indents.indentToMostRecent(tok!"{");
                     indents.pop();
                 }
-                while (indents.length && isTempIndent(indents.top)
-                        && ((indents.top != tok!"if"
+                while (indents.topIsTemp() && ((indents.top != tok!"if"
                         && indents.top != tok!"version") || !peekIs(tok!"else")))
                 {
                     indents.pop();
@@ -1075,8 +1080,7 @@ private:
             }
             else
             {
-                while (indents.length && (peekBackIsOneOf(true, tok!"}",
-                        tok!";") && indents.top != tok!";") && isTempIndent(indents.top()))
+                while (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}", tok!";") && indents.top != tok!";"))
                 {
                     indents.pop();
                 }
