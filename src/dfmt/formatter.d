@@ -308,8 +308,8 @@ private:
             }
             else if (currentIs(tok!","))
             {
-                // compute length until next , or ;
-                int lengthOfNextChunk = INVALID_TOKEN_LENGTH;
+                // compute length until next ',' or ';'
+                int lengthOfNextChunk;
                 for (size_t i = index + 1; i < tokens.length; i++)
                 {
                     if (tokens[i].type == tok!"," || tokens[i].type == tok!";")
