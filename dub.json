@@ -1,7 +1,7 @@
 {
     "name": "dfmt",
     "description": "Dfmt is a formatter for D source code",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "targetType": "executable",
 	"license": "BSL-1.0",
     "dependencies": {
