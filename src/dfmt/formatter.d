@@ -404,7 +404,7 @@ private:
             else
                 write(" ");
         }
-        else if (index < tokens.length && (currentIs(tok!"@") || !isOperator(tokens[index].type)))
+        else if (index < tokens.length && (currentIs(tok!"@") || isBasicType(tokens[index].type)))
             write(" ");
     }
 
@@ -720,6 +720,8 @@ private:
                 write(" ");
             break;
         default:
+            if (peekBackIs(tok!"identifier"))
+                write(" ");
             if (index + 1 < tokens.length)
             {
                 if (!peekIs(tok!"@") && (peekIsOperator() || peekIs(tok!"out") || peekIs(tok!"in")))
