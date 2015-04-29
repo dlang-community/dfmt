@@ -404,7 +404,8 @@ private:
             else
                 write(" ");
         }
-        else if (index < tokens.length && (currentIs(tok!"@") || isBasicType(tokens[index].type)))
+        else if (index < tokens.length && (currentIs(tok!"@") || isBasicType(tokens[index].type)
+                || currentIs(tok!"identifier")))
             write(" ");
     }
 
