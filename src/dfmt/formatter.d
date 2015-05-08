@@ -1433,7 +1433,8 @@ const pure @safe @nogc:
         auto t = tokens[i + index].type;
         return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
             || t == tok!"while" || t == tok!"if" || t == tok!"out"
-            || t == tok!"catch" || t == tok!"with" || t == tok!"synchronized";
+            || t == tok!"catch" || t == tok!"with" || t == tok!"synchronized"
+            || t == tok!"scope";
     }
 }
 
