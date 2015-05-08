@@ -261,7 +261,13 @@ private:
         {
             if (index < tokens.length && prevTokenEndLine == tokens[index].line)
             {
-                if (!currentIs(tok!"{"))
+                if (currentIs(tok!"}"))
+                {
+                    if (indents.topIs(tok!"{"))
+                        indents.pop();
+                    write(" ");
+                }
+                else if (!currentIs(tok!"{"))
                     write(" ");
             }
             else if (!currentIs(tok!"{"))
