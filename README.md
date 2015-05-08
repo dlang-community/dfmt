@@ -47,6 +47,28 @@ dfmt --inplace --space_after_cast=false --max_line_length=80 \
     --soft_max_line_length=70 --brace_style=otbs file.d
 ```
 
+## Disabling formatting
+Formatting can be temporarily disabled by placing the comments ```// dfmt off```
+and ```// dfmt on``` around code that you do not want formatted.
+
+```d
+void main(string[] args)
+{
+    bool optionOne, optionTwo, optionThree;
+
+    // dfmt has no way of knowing that "getopt" is special, so it wraps the
+    // argument list normally
+	getopt(args, "optionOne", &optionOne, "optionTwo", &optionTwo, "optionThree", &optionThree);
+
+	// dfmt off
+    getopt(args,
+        "optionOne", &optionOne,
+        "optionTwo", &optionTwo,
+        "optionThree", &optionThree);
+    // dfmt on
+}
+```
+
 ## Configuration
 **dfmt** uses [EditorConfig](http://editorconfig.org/) configuration files.
 **dfmt**-specific properties are prefixed with *dfmt_*.
