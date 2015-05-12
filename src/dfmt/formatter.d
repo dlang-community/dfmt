@@ -699,7 +699,7 @@ private:
             }
             break;
         case tok!"in":
-            auto isContract = astInformation.contractLocations.canFindIndex(current.index);
+            immutable isContract = astInformation.contractLocations.canFindIndex(current.index);
             if (isContract)
                 newline();
             else if (!peekBackIsOneOf(false, tok!"(", tok!",", tok!"!"))
@@ -709,7 +709,7 @@ private:
                 write(" ");
             break;
         case tok!"is":
-            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",", tok!"}") && !peekBackIsKeyword())
+            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",", tok!"}", tok!"=") && !peekBackIsKeyword())
                 write(" ");
             writeToken();
             if (!currentIs(tok!"(") && !currentIs(tok!"{"))
