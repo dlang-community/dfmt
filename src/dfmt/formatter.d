@@ -301,7 +301,8 @@ private:
                 {
                     break;
                 }
-                else if ((t == tok!"import" && !currentIs(tok!"import") && !currentIs(tok!"}")))
+                else if (t == tok!"import" && !currentIs(tok!"import") && !currentIs(tok!"}")
+						&& !(currentIs(tok!"public") && peekIs(tok!"import")))
                 {
                     simpleNewline();
                     currentLineLength = 0;
