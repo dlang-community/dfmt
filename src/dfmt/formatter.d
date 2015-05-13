@@ -709,7 +709,8 @@ private:
                 write(" ");
             break;
         case tok!"is":
-            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",", tok!"}", tok!"=") && !peekBackIsKeyword())
+            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",", tok!"}", tok!"=",
+                    tok!"&&", tok!"||") && !peekBackIsKeyword())
                 write(" ");
             writeToken();
             if (!currentIs(tok!"(") && !currentIs(tok!"{"))
