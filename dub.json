@@ -3,7 +3,7 @@
     "description": "Dfmt is a formatter for D source code",
     "version": "0.3.5",
     "targetType": "executable",
-	"license": "BSL-1.0",
+    "license": "BSL-1.0",
     "dependencies": {
       "libdparse": "~master"
     }
