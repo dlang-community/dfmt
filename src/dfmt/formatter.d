@@ -626,8 +626,9 @@ private:
         immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug");
         immutable bool b = a
             || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
-        immutable bool shouldPushIndent = b
+        immutable bool c = b
             || astInformation.conditionalStatementLocations.canFindIndex(current.index);
+		immutable bool shouldPushIndent = c && !(currentIs(tok!"if") && indents.topIsWrap());
         if (shouldPushIndent)
             indents.push(current.type);
         writeToken();
