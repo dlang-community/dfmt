@@ -630,6 +630,8 @@ private:
         immutable bool c = b
             || astInformation.conditionalStatementLocations.canFindIndex(current.index);
 		immutable bool shouldPushIndent = c && !(currentIs(tok!"if") && indents.topIsWrap());
+        if (currentIs(tok!"out") && !peekBackIs(tok!"}"))
+            newline();
         if (shouldPushIndent)
             indents.push(current.type);
         writeToken();
@@ -1016,7 +1018,7 @@ private:
             {
                 auto i = indents.indentToMostRecent(tok!"if");
                 auto v = indents.indentToMostRecent(tok!"version");
-                auto mostRecent = max(i, v);
+                immutable mostRecent = max(i, v);
                 if (mostRecent != -1)
                     indentLevel = mostRecent;
             }
@@ -1027,7 +1029,7 @@ private:
                 {
                     indents.pop();
                 }
-                auto l = indents.indentToMostRecent(tok!"switch");
+                immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
                 {
                     indentLevel = l;
@@ -1035,7 +1037,7 @@ private:
                 }
                 else if (!isBlockHeader(2) || peek2Is(tok!"if"))
                 {
-                    auto l2 = indents.indentToMostRecent(tok!"{");
+                    immutable l2 = indents.indentToMostRecent(tok!"{");
                     indentLevel = l2 == -1 ? indentLevel : l2;
                 }
                 else
@@ -1048,7 +1050,7 @@ private:
                 {
                     indents.pop();
                 }
-                auto l = indents.indentToMostRecent(tok!"switch");
+                immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
                     indentLevel = l;
             }
@@ -1086,7 +1088,7 @@ private:
             }
             else if (astInformation.attributeDeclarationLines.canFindIndex(current.line))
             {
-                auto l = indents.indentToMostRecent(tok!"{");
+                immutable l = indents.indentToMostRecent(tok!"{");
                 if (l != -1)
                     indentLevel = l;
             }
@@ -1112,7 +1114,7 @@ private:
     {
         if (current.text is null)
         {
-            auto s = str(current.type);
+            immutable s = str(current.type);
             currentLineLength += s.length;
             output.put(str(current.type));
         }
