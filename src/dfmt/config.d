@@ -38,6 +38,8 @@ struct Config
     OptionalBoolean dfmt_space_after_keywords;
     ///
     OptionalBoolean dfmt_split_operator_at_line_end;
+    ///
+    OptionalBoolean dfmt_selective_import_space;
 
     mixin StandardEditorConfigFields;
 
@@ -62,6 +64,7 @@ struct Config
         dfmt_space_after_cast = OptionalBoolean.t;
         dfmt_space_after_keywords = OptionalBoolean.t;
         dfmt_split_operator_at_line_end = OptionalBoolean.f;
+        dfmt_selective_import_space = OptionalBoolean.t;
     }
 
     /**
@@ -74,7 +77,8 @@ struct Config
 
         if (dfmt_soft_max_line_length > max_line_length)
         {
-            stderr.writeln("Column hard limit must be greater than or equal to column soft limit");
+            stderr.writefln("Column hard limit (%d) must be greater than or equal to column soft limit (%d)",
+                max_line_length, dfmt_soft_max_line_length);
             return false;
         }
         return true;

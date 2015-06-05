@@ -40,6 +40,7 @@ found in .editorconfig files.
 * **--space_after_cast**: See **dfmt_space_after_cast** below
 * **--split_operator_at_line_end**: See **dfmt_split_operator_at_line_end** below
 * **--tab_width**: See **tab_width** below
+* **--selective_import_space**: See **dfmt_selective_import_space** below
 
 ### Example
 ```
@@ -94,6 +95,7 @@ dfmt_outdent_attributes (Not yet implemented) | `true`, `false` | `true` | Decre
 dfmt_split_operator_at_line_end | `true`, `false` | `false` | Place operators on the end of the previous line when splitting lines
 dfmt_space_after_cast | `true`, `false` | `false` | Insert space after the closing paren of a `cast` expression
 dfmt_space_after_keywords (Not yet implemented) | `true`, `false` | `true` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`
+dfmt_selective_import_space | `true`, `false` | `true` | Insert space after the module name and before the `:` for selective imports
 
 ## Terminology
 * Braces - `{` and `}`

@@ -47,6 +47,9 @@ else
             case "split_operator_at_line_end":
                 optConfig.dfmt_split_operator_at_line_end = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
                 break;
+            case "selective_import_space":
+                optConfig.dfmt_selective_import_space = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                break;
             default: assert(false, "Invalid command-line switch");
             }
         }
@@ -66,6 +69,7 @@ else
                 "outdent_attributes", &handleBooleans,
                 "outdent_labels", &handleBooleans,
                 "space_after_cast", &handleBooleans,
+                "selective_import_space", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
                 "tab_width", &optConfig.tab_width);
         }

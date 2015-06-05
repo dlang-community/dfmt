@@ -341,7 +341,7 @@ private:
                     break;
                 }
                 else if (t == tok!"import" && !currentIs(tok!"import") && !currentIs(tok!"}")
-						&& !(currentIs(tok!"public") && peekIs(tok!"import")))
+                        && !(currentIs(tok!"public") && peekIs(tok!"import")))
                 {
                     simpleNewline();
                     currentLineLength = 0;
@@ -351,6 +351,13 @@ private:
                 else
                     newline();
                 break;
+            }
+            else if (currentIs(tok!":"))
+            {
+                if (config.dfmt_selective_import_space)
+                    write(" ");
+                writeToken();
+                write(" ");
             }
             else if (currentIs(tok!","))
             {
@@ -668,7 +675,7 @@ private:
             || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
         immutable bool c = b
             || astInformation.conditionalStatementLocations.canFindIndex(current.index);
-		immutable bool shouldPushIndent = c && !(currentIs(tok!"if") && indents.topIsWrap());
+        immutable bool shouldPushIndent = c && !(currentIs(tok!"if") && indents.topIsWrap());
         if (currentIs(tok!"out") && !peekBackIs(tok!"}"))
             newline();
         if (shouldPushIndent)
