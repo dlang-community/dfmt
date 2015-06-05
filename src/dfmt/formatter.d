@@ -726,6 +726,8 @@ private:
                 write(" ");
             break;
         case tok!"enum":
+            if (peekBackIs(tok!"identifier"))
+                write(" ");
             indents.push(tok!"enum");
             writeToken();
             if (!currentIs(tok!":"))
