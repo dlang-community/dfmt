@@ -487,7 +487,10 @@ private:
             else if (isBlockHeader(1) && !peekIs(tok!"if"))
             {
                 writeToken();
-                write(" ");
+                if (config.dfmt_compact_labeled_statements)
+                    write(" ");
+                else
+                    newline();
             }
             else if (linebreakHints.canFindIndex(index))
             {
@@ -1083,7 +1086,8 @@ private:
                     indentLevel = l;
                     switchLabel = true;
                 }
-                else if (!isBlockHeader(2) || peek2Is(tok!"if"))
+                else if (config.dfmt_compact_labeled_statements == OptionalBoolean.f
+                    || !isBlockHeader(2) || peek2Is(tok!"if"))
                 {
                     immutable l2 = indents.indentToMostRecent(tok!"{");
                     indentLevel = l2 == -1 ? indentLevel : l2;

@@ -41,6 +41,7 @@ found in .editorconfig files.
 * **--split_operator_at_line_end**: See **dfmt_split_operator_at_line_end** below
 * **--tab_width**: See **tab_width** below
 * **--selective_import_space**: See **dfmt_selective_import_space** below
+* **--compact_labeled_statements**: See **dfmt_compact_labeled_statements** below
 
 ### Example
 ```
@@ -96,6 +97,7 @@ dfmt_split_operator_at_line_end | `true`, `false` | `false` | Place operators on
 dfmt_space_after_cast | `true`, `false` | `false` | Insert space after the closing paren of a `cast` expression
 dfmt_space_after_keywords (Not yet implemented) | `true`, `false` | `true` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`
 dfmt_selective_import_space | `true`, `false` | `true` | Insert space after the module name and before the `:` for selective imports
+dfmt_compact_labeled_statements | `true`, `false` | `true` | Place labels on the same line as the labeled `switch`, `for`, `foreach`, or `while` statement
 
 ## Terminology
 * Braces - `{` and `}`

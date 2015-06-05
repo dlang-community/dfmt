@@ -40,6 +40,8 @@ struct Config
     OptionalBoolean dfmt_split_operator_at_line_end;
     ///
     OptionalBoolean dfmt_selective_import_space;
+    ///
+    OptionalBoolean dfmt_compact_labeled_statements;
 
     mixin StandardEditorConfigFields;
 
@@ -65,6 +67,7 @@ struct Config
         dfmt_space_after_keywords = OptionalBoolean.t;
         dfmt_split_operator_at_line_end = OptionalBoolean.f;
         dfmt_selective_import_space = OptionalBoolean.t;
+        dfmt_compact_labeled_statements = OptionalBoolean.t;
     }
 
     /**

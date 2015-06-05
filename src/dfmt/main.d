@@ -30,25 +30,29 @@ else
             import dfmt.editorconfig : OptionalBoolean;
             import std.exception : enforceEx;
             enforceEx!GetOptException(value == "true" || value == "false", "Invalid argument");
+            immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
             switch (option)
             {
             case "align_switch_statements":
-                optConfig.dfmt_align_switch_statements = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                optConfig.dfmt_align_switch_statements = optVal;
                 break;
             case "outdent_attributes":
-                optConfig.dfmt_outdent_attributes = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                optConfig.dfmt_outdent_attributes = optVal;
                 break;
             case "outdent_labels":
-                optConfig.dfmt_outdent_labels = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                optConfig.dfmt_outdent_labels = optVal;
                 break;
             case "space_after_cast":
-                optConfig.dfmt_space_after_cast = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                optConfig.dfmt_space_after_cast = optVal;
                 break;
             case "split_operator_at_line_end":
-                optConfig.dfmt_split_operator_at_line_end = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                optConfig.dfmt_split_operator_at_line_end = optVal;
                 break;
             case "selective_import_space":
-                optConfig.dfmt_selective_import_space = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+                optConfig.dfmt_selective_import_space = optVal;
+                break;
+            case "compact_labeled_statements":
+                optConfig.dfmt_compact_labeled_statements = optVal;
                 break;
             default: assert(false, "Invalid command-line switch");
             }
@@ -71,6 +75,7 @@ else
                 "space_after_cast", &handleBooleans,
                 "selective_import_space", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
+                "compact_labeled_statements", &handleBooleans,
                 "tab_width", &optConfig.tab_width);
         }
         catch (GetOptException e)
@@ -167,7 +172,9 @@ Formatting Options:
     --outdent_attributes
     --outdent_labels
     --space_after_cast
-    --split_operator_at_line_end`);
+    --selective_import_space
+    --split_operator_at_line_end
+    --compact_labeled_statements`);
 }
 
 private string createFilePath(bool readFromStdin, string fileName)
