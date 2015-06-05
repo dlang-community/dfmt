@@ -32,7 +32,7 @@ void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
     astInformation.cleanup();
     auto tokens = byToken(buffer, config, &cache).array();
     auto depths = generateDepthInfo(tokens);
-    auto tokenFormatter = TokenFormatter!OutputRange(tokens, depths, output,
+    auto tokenFormatter = TokenFormatter!OutputRange(buffer, tokens, depths, output,
         &astInformation, formatterConfig);
     tokenFormatter.format();
 }
@@ -74,9 +74,10 @@ struct TokenFormatter(OutputRange)
      *     astInformation = information about the AST used to inform formatting
      *         decisions.
      */
-    this(const(Token)[] tokens, immutable short[] depths, OutputRange output,
-        ASTInformation* astInformation, Config* config)
+    this(const ubyte[] rawSource, const(Token)[] tokens, immutable short[] depths,
+    OutputRange output, ASTInformation* astInformation, Config* config)
     {
+        this.rawSource = rawSource;
         this.tokens = tokens;
         this.depths = depths;
         this.output = output;
@@ -104,6 +105,9 @@ private:
 
     /// Output to write output to
     OutputRange output;
+
+    /// Used for skipping parts of the file with `dfmt off` and `dfmt on` comments
+    const ubyte[] rawSource;
 
     /// Tokens being formatted
     const Token[] tokens;
@@ -234,8 +238,43 @@ private:
             writeToken();
     }
 
+    string commentText(size_t i)
+    {
+        import std.string : strip;
+        assert(tokens[i].type == tok!"comment");
+        string commentText = tokens[i].text;
+        if (commentText[0 ..2] == "//")
+            commentText = commentText[2 .. $];
+        else
+            commentText = commentText[2 .. $ - 2];
+        return commentText.strip();
+    }
+
+    void skipFormatting()
+    {
+        size_t dfmtOff = index;
+        size_t dfmtOn = index;
+        foreach (i; dfmtOff + 1.. tokens.length)
+        {
+            dfmtOn = i;
+            if (tokens[i].type != tok!"comment")
+                continue;
+            immutable string commentText = commentText(i);
+            if (commentText == "dfmt on")
+                break;
+        }
+        write(cast(string) rawSource[tokens[dfmtOff].index .. tokens[dfmtOn].index]);
+        index = dfmtOn;
+    }
+
     void formatComment()
     {
+        if (commentText(index) == "dfmt off")
+        {
+            skipFormatting();
+            return;
+        }
+
         immutable bool currIsSlashSlash = tokens[index].text[0 .. 2] == "//";
         immutable prevTokenEndLine = index == 0 ? size_t.max : tokenEndLine(tokens[index - 1]);
         immutable size_t currTokenLine = tokens[index].line;
