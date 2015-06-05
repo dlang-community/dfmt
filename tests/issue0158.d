@@ -1,0 +1,2 @@
+@Foo enum Bar {}
+@foo class Baz {}
