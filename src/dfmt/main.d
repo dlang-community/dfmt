@@ -148,7 +148,7 @@ else
 
 private void printHelp()
 {
-    writeln(`dfmt 0.3.5
+    writeln(`dfmt 0.3.6
 
 Options:
     --help | -h            Print this help message
