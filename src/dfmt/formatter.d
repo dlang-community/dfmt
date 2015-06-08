@@ -318,7 +318,7 @@ private:
 
     void formatModuleOrImport()
     {
-        auto t = current.type;
+        immutable t = current.type;
         writeToken();
         if (currentIs(tok!"("))
         {
@@ -464,12 +464,20 @@ private:
 
     void formatColon()
     {
-        if (astInformation.caseEndLocations.canFindIndex(current.index)
-                || astInformation.attributeDeclarationLines.canFindIndex(current.line))
+        import dfmt.editorconfig : OptionalBoolean;
+
+        immutable bool isCase = astInformation.caseEndLocations.canFindIndex(current.index);
+        immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(current.line);
+        if (isCase || isAttribute)
         {
             writeToken();
             if (!currentIs(tok!"{"))
+            {
+                if (isCase && !indents.topIs(tok!"case") && config.dfmt_align_switch_statements == OptionalBoolean.f)
+                    indents.push(tok!"case");
                 newline();
+            }
+
         }
         else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!"{", true)
                 || peekBack2Is(tok!"}", true) || peekBack2Is(tok!";", true)
@@ -541,7 +549,7 @@ private:
             {
                 if (currentIs(tok!"{"))
                     indents.popTempIndents();
-                indentLevel = indents.indentSize;
+                indentLevel = indents.indentLevel;
                 newline();
             }
         }
@@ -588,9 +596,9 @@ private:
         {
             indents.popWrapIndents();
             if (indents.length && isTempIndent(indents.top))
-                indentLevel = indents.indentSize - 1;
+                indentLevel = indents.indentLevel - 1;
             else
-                indentLevel = indents.indentSize;
+                indentLevel = indents.indentLevel;
 
             if (!peekBackIsSlashSlash())
             {
@@ -604,7 +612,7 @@ private:
             {
                 writeToken();
                 indents.popTempIndents();
-                indentLevel = indents.indentSize - 1;
+                indentLevel = indents.indentLevel - 1;
             }
             indents.push(tok!"{");
             if (!currentIs(tok!"{"))
@@ -1064,7 +1072,6 @@ private:
 
         if (hasCurrent)
         {
-            bool switchLabel = false;
             if (currentIs(tok!"else"))
             {
                 auto i = indents.indentToMostRecent(tok!"if");
@@ -1075,36 +1082,31 @@ private:
             }
             else if (currentIs(tok!"identifier") && peekIs(tok!":"))
             {
-                while ((peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
-                        && indents.length && isTempIndent(indents.top()))
-                {
-                    indents.pop();
-                }
+                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
+                    indents.popTempIndents();
                 immutable l = indents.indentToMostRecent(tok!"switch");
-                if (l != -1)
-                {
+                if (l != -1 && config.dfmt_align_switch_statements == OptionalBoolean.t)
                     indentLevel = l;
-                    switchLabel = true;
-                }
                 else if (config.dfmt_compact_labeled_statements == OptionalBoolean.f
-                    || !isBlockHeader(2) || peek2Is(tok!"if"))
+                        || !isBlockHeader(2) || peek2Is(tok!"if"))
                 {
                     immutable l2 = indents.indentToMostRecent(tok!"{");
-                    indentLevel = l2 == -1 ? indentLevel : l2;
+                    indentLevel = l2 != -1 ? l2 : indents.indentLevel - 1;
                 }
                 else
-                    indentLevel = indents.indentSize;
+                    indentLevel = indents.indentLevel;
             }
             else if (currentIs(tok!"case") || currentIs(tok!"default"))
             {
-                while (indents.length && (peekBackIs(tok!"}", true)
-                        || peekBackIs(tok!";", true)) && isTempIndent(indents.top()))
+                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
                 {
-                    indents.pop();
+                    indents.popTempIndents();
+                    if (indents.topIs(tok!"case"))
+                        indents.pop();
                 }
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
-                    indentLevel = l;
+                    indentLevel = config.dfmt_align_switch_statements == OptionalBoolean.t ? l : indents.indentLevel;
             }
             else if (currentIs(tok!"{"))
             {
@@ -1112,13 +1114,15 @@ private:
                 if (peekBackIsSlashSlash())
                 {
                     indents.popTempIndents();
-                    indentLevel = indents.indentSize;
+                    indentLevel = indents.indentLevel;
                 }
             }
             else if (currentIs(tok!"}"))
             {
                 indents.popTempIndents();
-                if (indents.top == tok!"{")
+                if (indents.topIs(tok!"case"))
+                    indents.pop();
+                if (indents.topIs(tok!"{"))
                 {
                     indentLevel = indents.indentToMostRecent(tok!"{");
                     indents.pop();
@@ -1135,7 +1139,7 @@ private:
                 if (indents.topIs(tok!"]"))
                 {
                     indents.pop();
-                    indentLevel = indents.indentSize;
+                    indentLevel = indents.indentLevel;
                 }
             }
             else if (astInformation.attributeDeclarationLines.canFindIndex(current.line))
@@ -1150,7 +1154,7 @@ private:
                 {
                     indents.pop();
                 }
-                indentLevel = indents.indentSize;
+                indentLevel = indents.indentLevel;
             }
             indent();
         }
