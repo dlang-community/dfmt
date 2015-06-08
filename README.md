@@ -36,15 +36,38 @@ found in .editorconfig files.
 * **--max_line_length**: See **max_line_length** below
 * **--soft_max_line_length**: See **dfmt_soft_max_line_length** below
 * **--outdent_attributes**: See **dfmt_outdent_attributes** below
-* **--outdent_labels**: See **dfmt_outdent_labels** below
 * **--space_after_cast**: See **dfmt_space_after_cast** below
 * **--split_operator_at_line_end**: See **dfmt_split_operator_at_line_end** below
 * **--tab_width**: See **tab_width** below
+* **--selective_import_space**: See **dfmt_selective_import_space** below
+* **--compact_labeled_statements**: See **dfmt_compact_labeled_statements** below
 
 ### Example
 ```
 dfmt --inplace --space_after_cast=false --max_line_length=80 \
     --soft_max_line_length=70 --brace_style=otbs file.d
+```
+
+## Disabling formatting
+Formatting can be temporarily disabled by placing the comments ```// dfmt off```
+and ```// dfmt on``` around code that you do not want formatted.
+
+```d
+void main(string[] args)
+{
+    bool optionOne, optionTwo, optionThree;
+
+    // dfmt has no way of knowing that "getopt" is special, so it wraps the
+    // argument list normally
+	getopt(args, "optionOne", &optionOne, "optionTwo", &optionTwo, "optionThree", &optionThree);
+
+	// dfmt off
+    getopt(args,
+        "optionOne", &optionOne,
+        "optionTwo", &optionTwo,
+        "optionThree", &optionThree);
+    // dfmt on
+}
 ```
 
 ## Configuration
@@ -66,12 +89,13 @@ Property Name | Allowed Values | Default Value | Description
 --------------|----------------|---------------|------------
 dfmt_brace_style | `allman`, `otbs`, or `stroustrup` | `allman` | [See Wikipedia](https://en.wikipedia.org/wiki/Brace_style)
 dfmt_soft_max_line_length | positive integers | `80` | The formatting process will usually keep lines below this length, but they may be up to max_line_length columns long.
-dfmt_outdent_labels (Not yet implemented) | `true`, `false` | `true` | Decrease the indentation of labels
 dfmt_align_switch_statements (Not yet implemented) | `true`, `false` | `true` | Align labels, cases, and defaults with their enclosing switch
 dfmt_outdent_attributes (Not yet implemented) | `true`, `false` | `true` | Decrease the indentation level of attributes
 dfmt_split_operator_at_line_end | `true`, `false` | `false` | Place operators on the end of the previous line when splitting lines
 dfmt_space_after_cast | `true`, `false` | `false` | Insert space after the closing paren of a `cast` expression
 dfmt_space_after_keywords (Not yet implemented) | `true`, `false` | `true` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`
+dfmt_selective_import_space | `true`, `false` | `true` | Insert space after the module name and before the `:` for selective imports
+dfmt_compact_labeled_statements | `true`, `false` | `true` | Place labels on the same line as the labeled `switch`, `for`, `foreach`, or `while` statement
 
 ## Terminology
 * Braces - `{` and `}`

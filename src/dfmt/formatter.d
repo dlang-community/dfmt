@@ -32,7 +32,7 @@ void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
     astInformation.cleanup();
     auto tokens = byToken(buffer, config, &cache).array();
     auto depths = generateDepthInfo(tokens);
-    auto tokenFormatter = TokenFormatter!OutputRange(tokens, depths, output,
+    auto tokenFormatter = TokenFormatter!OutputRange(buffer, tokens, depths, output,
         &astInformation, formatterConfig);
     tokenFormatter.format();
 }
@@ -74,9 +74,10 @@ struct TokenFormatter(OutputRange)
      *     astInformation = information about the AST used to inform formatting
      *         decisions.
      */
-    this(const(Token)[] tokens, immutable short[] depths, OutputRange output,
-        ASTInformation* astInformation, Config* config)
+    this(const ubyte[] rawSource, const(Token)[] tokens, immutable short[] depths,
+    OutputRange output, ASTInformation* astInformation, Config* config)
     {
+        this.rawSource = rawSource;
         this.tokens = tokens;
         this.depths = depths;
         this.output = output;
@@ -104,6 +105,9 @@ private:
 
     /// Output to write output to
     OutputRange output;
+
+    /// Used for skipping parts of the file with `dfmt off` and `dfmt on` comments
+    const ubyte[] rawSource;
 
     /// Tokens being formatted
     const Token[] tokens;
@@ -234,8 +238,43 @@ private:
             writeToken();
     }
 
+    string commentText(size_t i)
+    {
+        import std.string : strip;
+        assert(tokens[i].type == tok!"comment");
+        string commentText = tokens[i].text;
+        if (commentText[0 ..2] == "//")
+            commentText = commentText[2 .. $];
+        else
+            commentText = commentText[2 .. $ - 2];
+        return commentText.strip();
+    }
+
+    void skipFormatting()
+    {
+        size_t dfmtOff = index;
+        size_t dfmtOn = index;
+        foreach (i; dfmtOff + 1.. tokens.length)
+        {
+            dfmtOn = i;
+            if (tokens[i].type != tok!"comment")
+                continue;
+            immutable string commentText = commentText(i);
+            if (commentText == "dfmt on")
+                break;
+        }
+        write(cast(string) rawSource[tokens[dfmtOff].index .. tokens[dfmtOn].index]);
+        index = dfmtOn;
+    }
+
     void formatComment()
     {
+        if (commentText(index) == "dfmt off")
+        {
+            skipFormatting();
+            return;
+        }
+
         immutable bool currIsSlashSlash = tokens[index].text[0 .. 2] == "//";
         immutable prevTokenEndLine = index == 0 ? size_t.max : tokenEndLine(tokens[index - 1]);
         immutable size_t currTokenLine = tokens[index].line;
@@ -279,7 +318,7 @@ private:
 
     void formatModuleOrImport()
     {
-        auto t = current.type;
+        immutable t = current.type;
         writeToken();
         if (currentIs(tok!"("))
         {
@@ -302,7 +341,7 @@ private:
                     break;
                 }
                 else if (t == tok!"import" && !currentIs(tok!"import") && !currentIs(tok!"}")
-						&& !(currentIs(tok!"public") && peekIs(tok!"import")))
+                        && !(currentIs(tok!"public") && peekIs(tok!"import")))
                 {
                     simpleNewline();
                     currentLineLength = 0;
@@ -312,6 +351,13 @@ private:
                 else
                     newline();
                 break;
+            }
+            else if (currentIs(tok!":"))
+            {
+                if (config.dfmt_selective_import_space)
+                    write(" ");
+                writeToken();
+                write(" ");
             }
             else if (currentIs(tok!","))
             {
@@ -418,12 +464,22 @@ private:
 
     void formatColon()
     {
-        if (astInformation.caseEndLocations.canFindIndex(current.index)
-                || astInformation.attributeDeclarationLines.canFindIndex(current.line))
+        import dfmt.editorconfig : OptionalBoolean;
+
+        immutable bool isCase = astInformation.caseEndLocations.canFindIndex(current.index);
+        immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(current.line);
+        if (isCase || isAttribute)
         {
             writeToken();
             if (!currentIs(tok!"{"))
+            {
+                if (isCase && !indents.topIs(tok!"case") && config.dfmt_align_switch_statements == OptionalBoolean.f)
+                    indents.push(tok!"case");
+                else if (isAttribute && !indents.topIs(tok!"@") && config.dfmt_outdent_attributes == OptionalBoolean.f)
+                    indents.push(tok!"@");
                 newline();
+            }
+
         }
         else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!"{", true)
                 || peekBack2Is(tok!"}", true) || peekBack2Is(tok!";", true)
@@ -441,7 +497,10 @@ private:
             else if (isBlockHeader(1) && !peekIs(tok!"if"))
             {
                 writeToken();
-                write(" ");
+                if (config.dfmt_compact_labeled_statements)
+                    write(" ");
+                else
+                    newline();
             }
             else if (linebreakHints.canFindIndex(index))
             {
@@ -492,7 +551,7 @@ private:
             {
                 if (currentIs(tok!"{"))
                     indents.popTempIndents();
-                indentLevel = indents.indentSize;
+                indentLevel = indents.indentLevel;
                 newline();
             }
         }
@@ -539,9 +598,9 @@ private:
         {
             indents.popWrapIndents();
             if (indents.length && isTempIndent(indents.top))
-                indentLevel = indents.indentSize - 1;
+                indentLevel = indents.indentLevel - 1;
             else
-                indentLevel = indents.indentSize;
+                indentLevel = indents.indentLevel;
 
             if (!peekBackIsSlashSlash())
             {
@@ -555,7 +614,7 @@ private:
             {
                 writeToken();
                 indents.popTempIndents();
-                indentLevel = indents.indentSize - 1;
+                indentLevel = indents.indentLevel - 1;
             }
             indents.push(tok!"{");
             if (!currentIs(tok!"{"))
@@ -629,7 +688,7 @@ private:
             || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
         immutable bool c = b
             || astInformation.conditionalStatementLocations.canFindIndex(current.index);
-		immutable bool shouldPushIndent = c && !(currentIs(tok!"if") && indents.topIsWrap());
+        immutable bool shouldPushIndent = c && !(currentIs(tok!"if") && indents.topIsWrap());
         if (currentIs(tok!"out") && !peekBackIs(tok!"}"))
             newline();
         if (shouldPushIndent)
@@ -1015,7 +1074,6 @@ private:
 
         if (hasCurrent)
         {
-            bool switchLabel = false;
             if (currentIs(tok!"else"))
             {
                 auto i = indents.indentToMostRecent(tok!"if");
@@ -1026,35 +1084,31 @@ private:
             }
             else if (currentIs(tok!"identifier") && peekIs(tok!":"))
             {
-                while ((peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
-                        && indents.length && isTempIndent(indents.top()))
-                {
-                    indents.pop();
-                }
+                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
+                    indents.popTempIndents();
                 immutable l = indents.indentToMostRecent(tok!"switch");
-                if (l != -1)
-                {
+                if (l != -1 && config.dfmt_align_switch_statements == OptionalBoolean.t)
                     indentLevel = l;
-                    switchLabel = true;
-                }
-                else if (!isBlockHeader(2) || peek2Is(tok!"if"))
+                else if (config.dfmt_compact_labeled_statements == OptionalBoolean.f
+                        || !isBlockHeader(2) || peek2Is(tok!"if"))
                 {
                     immutable l2 = indents.indentToMostRecent(tok!"{");
-                    indentLevel = l2 == -1 ? indentLevel : l2;
+                    indentLevel = l2 != -1 ? l2 : indents.indentLevel - 1;
                 }
                 else
-                    indentLevel = indents.indentSize;
+                    indentLevel = indents.indentLevel;
             }
             else if (currentIs(tok!"case") || currentIs(tok!"default"))
             {
-                while (indents.length && (peekBackIs(tok!"}", true)
-                        || peekBackIs(tok!";", true)) && isTempIndent(indents.top()))
+                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
                 {
-                    indents.pop();
+                    indents.popTempIndents();
+                    if (indents.topIs(tok!"case"))
+                        indents.pop();
                 }
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
-                    indentLevel = l;
+                    indentLevel = config.dfmt_align_switch_statements == OptionalBoolean.t ? l : indents.indentLevel;
             }
             else if (currentIs(tok!"{"))
             {
@@ -1062,13 +1116,15 @@ private:
                 if (peekBackIsSlashSlash())
                 {
                     indents.popTempIndents();
-                    indentLevel = indents.indentSize;
+                    indentLevel = indents.indentLevel;
                 }
             }
             else if (currentIs(tok!"}"))
             {
                 indents.popTempIndents();
-                if (indents.top == tok!"{")
+                while (indents.topIs(tok!"case") || indents.topIs(tok!"@"))
+                    indents.pop();
+                if (indents.topIs(tok!"{"))
                 {
                     indentLevel = indents.indentToMostRecent(tok!"{");
                     indents.pop();
@@ -1085,22 +1141,30 @@ private:
                 if (indents.topIs(tok!"]"))
                 {
                     indents.pop();
-                    indentLevel = indents.indentSize;
+                    indentLevel = indents.indentLevel;
                 }
             }
             else if (astInformation.attributeDeclarationLines.canFindIndex(current.line))
             {
-                immutable l = indents.indentToMostRecent(tok!"{");
-                if (l != -1)
-                    indentLevel = l;
+                if (config.dfmt_outdent_attributes == OptionalBoolean.t)
+                {
+                    immutable l = indents.indentToMostRecent(tok!"{");
+                    if (l != -1)
+                        indentLevel = l;
+                }
+                else
+                {
+                    if (indents.topIs(tok!"@"))
+                        indents.pop();
+                    indentLevel = indents.indentLevel;
+                }
             }
             else
             {
-                while (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}", tok!";") && indents.top != tok!";"))
-                {
+                while (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}", tok!";")
+                        && indents.top != tok!";"))
                     indents.pop();
-                }
-                indentLevel = indents.indentSize;
+                indentLevel = indents.indentLevel;
             }
             indent();
         }
