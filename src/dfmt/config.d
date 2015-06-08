@@ -59,7 +59,6 @@ struct Config
         dfmt_align_switch_statements = OptionalBoolean.t;
         dfmt_brace_style = BraceStyle.allman;
         dfmt_outdent_attributes = OptionalBoolean.t;
-        dfmt_outdent_labels = OptionalBoolean.t;
         dfmt_soft_max_line_length = 80;
         dfmt_space_after_cast = OptionalBoolean.t;
         dfmt_space_after_keywords = OptionalBoolean.t;

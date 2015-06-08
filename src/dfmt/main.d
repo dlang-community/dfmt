@@ -39,9 +39,6 @@ else
             case "outdent_attributes":
                 optConfig.dfmt_outdent_attributes = optVal;
                 break;
-            case "outdent_labels":
-                optConfig.dfmt_outdent_labels = optVal;
-                break;
             case "space_after_cast":
                 optConfig.dfmt_space_after_cast = optVal;
                 break;
@@ -71,7 +68,6 @@ else
                 "max_line_length", &optConfig.max_line_length,
                 "soft_max_line_length", &optConfig.dfmt_soft_max_line_length,
                 "outdent_attributes", &handleBooleans,
-                "outdent_labels", &handleBooleans,
                 "space_after_cast", &handleBooleans,
                 "selective_import_space", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
@@ -170,7 +166,6 @@ Formatting Options:
     --soft_max_line_length
     --max_line_length
     --outdent_attributes
-    --outdent_labels
     --space_after_cast
     --selective_import_space
     --split_operator_at_line_end
