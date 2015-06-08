@@ -36,7 +36,6 @@ found in .editorconfig files.
 * **--max_line_length**: See **max_line_length** below
 * **--soft_max_line_length**: See **dfmt_soft_max_line_length** below
 * **--outdent_attributes**: See **dfmt_outdent_attributes** below
-* **--outdent_labels**: See **dfmt_outdent_labels** below
 * **--space_after_cast**: See **dfmt_space_after_cast** below
 * **--split_operator_at_line_end**: See **dfmt_split_operator_at_line_end** below
 * **--tab_width**: See **tab_width** below
@@ -90,7 +89,6 @@ Property Name | Allowed Values | Default Value | Description
 --------------|----------------|---------------|------------
 dfmt_brace_style | `allman`, `otbs`, or `stroustrup` | `allman` | [See Wikipedia](https://en.wikipedia.org/wiki/Brace_style)
 dfmt_soft_max_line_length | positive integers | `80` | The formatting process will usually keep lines below this length, but they may be up to max_line_length columns long.
-dfmt_outdent_labels (Not yet implemented) | `true`, `false` | `true` | Decrease the indentation of labels
 dfmt_align_switch_statements (Not yet implemented) | `true`, `false` | `true` | Align labels, cases, and defaults with their enclosing switch
 dfmt_outdent_attributes (Not yet implemented) | `true`, `false` | `true` | Decrease the indentation level of attributes
 dfmt_split_operator_at_line_end | `true`, `false` | `false` | Place operators on the end of the previous line when splitting lines

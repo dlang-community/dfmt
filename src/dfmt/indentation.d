@@ -12,7 +12,8 @@ import std.d.lexer;
  */
 bool isWrapIndent(IdType type) pure nothrow @nogc @safe
 {
-    return type != tok!"{" && type != tok!"case" && type != tok!"]" && isOperator(type);
+	return type != tok!"{" && type != tok!"case" && type != tok!"@"
+		&& type != tok!"]" && isOperator(type);
 }
 
 /**
@@ -20,7 +21,7 @@ bool isWrapIndent(IdType type) pure nothrow @nogc @safe
  */
 bool isTempIndent(IdType type) pure nothrow @nogc @safe
 {
-    return type != tok!"{" && type != tok!"case";
+    return type != tok!"{" && type != tok!"case" && type != tok!"@";
 }
 
 /**

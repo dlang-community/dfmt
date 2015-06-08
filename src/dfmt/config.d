@@ -29,8 +29,6 @@ struct Config
     ///
     OptionalBoolean dfmt_outdent_attributes;
     ///
-    OptionalBoolean dfmt_outdent_labels;
-    ///
     int dfmt_soft_max_line_length = -1;
     ///
     OptionalBoolean dfmt_space_after_cast;
