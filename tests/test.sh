@@ -12,7 +12,7 @@ do
 		else
 			args=
 		fi
-		../bin/dfmt --brace_style=${braceStyle} ${args} "${source}" > "${braceStyle}/${source}.out"
+		../bin/dfmt-test --brace_style=${braceStyle} ${args} "${source}" > "${braceStyle}/${source}.out"
 		diff -u "${braceStyle}/${source}.ref" "${braceStyle}/${source}.out"
 	done
 done
