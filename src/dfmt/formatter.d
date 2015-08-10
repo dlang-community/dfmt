@@ -310,7 +310,13 @@ private:
                     write(" ");
             }
             else if (!currentIs(tok!"{"))
+            {
+                if (currentIs(tok!")") && indents.topIs(tok!","))
+                    indents.pop();
+                else if (peekBack2Is(tok!",") && !indents.topIs(tok!","))
+                    indents.push(tok!",");
                 newline();
+            }
         }
         else
             newline();
