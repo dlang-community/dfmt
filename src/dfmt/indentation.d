@@ -35,7 +35,9 @@ struct IndentStack
      */
     int indentToMostRecent(IdType item) const
     {
-        size_t i = index;
+        if (index == 0)
+            return -1;
+        size_t i = index - 1;
         while (true)
         {
             if (arr[i] == item)
@@ -54,7 +56,7 @@ struct IndentStack
         int tempIndentCount = 0;
         for (size_t i = index; i > 0; i--)
         {
-            if (!isWrapIndent(arr[i]) && arr[i] != tok!"]")
+            if (!isWrapIndent(arr[i - 1]) && arr[i - 1] != tok!"]")
                 break;
             tempIndentCount++;
         }
@@ -66,8 +68,8 @@ struct IndentStack
      */
     void push(IdType item) pure nothrow
     {
-        index = index == 255 ? index : index + 1;
         arr[index] = item;
+        index = index + 1 == arr.length ? index : index + 1;
     }
 
     /**
@@ -83,7 +85,7 @@ struct IndentStack
      */
     void popWrapIndents() pure nothrow @safe @nogc
     {
-        while (index > 0 && isWrapIndent(arr[index]))
+        while (index > 0 && isWrapIndent(arr[index - 1]))
             index--;
     }
 
@@ -92,7 +94,7 @@ struct IndentStack
      */
     void popTempIndents() pure nothrow @safe @nogc
     {
-        while (index > 0 && isTempIndent(arr[index]))
+        while (index > 0 && isTempIndent(arr[index - 1]))
             index--;
     }
 
@@ -101,7 +103,7 @@ struct IndentStack
      */
     bool topIs(IdType type) const pure nothrow @safe @nogc
     {
-        return index > 0 && arr[index] == type;
+        return index > 0 && index <= arr.length && arr[index - 1] == type;
     }
 
     /**
@@ -109,7 +111,7 @@ struct IndentStack
      */
     bool topIsTemp()
     {
-        return index > 0 && index < arr.length && isTempIndent(arr[index]);
+        return index > 0 && index <= arr.length && isTempIndent(arr[index - 1]);
     }
 
     /**
@@ -117,7 +119,7 @@ struct IndentStack
      */
     bool topIsWrap()
     {
-        return index > 0 && index < arr.length && isWrapIndent(arr[index]);
+        return index > 0 && index <= arr.length && isWrapIndent(arr[index - 1]);
     }
 
     /**
@@ -126,9 +128,9 @@ struct IndentStack
      */
     bool topIsOneOf(IdType[] types...) const pure nothrow @safe @nogc
     {
-        if (index <= 0)
+        if (index == 0)
             return false;
-        immutable topType = arr[index];
+        immutable topType = arr[index - 1];
         foreach (t; types)
             if (t == topType)
                 return true;
@@ -137,15 +139,15 @@ struct IndentStack
 
     IdType top() const pure nothrow @property @safe @nogc
     {
-        return arr[index];
+        return arr[index - 1];
     }
 
-    int indentLevel() const pure nothrow @safe @nogc @property
+    int indentLevel() const pure nothrow @property @safe @nogc
     {
         return indentSize();
     }
 
-    int length() const pure nothrow @property
+    int length() const pure nothrow @property @safe @nogc
     {
         return cast(int) index;
     }
@@ -156,15 +158,15 @@ private:
 
     IdType[256] arr;
 
-    int indentSize(size_t k = size_t.max) const pure nothrow @safe @nogc
+    int indentSize(const size_t k = size_t.max) const pure nothrow @safe @nogc
     {
-        if (index == 0)
+        if (index == 0 || k == 0)
             return 0;
-        immutable size_t j = k == size_t.max ? index : k - 1;
+        immutable size_t j = k == size_t.max ? index : k;
         int size = 0;
-        foreach (i; 1 .. j + 1)
+        foreach (i; 0 .. j)
         {
-            if (i + 1 <= index)
+            if (i + 1 < index)
             {
                 if (arr[i] == tok!"]")
                     continue;
@@ -178,4 +180,19 @@ private:
         }
         return size;
     }
+}
+
+unittest
+{
+    IndentStack stack;
+    stack.push(tok!"{");
+    assert(stack.length == 1);
+    assert(stack.indentLevel == 1);
+    stack.pop();
+    assert(stack.length == 0);
+    assert(stack.indentLevel == 0);
+    stack.push(tok!"if");
+    assert(stack.topIsTemp());
+    stack.popTempIndents();
+    assert(stack.length == 0);
 }
