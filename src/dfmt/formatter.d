@@ -596,26 +596,28 @@ private:
         }
         else
         {
-            indents.popWrapIndents();
-            if (indents.length && isTempIndent(indents.top))
-                indentLevel = indents.indentLevel - 1;
-            else
-                indentLevel = indents.indentLevel;
-
-            if (!peekBackIsSlashSlash())
+            if (peekBackIsSlashSlash())
             {
+                if (peekBack2Is(tok!";"))
+                {
+                    indents.popTempIndents();
+                    indentLevel = indents.indentLevel - 1;
+                }
+                writeToken();
+            }
+            else
+            {
+                if (indents.length && isTempIndent(indents.top))
+                    indentLevel = indents.indentLevel - 1;
+                else
+                    indentLevel = indents.indentLevel;
                 if (config.dfmt_brace_style == BraceStyle.allman || peekBackIsOneOf(true, tok!"{", tok!"}"))
                     newline();
                 else if (!peekBackIsOneOf(true, tok!"{", tok!"}", tok!";"))
                     write(" ");
                 writeToken();
             }
-            else
-            {
-                writeToken();
-                indents.popTempIndents();
-                indentLevel = indents.indentLevel - 1;
-            }
+
             indents.push(tok!"{");
             if (!currentIs(tok!"{"))
                 newline();
@@ -1113,7 +1115,7 @@ private:
             else if (currentIs(tok!"{"))
             {
                 indents.popWrapIndents();
-                if (peekBackIsSlashSlash())
+                if (peekBackIsSlashSlash() && peekBack2Is(tok!";"))
                 {
                     indents.popTempIndents();
                     indentLevel = indents.indentLevel;
