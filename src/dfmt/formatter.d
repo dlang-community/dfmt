@@ -565,7 +565,7 @@ private:
 
     void formatLeftBrace()
     {
-        import std.algorithm : map, sum;
+        import std.algorithm : map, sum, canFind;
 
         if (astInformation.structInitStartLocations.canFindIndex(tokens[index].index))
         {
@@ -587,9 +587,10 @@ private:
             if (peekBackIs(tok!")"))
                 write(" ");
             auto e = expressionEndIndex(index);
+            immutable bool hasComment = tokens[index .. e].canFind!((a, b) => a.type == b)(tok!"comment");
             immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a)).sum();
             writeToken();
-            if (l > config.dfmt_soft_max_line_length)
+            if (hasComment || l > config.dfmt_soft_max_line_length)
             {
                 indents.push(tok!"{");
                 newline();
@@ -662,7 +663,7 @@ private:
             write("}");
             if (index + 1 < tokens.length
                     && astInformation.doubleNewlineLocations.canFindIndex(tokens[index].index)
-                    && !peekIs(tok!"}") && !peekIs(tok!";"))
+                    && !peekIs(tok!"}") && !peekIs(tok!";") && !peekIs(tok!"comment", false))
             {
                 simpleNewline();
                 currentLineLength = 0;
