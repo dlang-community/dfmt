@@ -8,7 +8,7 @@ when using the **--inplace** option.
 ## Building
 ### Using Make
 * Clone the repository
-* Run ```git submodule update --init``` in the dfmt directory
+* Run ```git submodule update --init --recursive``` in the dfmt directory
 * To compile with DMD, run ```make``` in the dfmt directory. To compile with
   LDC, run ```make ldc``` instead. The generated binary will be placed in ```dfmt/bin/```.
 
