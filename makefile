@@ -1,5 +1,7 @@
-SRC := $(shell find src -name "*.d") $(shell find libdparse/src -name "*.d")
-INCLUDE_PATHS := -Ilibdparse/src -Isrc
+SRC := $(shell find src -name "*.d") \
+	$(shell find libdparse/src -name "*.d") \
+	$(shell find libdparse/experimental_allocator/src -name "*.d")
+INCLUDE_PATHS := -Ilibdparse/src -Isrc -Ilibdparse/experimental_allocator/src
 DMD_COMMON_FLAGS := -dip25 -w $(INCLUDE_PATHS)
 DMD_DEBUG_FLAGS := -g $(DMD_COMMON_FLAGS)
 DMD_FLAGS := -O -inline $(DMD_COMMON_FLAGS)
@@ -18,7 +20,7 @@ ldc: $(SRC)
 gdc: $(SRC)
 	gdc $(GDC_FLAGS) $^ -obin/dfmt
 
-test: bin/dfmt-test
+test: bin/dfmt
 	cd tests && ./test.sh
 
 bin/dfmt-test: $(SRC)
