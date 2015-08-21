@@ -794,12 +794,16 @@ private:
                 write(" ");
             break;
         case tok!"enum":
-            if (peekBackIs(tok!"identifier"))
-                write(" ");
-            indents.push(tok!"enum");
-            writeToken();
-            if (!currentIs(tok!":"))
-                write(" ");
+            if (peekIs(tok!")") || peekIs(tok!"==")) {
+                writeToken();
+            } else {
+                if (peekBackIs(tok!"identifier"))
+                    write(" ");
+                indents.push(tok!"enum");
+                writeToken();
+                if (!currentIs(tok!":"))
+                    write(" ");
+            }
             break;
         default:
             if (peekBackIs(tok!"identifier"))
