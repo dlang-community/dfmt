@@ -1,4 +1,4 @@
-# dfmt [![Build Status](https://travis-ci.org/Hackerpilot/dfmt.svg)](https://travis-ci.org/Hackerpilot/dfmt)
+# dfmt [![Build Status](https://travis-ci.org/Hackerpilot/dfmt.svg?branch=master)](https://travis-ci.org/Hackerpilot/dfmt)
 **dfmt** is a formatter for D source code
 
 ## Status
