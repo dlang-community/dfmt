@@ -1269,7 +1269,7 @@ const pure @safe @nogc:
                 break;
             if (depths[i] < d)
                 break;
-            if (!braces && tokens[i].type == tok!";")
+            if (!braces && (tokens[i].type == tok!";" || tokens[i].type == tok!"{"))
                 break;
             i++;
         }
