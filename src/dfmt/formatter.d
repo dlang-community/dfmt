@@ -284,10 +284,8 @@ private:
             immutable canAddNewline = currTokenLine - prevTokenEndLine < 1;
             if (prevTokenEndLine == currTokenLine || (t == tok!")" && peekIs(tok!"{")))
                 write(" ");
-            else if (t != tok!";" && t != tok!"}" && canAddNewline)
-            {
+            else if (canAddNewline || (peekIs(tok!"{") && t == tok!"}"))
                 newline();
-            }
         }
         writeToken();
         immutable j = justAddedExtraNewline;
