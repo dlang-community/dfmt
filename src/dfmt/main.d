@@ -29,8 +29,10 @@ else
         {
             import dfmt.editorconfig : OptionalBoolean;
             import std.exception : enforceEx;
+
             enforceEx!GetOptException(value == "true" || value == "false", "Invalid argument");
-            immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+            immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t
+                : OptionalBoolean.f;
             switch (option)
             {
             case "align_switch_statements":
@@ -51,12 +53,14 @@ else
             case "compact_labeled_statements":
                 optConfig.dfmt_compact_labeled_statements = optVal;
                 break;
-            default: assert(false, "Invalid command-line switch");
+            default:
+                assert(false, "Invalid command-line switch");
             }
         }
 
         try
         {
+            // dfmt off
             getopt(args,
                 "align_switch_statements", &handleBooleans,
                 "brace_style", &optConfig.dfmt_brace_style,
@@ -73,6 +77,7 @@ else
                 "split_operator_at_line_end", &handleBooleans,
                 "compact_labeled_statements", &handleBooleans,
                 "tab_width", &optConfig.tab_width);
+            // dfmt on
         }
         catch (GetOptException e)
         {

@@ -203,8 +203,8 @@ final class FormatVisitor : ASTVisitor
     override void visit(const UnaryExpression unary)
     {
         if (unary.prefix.type == tok!"~" || unary.prefix.type == tok!"&"
-                || unary.prefix.type == tok!"*" || unary.prefix.type == tok!"+"
-                || unary.prefix.type == tok!"-")
+                || unary.prefix.type == tok!"*"
+                || unary.prefix.type == tok!"+" || unary.prefix.type == tok!"-")
         {
             astInformation.unaryLocations ~= unary.prefix.index;
         }
