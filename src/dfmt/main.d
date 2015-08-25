@@ -57,6 +57,7 @@ else
 
         try
         {
+            // dfmt off
             getopt(args,
                 "align_switch_statements", &handleBooleans,
                 "brace_style", &optConfig.dfmt_brace_style,
@@ -73,6 +74,7 @@ else
                 "split_operator_at_line_end", &handleBooleans,
                 "compact_labeled_statements", &handleBooleans,
                 "tab_width", &optConfig.tab_width);
+            // dfmt on
         }
         catch (GetOptException e)
         {
