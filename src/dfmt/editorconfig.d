@@ -3,6 +3,7 @@ import std.regex : ctRegex;
 
 static if (__VERSION__ >= 2067)
     import std.traits : FieldNameTuple;
+
 else
 {
     private enum NameOf(alias T) = T.stringof;
@@ -72,11 +73,11 @@ mixin template StandardEditorConfigFields()
             auto thisN = &mixin("this." ~ N);
             static if (N == "pattern")
                 continue;
-            else static if (is (T == enum))
+            else static if (is(T == enum))
                 *thisN = otherN != T.unspecified ? otherN : *thisN;
-            else static if (is (T == int))
+            else static if (is(T == int))
                 *thisN = otherN != -1 ? otherN : *thisN;
-            else static if (is (T == string))
+            else static if (is(T == string))
                 *thisN = otherN !is null ? otherN : *thisN;
             else
                 static assert(false);
@@ -115,6 +116,7 @@ EC getConfigFor(EC)(string path)
     static if (__VERSION__ >= 2067)
     {
         import std.algorithm : each;
+
         configs.each!(a => a.each!(b => result.merge(b, fileName)))();
     }
     else
