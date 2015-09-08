@@ -2,6 +2,7 @@ SRC := $(shell find src -name "*.d") \
 	$(shell find libdparse/src -name "*.d") \
 	$(shell find libdparse/experimental_allocator/src -name "*.d")
 INCLUDE_PATHS := -Ilibdparse/src -Isrc -Ilibdparse/experimental_allocator/src
+DMD?=dmd
 DMD_COMMON_FLAGS := -dip25 -w $(INCLUDE_PATHS)
 DMD_DEBUG_FLAGS := -g $(DMD_COMMON_FLAGS)
 DMD_FLAGS := -O -inline $(DMD_COMMON_FLAGS)
@@ -24,10 +25,10 @@ test: bin/dfmt
 	cd tests && ./test.sh
 
 bin/dfmt-test: $(SRC)
-	dmd $(DMD_TEST_FLAGS) $^ -of$@
+	$(DMD) $(DMD_TEST_FLAGS) $^ -of$@
 
 bin/dfmt: $(SRC)
-	dmd $(DMD_FLAGS) $^ -of$@
+	$(DMD) $(DMD_FLAGS) $^ -of$@
 
 debug: $(SRC)
-	dmd $(DMD_DEBUG_FLAGS) $^ -ofbin/dfmt
+	$(DMD) $(DMD_DEBUG_FLAGS) $^ -ofbin/dfmt
