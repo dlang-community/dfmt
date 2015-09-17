@@ -5,6 +5,8 @@
 
 module dfmt.main;
 
+enum VERSION = "0.4.0";
+
 version (NoMain)
 {
 }
@@ -24,6 +26,7 @@ else
         Config optConfig;
         optConfig.pattern = "*.d";
         bool showHelp;
+        bool showVersion;
 
         void handleBooleans(string option, string value)
         {
@@ -58,6 +61,7 @@ else
         try
         {
             getopt(args,
+                "version", &showVersion,
                 "align_switch_statements", &handleBooleans,
                 "brace_style", &optConfig.dfmt_brace_style,
                 "end_of_line", &optConfig.end_of_line,
@@ -78,6 +82,12 @@ else
         {
             stderr.writeln(e.msg);
             return 1;
+        }
+
+        if (showVersion)
+        {
+            writeln(VERSION);
+            return 0;
         }
 
         if (showHelp)
@@ -149,11 +159,13 @@ else
 
 private void printHelp()
 {
-    writeln(`dfmt 0.4.0-beta
+    writeln(`dfmt `, VERSION, `
+https://github.com/Hackerpilot/dfmt
 
 Options:
     --help | -h            Print this help message
     --inplace              Edit files in place
+    --version              Print the version number and then exit
 
 Formatting Options:
     --align_switch_statements
