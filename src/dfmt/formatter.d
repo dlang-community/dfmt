@@ -202,6 +202,10 @@ private:
         {
             formatBlockHeader();
         }
+		else if (currentIs(tok!"do"))
+		{
+			formatBlockHeader();
+		}
         else if (currentIs(tok!"else"))
         {
             formatElse();
@@ -690,6 +694,8 @@ private:
 
     void formatBlockHeader()
     {
+		//import std.stdio:stderr;
+		//stderr.writeln(__FUNCTION__);
         immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug");
         immutable bool b = a
             || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
@@ -701,8 +707,11 @@ private:
         if (shouldPushIndent)
             indents.push(current.type);
         writeToken();
-        write(" ");
-        writeParens(false);
+		if (currentIs(tok!"("))
+		{
+			write(" ");
+			writeParens(false);
+		}
         if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch")))
             write(" ");
         else if (currentIs(tok!"comment"))
@@ -1475,7 +1484,7 @@ const pure @safe @nogc:
             return false;
         auto t = tokens[i + index].type;
         return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
-            || t == tok!"while" || t == tok!"if" || t == tok!"out"
+            || t == tok!"while" || t == tok!"if" || t == tok!"out" || t == tok!"do"
             || t == tok!"catch" || t == tok!"with" || t == tok!"synchronized"
             || t == tok!"scope";
     }
