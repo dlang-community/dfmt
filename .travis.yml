@@ -1,3 +1,4 @@
 language: d
+d: dmd-2.068.2-b2
 script:
     - git submodule update --init --recursive && make test
