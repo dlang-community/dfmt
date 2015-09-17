@@ -8,7 +8,6 @@ version (Windows) {
 }
 version (Windows) {
     void func();
-}
-else {
+} else {
     void func();
 }

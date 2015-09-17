@@ -1,6 +1,4 @@
 static if (a) {
-}
-else static if (b) {
-}
-else {
+} else static if (b) {
+} else {
 }

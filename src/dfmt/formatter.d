@@ -671,15 +671,21 @@ private:
                 currentLineLength = 0;
                 justAddedExtraNewline = true;
             }
-            if (config.dfmt_brace_style != BraceStyle.allman && currentIs(tok!"else"))
-                write(" ");
-            if (!peekIs(tok!",") && !peekIs(tok!")") && !peekIs(tok!";") && !peekIs(tok!"{"))
+            if (config.dfmt_brace_style == BraceStyle.otbs && peekIs(tok!"else"))
             {
+                write(" ");
                 index++;
-                newline();
             }
             else
-                index++;
+            {
+                if (!peekIs(tok!",") && !peekIs(tok!")") && !peekIs(tok!";") && !peekIs(tok!"{"))
+                {
+                    index++;
+                    newline();
+                }
+                else
+                    index++;
+            }
         }
     }
 

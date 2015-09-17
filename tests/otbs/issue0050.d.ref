@@ -6,8 +6,7 @@ void fun() {
                     doStuff();
                 else
                     morestuff();
-            }
-            else
+            } else
                 doStuff();
 
     cast(structalign_t) 1;

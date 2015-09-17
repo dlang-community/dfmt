@@ -12,8 +12,7 @@ void indent() {
         foreach (i; 0 .. indentLevel + tempIndent) {
             currentLineLength += config.tabSize;
             output.put("\t");
-        }
-    else
+        } else
         foreach (i; 0 .. indentLevel + tempIndent)
             foreach (j; 0 .. config.indentSize) {
                 output.put(" ");

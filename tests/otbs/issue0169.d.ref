@@ -3,8 +3,7 @@ unittest {
         if (true) // comment
         {
 
-        }
-        else {
+        } else {
 
         }
     }

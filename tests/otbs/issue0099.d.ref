@@ -9,8 +9,7 @@ unittest {
                 else {
                     excessivelyLongFunctionName(false);
                 }
-            }
-            else
+            } else
                 a();
     }
 }

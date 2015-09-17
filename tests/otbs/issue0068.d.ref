@@ -1,4 +1,3 @@
 version (all) {
-}
-else version (none) {
+} else version (none) {
 }

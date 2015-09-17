@@ -1,10 +1,8 @@
 unittest {
     if (0)
         if (0) {
-        }
-        else if (0) {
-        }
-        else {
+        } else if (0) {
+        } else {
         }
     doSomething();
 }
