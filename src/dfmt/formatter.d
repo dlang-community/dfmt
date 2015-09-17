@@ -466,7 +466,7 @@ private:
                 write(" ");
         }
         else if (index < tokens.length && (currentIs(tok!"@") || isBasicType(tokens[index].type)
-                || currentIs(tok!"identifier")))
+                || currentIs(tok!"identifier") || currentIs(tok!"if")))
             write(" ");
     }
 
