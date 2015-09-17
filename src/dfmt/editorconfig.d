@@ -61,9 +61,10 @@ mixin template StandardEditorConfigFields()
 
     void merge(ref const typeof(this) other, const string fileName)
     {
-        import std.path : globMatch;
+        import dfmt.globmatch_editorconfig : globMatchEditorConfig;
+        import std.array : front, popFront, empty, save;
 
-        if (other.pattern is null || !fileName.globMatch(other.pattern))
+        if (other.pattern is null || !ecMatch(fileName, other.pattern))
             return;
         foreach (N; FieldNameTuple!(typeof(this)))
         {
@@ -82,6 +83,33 @@ mixin template StandardEditorConfigFields()
                 static assert(false);
         }
     }
+
+    private bool ecMatch(string fileName, string patt)
+    {
+        import std.algorithm : canFind;
+        import std.path : baseName;
+        import dfmt.globmatch_editorconfig : globMatchEditorConfig;
+
+        if (!pattern.canFind("/"))
+            fileName = fileName.baseName;
+        return fileName.globMatchEditorConfig(patt);
+    }
+}
+
+unittest
+{
+    struct Config
+    {
+        mixin StandardEditorConfigFields;
+    }
+
+    Config config1;
+    Config config2;
+    config2.pattern = "test.d";
+    config2.end_of_line = EOL.crlf;
+    assert(config1.end_of_line != config2.end_of_line);
+    config1.merge(config2, "a/b/test.d");
+    assert(config1.end_of_line == config2.end_of_line);
 }
 
 /**
