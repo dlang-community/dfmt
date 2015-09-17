@@ -1149,7 +1149,7 @@ private:
                     indentLevel = indents.indentToMostRecent(tok!"{");
                     indents.pop();
                 }
-                while (indents.topIsTemp() && ((indents.top != tok!"if"
+                while (sBraceDepth == 0 && indents.topIsTemp() && ((indents.top != tok!"if"
                         && indents.top != tok!"version") || !peekIs(tok!"else")))
                 {
                     indents.pop();
@@ -1181,9 +1181,9 @@ private:
             }
             else
             {
-                while (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}", tok!";")
+                if (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}", tok!";")
                         && indents.top != tok!";"))
-                    indents.pop();
+                    indents.popTempIndents();
                 indentLevel = indents.indentLevel;
             }
             indent();
@@ -1240,18 +1240,22 @@ private:
     {
         import dfmt.editorconfig : IndentStyle;
         if (config.indent_style == IndentStyle.tab)
+        {
             foreach (i; 0 .. indentLevel)
             {
                 currentLineLength += config.tab_width;
                 output.put("\t");
             }
+        }
         else
+        {
             foreach (i; 0 .. indentLevel)
                 foreach (j; 0 .. config.indent_size)
                 {
                     output.put(" ");
                     currentLineLength++;
                 }
+        }
     }
 
     void pushWrapIndent(IdType type = tok!"")
