@@ -431,11 +431,10 @@ private:
         parenDepth--;
         if (parenDepth == 0)
             indents.popWrapIndents();
-        if (parenDepth == 0 && (peekIs(tok!"in") || peekIs(tok!"out") || peekIs(tok!"body")))
+        if (parenDepth == 0 && (currentIs(tok!"out") || currentIs(tok!"body")))
         {
-            writeToken(); // )
+            writeToken();
             newline();
-            writeToken(); // in/out/body
         }
         else if (peekIsLiteralOrIdent() || peekIsBasicType())
         {
@@ -443,7 +442,7 @@ private:
             if (spaceAfterParens || parenDepth > 0)
                 write(" ");
         }
-        else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens)
+        else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens && !peekIs(tok!"in"))
         {
             writeToken();
             write(" ");
@@ -791,7 +790,13 @@ private:
                 write(" ");
             writeToken();
             if (!isContract)
-                write(" ");
+            {
+                if (config.dfmt_brace_style == BraceStyle.allman)
+                    newline();
+                else
+                    write(" ");
+            }
+
             break;
         case tok!"is":
             if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",", tok!"}", tok!"=",
