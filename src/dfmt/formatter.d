@@ -789,14 +789,11 @@ private:
             else if (!peekBackIsOneOf(false, tok!"(", tok!",", tok!"!"))
                 write(" ");
             writeToken();
-            if (!isContract)
-            {
-                if (config.dfmt_brace_style == BraceStyle.allman)
-                    newline();
-                else
-                    write(" ");
-            }
-
+            immutable isFunctionLit = astInformation.funLitStartLocations.canFindIndex(current.index);
+            if (isFunctionLit && config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else if (!isContract)
+                write(" ");
             break;
         case tok!"is":
             if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",", tok!"}", tok!"=",
