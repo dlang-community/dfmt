@@ -143,6 +143,9 @@ private:
     /// True if a space should be placed when parenDepth reaches zero
     bool spaceAfterParens;
 
+    /// True if we're in an ASM block
+    bool inAsm;
+
     void formatStep()
     {
         assert(index < tokens.length);
@@ -202,13 +205,34 @@ private:
         {
             formatBlockHeader();
         }
-		else if (currentIs(tok!"do"))
-		{
-			formatBlockHeader();
-		}
+        else if (currentIs(tok!"do"))
+        {
+            formatBlockHeader();
+        }
         else if (currentIs(tok!"else"))
         {
             formatElse();
+        }
+        else if (currentIs(tok!"asm"))
+        {
+            formatKeyword();
+            while (index < tokens.length && !currentIs(tok!"{"))
+                formatStep();
+            if (index < tokens.length)
+            {
+                int depth = 1;
+                formatStep();
+                inAsm = true;
+                while (index < tokens.length)
+                {
+                    if (currentIs(tok!"{"))
+                        ++depth;
+                    else if (currentIs(tok!"}"))
+                        --depth;
+                    formatStep();
+                }
+                inAsm = false;
+            }
         }
         else if (isKeyword(current.type))
         {
@@ -228,7 +252,9 @@ private:
         {
             writeToken();
             if (index < tokens.length && (currentIs(tok!"identifier")
-                    || isBasicType(current.type) || currentIs(tok!"@") || currentIs(tok!"if")))
+                    || isBasicType(current.type) || currentIs(tok!"@")
+                    || currentIs(tok!"if") || isNumberLiteral(tokens[index].type)
+                    || (inAsm && peekBack2Is(tok!";") && currentIs(tok!"["))))
             {
                 write(" ");
             }
@@ -699,8 +725,6 @@ private:
 
     void formatBlockHeader()
     {
-		//import std.stdio:stderr;
-		//stderr.writeln(__FUNCTION__);
         immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug");
         immutable bool b = a
             || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
@@ -712,11 +736,11 @@ private:
         if (shouldPushIndent)
             indents.push(current.type);
         writeToken();
-		if (currentIs(tok!"("))
-		{
-			write(" ");
-			writeParens(false);
-		}
+        if (currentIs(tok!"("))
+        {
+            write(" ");
+            writeParens(false);
+        }
         if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch")))
             write(" ");
         else if (currentIs(tok!"comment"))
@@ -1399,9 +1423,9 @@ const pure @safe @nogc:
         return peekImplementation(tokenType, -1, ignoreComments);
     }
 
-	bool peekBackIsKeyword(bool ignoreComments = true)
-	{
-		if (index == 0)
+    bool peekBackIsKeyword(bool ignoreComments = true)
+    {
+        if (index == 0)
             return false;
         auto i = index - 1;
         if (ignoreComments)
@@ -1411,8 +1435,8 @@ const pure @safe @nogc:
                     return false;
                 i--;
             }
-		return isKeyword(tokens[i].type);
-	}
+        return isKeyword(tokens[i].type);
+    }
 
     bool peekBackIsOneOf(bool ignoreComments, IdType[] tokenTypes...)
     {
