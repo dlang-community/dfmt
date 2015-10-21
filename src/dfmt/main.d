@@ -5,7 +5,7 @@
 
 module dfmt.main;
 
-enum VERSION = "0.4.0";
+private enum VERSION = "0.4.1";
 
 version (NoMain)
 {
