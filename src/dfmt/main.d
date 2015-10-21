@@ -174,7 +174,6 @@ Formatting Options:
     --help|h
     --indent_size
     --indent_style|t
-    --inplace
     --soft_max_line_length
     --max_line_length
     --outdent_attributes
