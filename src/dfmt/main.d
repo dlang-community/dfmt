@@ -68,7 +68,7 @@ else
                 "help|h", &showHelp,
                 "indent_size", &optConfig.indent_size,
                 "indent_style|t", &optConfig.indent_style,
-                "inplace", &inplace,
+                "inplace|i", &inplace,
                 "max_line_length", &optConfig.max_line_length,
                 "soft_max_line_length", &optConfig.dfmt_soft_max_line_length,
                 "outdent_attributes", &handleBooleans,
@@ -163,9 +163,9 @@ private void printHelp()
 https://github.com/Hackerpilot/dfmt
 
 Options:
-    --help | -h            Print this help message
-    --inplace              Edit files in place
-    --version              Print the version number and then exit
+    --help|h            Print this help message
+    --inplace|i         Edit files in place
+    --version           Print the version number and then exit
 
 Formatting Options:
     --align_switch_statements

@@ -26,13 +26,13 @@ line options can be used instead of .editorconfig files, or to override options
 found in .editorconfig files.
 
 ### Options
-* **--help**: Display command line options
-* **--inplace**: A file name is required and the file will be edited in-place.
+* **--help | -h**: Display command line options
+* **--inplace | -i**: A file name is required and the file will be edited in-place.
 * **--align_switch_statements**: See **dfmt_align_switch_statements** below
 * **--brace_style**: See **brace_style** below
 * **--end_of_line**: See **end_of_line** below
 * **--indent_size**: See **indent_size** below
-* **--indent_style**: See **indent_style** below
+* **--indent_style | -t**: See **indent_style** below
 * **--max_line_length**: See **max_line_length** below
 * **--soft_max_line_length**: See **dfmt_soft_max_line_length** below
 * **--outdent_attributes**: See **dfmt_outdent_attributes** below
