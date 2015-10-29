@@ -5,7 +5,7 @@
 
 module dfmt.tokens;
 
-import std.d.lexer;
+import dparse.lexer;
 
 /// Length of an invalid token
 enum int INVALID_TOKEN_LENGTH = -1;

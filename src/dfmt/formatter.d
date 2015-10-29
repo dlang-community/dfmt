@@ -5,8 +5,8 @@
 
 module dfmt.formatter;
 
-import std.d.lexer;
-import std.d.parser;
+import dparse.lexer;
+import dparse.parser;
 import dfmt.config;
 import dfmt.ast_info;
 import dfmt.indentation;

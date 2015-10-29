@@ -5,8 +5,8 @@
 
 module dfmt.ast_info;
 
-import std.d.lexer;
-import std.d.ast;
+import dparse.lexer;
+import dparse.ast;
 
 /// AST information that is needed by the formatter.
 struct ASTInformation

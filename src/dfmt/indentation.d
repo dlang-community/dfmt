@@ -5,7 +5,7 @@
 
 module dfmt.indentation;
 
-import std.d.lexer;
+import dparse.lexer;
 
 /**
  * Returns: true if the given token type is a wrap indent type

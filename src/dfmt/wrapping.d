@@ -5,7 +5,7 @@
 
 module dfmt.wrapping;
 
-import std.d.lexer;
+import dparse.lexer;
 import dfmt.tokens;
 import dfmt.config;
 
