@@ -157,6 +157,17 @@ else
     }
 }
 
+private string optionsToString(E)() if(is(E == enum)) {
+	import std.traits:EnumMembers;
+	import std.conv;
+	string result = "[";
+	foreach(i, option; EnumMembers!E) {
+		result ~= to!string(option) ~ "|";
+	}
+	result = result[0 .. $-1] ~ "]";
+	return result;
+}
+
 private void printHelp()
 {
     writeln(`dfmt `, VERSION, `
@@ -169,11 +180,11 @@ Options:
 
 Formatting Options:
     --align_switch_statements
-    --brace_style
+    --brace_style	`, optionsToString!(typeof(Config.dfmt_brace_style))(), `
     --end_of_line
     --help|h
     --indent_size
-    --indent_style|t
+    --indent_style|t	`, optionsToString!(typeof(Config.indent_style))(), `
     --soft_max_line_length
     --max_line_length
     --outdent_attributes
