@@ -32,8 +32,8 @@ void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
     astInformation.cleanup();
     auto tokens = byToken(buffer, config, &cache).array();
     auto depths = generateDepthInfo(tokens);
-    auto tokenFormatter = TokenFormatter!OutputRange(buffer, tokens, depths, output,
-        &astInformation, formatterConfig);
+    auto tokenFormatter = TokenFormatter!OutputRange(buffer, tokens, depths,
+        output, &astInformation, formatterConfig);
     tokenFormatter.format();
 }
 
@@ -75,7 +75,7 @@ struct TokenFormatter(OutputRange)
      *         decisions.
      */
     this(const ubyte[] rawSource, const(Token)[] tokens, immutable short[] depths,
-    OutputRange output, ASTInformation* astInformation, Config* config)
+        OutputRange output, ASTInformation* astInformation, Config* config)
     {
         this.rawSource = rawSource;
         this.tokens = tokens;
@@ -153,8 +153,8 @@ private:
         {
             formatComment();
         }
-        else if (isStringLiteral(current.type) || isNumberLiteral(current.type)
-                || currentIs(tok!"characterLiteral"))
+        else if (isStringLiteral(current.type)
+                || isNumberLiteral(current.type) || currentIs(tok!"characterLiteral"))
         {
             writeToken();
             if (index < tokens.length)
@@ -253,8 +253,9 @@ private:
             writeToken();
             if (index < tokens.length && (currentIs(tok!"identifier")
                     || isBasicType(current.type) || currentIs(tok!"@")
-                    || currentIs(tok!"if") || isNumberLiteral(tokens[index].type)
-                    || (inAsm && peekBack2Is(tok!";") && currentIs(tok!"["))))
+                    || currentIs(tok!"if")
+                    || isNumberLiteral(tokens[index].type) || (inAsm
+                    && peekBack2Is(tok!";") && currentIs(tok!"["))))
             {
                 write(" ");
             }
@@ -271,9 +272,10 @@ private:
     string commentText(size_t i)
     {
         import std.string : strip;
+
         assert(tokens[i].type == tok!"comment");
         string commentText = tokens[i].text;
-        if (commentText[0 ..2] == "//")
+        if (commentText[0 .. 2] == "//")
             commentText = commentText[2 .. $];
         else
             commentText = commentText[2 .. $ - 2];
@@ -284,7 +286,7 @@ private:
     {
         size_t dfmtOff = index;
         size_t dfmtOn = index;
-        foreach (i; dfmtOff + 1.. tokens.length)
+        foreach (i; dfmtOff + 1 .. tokens.length)
         {
             dfmtOn = i;
             if (tokens[i].type != tok!"comment")
@@ -374,8 +376,9 @@ private:
                 {
                     break;
                 }
-                else if (t == tok!"import" && !currentIs(tok!"import") && !currentIs(tok!"}")
-                        && !(currentIs(tok!"public") && peekIs(tok!"import")))
+                else if (t == tok!"import" && !currentIs(tok!"import")
+                        && !currentIs(tok!"}") && !(currentIs(tok!"public")
+                        && peekIs(tok!"import")))
                 {
                     simpleNewline();
                     currentLineLength = 0;
@@ -430,7 +433,8 @@ private:
             spaceAfterParens = true;
             parenDepth++;
         }
-        immutable bool arrayInitializerStart = p == tok!"[" && linebreakHints.length != 0
+        immutable bool arrayInitializerStart = p == tok!"["
+            && linebreakHints.length != 0
             && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
         if (arrayInitializerStart)
         {
@@ -444,8 +448,8 @@ private:
                 depths[index .. j], config, currentLineLength, indentLevel);
         }
         else if (!currentIs(tok!")") && !currentIs(tok!"]")
-                && (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
-                && currentLineLength > config.max_line_length)))
+                && (linebreakHints.canFindIndex(index - 1)
+                || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
         {
             pushWrapIndent(p);
             newline();
@@ -490,7 +494,8 @@ private:
             else
                 write(" ");
         }
-        else if (index < tokens.length && (currentIs(tok!"@") || isBasicType(tokens[index].type)
+        else if (index < tokens.length && (currentIs(tok!"@")
+                || isBasicType(tokens[index].type)
                 || currentIs(tok!"identifier") || currentIs(tok!"if")))
             write(" ");
     }
@@ -500,15 +505,18 @@ private:
         import dfmt.editorconfig : OptionalBoolean;
 
         immutable bool isCase = astInformation.caseEndLocations.canFindIndex(current.index);
-        immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(current.line);
+        immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(
+            current.line);
         if (isCase || isAttribute)
         {
             writeToken();
             if (!currentIs(tok!"{"))
             {
-                if (isCase && !indents.topIs(tok!"case") && config.dfmt_align_switch_statements == OptionalBoolean.f)
+                if (isCase && !indents.topIs(tok!"case")
+                        && config.dfmt_align_switch_statements == OptionalBoolean.f)
                     indents.push(tok!"case");
-                else if (isAttribute && !indents.topIs(tok!"@") && config.dfmt_outdent_attributes == OptionalBoolean.f)
+                else if (isAttribute && !indents.topIs(tok!"@")
+                        && config.dfmt_outdent_attributes == OptionalBoolean.f)
                     indents.push(tok!"@");
                 newline();
             }
@@ -616,7 +624,8 @@ private:
             auto e = expressionEndIndex(index);
             immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a)).sum();
             immutable bool multiline = l > config.dfmt_soft_max_line_length
-                || tokens[index .. e].canFind!(a => a.type == tok!"comment" || isBlockHeaderToken(a.type))();
+                || tokens[index .. e].canFind!(a => a.type == tok!"comment"
+                || isBlockHeaderToken(a.type))();
             writeToken();
             if (multiline)
             {
@@ -646,7 +655,8 @@ private:
                     indentLevel = indents.indentLevel - 1;
                 else
                     indentLevel = indents.indentLevel;
-                if (config.dfmt_brace_style == BraceStyle.allman || peekBackIsOneOf(true, tok!"{", tok!"}"))
+                if (config.dfmt_brace_style == BraceStyle.allman
+                        || peekBackIsOneOf(true, tok!"{", tok!"}"))
                     newline();
                 else if (!peekBackIsOneOf(true, tok!"{", tok!"}", tok!";"))
                     write(" ");
@@ -691,7 +701,8 @@ private:
             write("}");
             if (index + 1 < tokens.length
                     && astInformation.doubleNewlineLocations.canFindIndex(tokens[index].index)
-                    && !peekIs(tok!"}") && !peekIs(tok!";") && !peekIs(tok!"comment", false))
+                    && !peekIs(tok!"}") && !peekIs(tok!";") && !peekIs(tok!"comment",
+                    false))
             {
                 simpleNewline();
                 currentLineLength = 0;
@@ -704,7 +715,8 @@ private:
             }
             else
             {
-                if (!peekIs(tok!",") && !peekIs(tok!")") && !peekIs(tok!";") && !peekIs(tok!"{"))
+                if (!peekIs(tok!",") && !peekIs(tok!")")
+                        && !peekIs(tok!";") && !peekIs(tok!"{"))
                 {
                     index++;
                     newline();
@@ -789,7 +801,8 @@ private:
                 writeParens(config.dfmt_space_after_cast == OptionalBoolean.t);
             break;
         case tok!"out":
-            if (!peekBackIs(tok!"}") && astInformation.contractLocations.canFindIndex(current.index))
+            if (!peekBackIs(tok!"}")
+                    && astInformation.contractLocations.canFindIndex(current.index))
                 newline();
             else if (peekBackIsKeyword)
                 write(" ");
@@ -814,15 +827,16 @@ private:
             else if (!peekBackIsOneOf(false, tok!"(", tok!",", tok!"!"))
                 write(" ");
             writeToken();
-            immutable isFunctionLit = astInformation.funLitStartLocations.canFindIndex(current.index);
+            immutable isFunctionLit = astInformation.funLitStartLocations.canFindIndex(
+                current.index);
             if (isFunctionLit && config.dfmt_brace_style == BraceStyle.allman)
                 newline();
             else if (!isContract)
                 write(" ");
             break;
         case tok!"is":
-            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",", tok!"}", tok!"=",
-                    tok!"&&", tok!"||") && !peekBackIsKeyword())
+            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",",
+                    tok!"}", tok!"=", tok!"&&", tok!"||") && !peekBackIsKeyword())
                 write(" ");
             writeToken();
             if (!currentIs(tok!"(") && !currentIs(tok!"{"))
@@ -834,9 +848,12 @@ private:
                 write(" ");
             break;
         case tok!"enum":
-            if (peekIs(tok!")") || peekIs(tok!"==")) {
+            if (peekIs(tok!")") || peekIs(tok!"=="))
+            {
                 writeToken();
-            } else {
+            }
+            else
+            {
                 if (peekBackIs(tok!"identifier"))
                     write(" ");
                 indents.push(tok!"enum");
@@ -850,7 +867,8 @@ private:
                 write(" ");
             if (index + 1 < tokens.length)
             {
-                if (!peekIs(tok!"@") && (peekIsOperator() || peekIs(tok!"out") || peekIs(tok!"in")))
+                if (!peekIs(tok!"@") && (peekIsOperator()
+                        || peekIs(tok!"out") || peekIs(tok!"in")))
                     writeToken();
                 else
                 {
@@ -919,7 +937,8 @@ private:
             formatAt();
             break;
         case tok!"!":
-            if ((peekIs(tok!"is") || peekIs(tok!"in")) && !peekBackIsOneOf(false, tok!"(", tok!"="))
+            if ((peekIs(tok!"is") || peekIs(tok!"in"))
+                    && !peekBackIsOneOf(false, tok!"(", tok!"="))
                 write(" ");
             goto case;
         case tok!"...":
@@ -1003,7 +1022,8 @@ private:
         case tok!"..":
         case tok!"%":
         binary:
-            immutable bool isWrapToken = linebreakHints.canFind(index) || peekIs(tok!"comment", false);
+            immutable bool isWrapToken = linebreakHints.canFind(index)
+                || peekIs(tok!"comment", false);
             if (config.dfmt_split_operator_at_line_end)
             {
                 if (isWrapToken)
@@ -1044,14 +1064,15 @@ private:
         import std.algorithm : canFind;
 
         regenLineBreakHintsIfNecessary(index);
-        if (indents.indentToMostRecent(tok!"enum") != -1 && !peekIs(tok!"}")
-                && indents.top == tok!"{" && parenDepth == 0)
+        if (indents.indentToMostRecent(tok!"enum") != -1
+                && !peekIs(tok!"}") && indents.top == tok!"{" && parenDepth == 0)
         {
             writeToken();
             newline();
         }
         else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
-                || (linebreakHints.length == 0 && currentLineLength > config.dfmt_soft_max_line_length)))
+                || (linebreakHints.length == 0
+                && currentLineLength > config.dfmt_soft_max_line_length)))
         {
             writeToken();
             pushWrapIndent(tok!",");
@@ -1088,10 +1109,17 @@ private:
 
         final switch (config.end_of_line)
         {
-        case EOL.cr: output.put("\r"); break;
-        case EOL.lf: output.put("\n"); break;
-        case EOL.crlf: output.put("\r\n"); break;
-        case EOL.unspecified: assert(false, "config.end_of_line was unspecified");
+        case EOL.cr:
+            output.put("\r");
+            break;
+        case EOL.lf:
+            output.put("\n");
+            break;
+        case EOL.crlf:
+            output.put("\r\n");
+            break;
+        case EOL.unspecified:
+            assert(false, "config.end_of_line was unspecified");
         }
     }
 
@@ -1107,8 +1135,8 @@ private:
         immutable bool hasCurrent = index < tokens.length;
 
         if (niBraceDepth > 0 && !peekBackIsSlashSlash() && hasCurrent
-                && tokens[index].type == tok!"}" && !assumeSorted(
-                astInformation.funLitEndLocations).equalRange(tokens[index].index).empty)
+                && tokens[index].type == tok!"}"
+                && !assumeSorted(astInformation.funLitEndLocations).equalRange(tokens[index].index).empty)
         {
             write(" ");
             return;
@@ -1161,7 +1189,8 @@ private:
                 }
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
-                    indentLevel = config.dfmt_align_switch_statements == OptionalBoolean.t ? l : indents.indentLevel;
+                    indentLevel = config.dfmt_align_switch_statements == OptionalBoolean.t ? l
+                        : indents.indentLevel;
             }
             else if (currentIs(tok!"{"))
             {
@@ -1182,7 +1211,8 @@ private:
                     indentLevel = indents.indentToMostRecent(tok!"{");
                     indents.pop();
                 }
-                while (sBraceDepth == 0 && indents.topIsTemp() && ((indents.top != tok!"if"
+                while (sBraceDepth == 0 && indents.topIsTemp()
+                        && ((indents.top != tok!"if"
                         && indents.top != tok!"version") || !peekIs(tok!"else")))
                 {
                     indents.pop();
@@ -1214,8 +1244,8 @@ private:
             }
             else
             {
-                if (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}", tok!";")
-                        && indents.top != tok!";"))
+                if (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}",
+                        tok!";") && indents.top != tok!";"))
                     indents.popTempIndents();
                 indentLevel = indents.indentLevel;
             }
@@ -1291,6 +1321,7 @@ private:
     void indent()
     {
         import dfmt.editorconfig : IndentStyle;
+
         if (config.indent_style == IndentStyle.tab)
         {
             foreach (i; 0 .. indentLevel)
@@ -1369,7 +1400,8 @@ const pure @safe @nogc:
         return tokenLength(tokens[i]);
     }
 
-    ref current() nothrow in
+    ref current() nothrow
+    in
     {
         assert(index < tokens.length);
     }
@@ -1536,10 +1568,10 @@ const pure @safe @nogc:
 
     bool isBlockHeaderToken(IdType t)
     {
-        return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
-            || t == tok!"while" || t == tok!"if" || t == tok!"out" || t == tok!"do"
-            || t == tok!"catch" || t == tok!"with" || t == tok!"synchronized"
-            || t == tok!"scope";
+        return t == tok!"for" || t == tok!"foreach"
+            || t == tok!"foreach_reverse" || t == tok!"while" || t == tok!"if"
+            || t == tok!"out" || t == tok!"do" || t == tok!"catch"
+            || t == tok!"with" || t == tok!"synchronized" || t == tok!"scope";
     }
 
     bool isBlockHeader(int i = 0) nothrow
