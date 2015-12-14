@@ -614,10 +614,11 @@ private:
             if (peekBackIs(tok!")"))
                 write(" ");
             auto e = expressionEndIndex(index);
-            immutable bool hasComment = tokens[index .. e].canFind!((a, b) => a.type == b)(tok!"comment");
             immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a)).sum();
+            immutable bool multiline = l > config.dfmt_soft_max_line_length
+                || tokens[index .. e].canFind!(a => a.type == tok!"comment" || isBlockHeaderToken(a.type))();
             writeToken();
-            if (hasComment || l > config.dfmt_soft_max_line_length)
+            if (multiline)
             {
                 indents.push(tok!"{");
                 newline();
@@ -1257,11 +1258,30 @@ private:
     body
     {
         immutable int depth = parenDepth;
+        immutable int startingNiBraceDepth = niBraceDepth;
+        immutable int startingSBraceDepth = sBraceDepth;
         parenDepth = 0;
         do
         {
             spaceAfterParens = spaceAfter;
-            formatStep();
+            if (currentIs(tok!";") && niBraceDepth <= startingNiBraceDepth
+                    && sBraceDepth <= startingSBraceDepth)
+            {
+                if (currentLineLength >= config.dfmt_soft_max_line_length)
+                {
+                    pushWrapIndent(tok!";");
+                    writeToken();
+                    newline();
+                }
+                else
+                {
+                    writeToken();
+                    if (!currentIs(tok!")") && !currentIs(tok!";"))
+                        write(" ");
+                }
+            }
+            else
+                formatStep();
         }
         while (index < tokens.length && parenDepth > 0);
         parenDepth = depth;
@@ -1514,15 +1534,20 @@ const pure @safe @nogc:
         }
     }
 
+    bool isBlockHeaderToken(IdType t)
+    {
+        return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
+            || t == tok!"while" || t == tok!"if" || t == tok!"out" || t == tok!"do"
+            || t == tok!"catch" || t == tok!"with" || t == tok!"synchronized"
+            || t == tok!"scope";
+    }
+
     bool isBlockHeader(int i = 0) nothrow
     {
         if (i + index < 0 || i + index >= tokens.length)
             return false;
         auto t = tokens[i + index].type;
-        return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
-            || t == tok!"while" || t == tok!"if" || t == tok!"out" || t == tok!"do"
-            || t == tok!"catch" || t == tok!"with" || t == tok!"synchronized"
-            || t == tok!"scope";
+        return isBlockHeaderToken(t);
     }
 }
 
