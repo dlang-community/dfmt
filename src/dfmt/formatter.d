@@ -773,13 +773,13 @@ private:
         if (currentIs(tok!"if") || currentIs(tok!"version")
                 || (currentIs(tok!"static") && peekIs(tok!"if")))
         {
-            if (indents.top() == tok!"if" || indents.top == tok!"version")
+            if (indents.topIs(tok!"if") || indents.topIs(tok!"version"))
                 indents.pop();
             write(" ");
         }
         else if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
         {
-            if (indents.top() == tok!"if" || indents.top == tok!"version")
+            if (indents.topIs(tok!"if") || indents.topIs(tok!"version"))
                 indents.pop();
             indents.push(tok!"else");
             newline();
@@ -1065,7 +1065,7 @@ private:
 
         regenLineBreakHintsIfNecessary(index);
         if (indents.indentToMostRecent(tok!"enum") != -1
-                && !peekIs(tok!"}") && indents.top == tok!"{" && parenDepth == 0)
+                && !peekIs(tok!"}") && indents.topIs(tok!"{") && parenDepth == 0)
         {
             writeToken();
             newline();

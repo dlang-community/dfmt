@@ -23,7 +23,7 @@ ldc: $(SRC)
 gdc: $(SRC)
 	$(GDC) $(GDC_FLAGS) $^ -obin/dfmt
 
-test: bin/dfmt
+test: debug
 	cd tests && ./test.sh
 
 bin/dfmt-test: $(SRC)

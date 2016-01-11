@@ -91,7 +91,7 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const ConditionalDeclaration dec)
     {
-        if (dec.falseDeclaration !is null)
+        if (dec.hasElse)
         {
             auto condition = dec.compileCondition;
             if (condition.versionCondition !is null)
