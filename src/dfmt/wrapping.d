@@ -40,13 +40,14 @@ struct State
         }
         else
         {
-            for (size_t i = 0; i != uint.sizeof * 8; ++i)
+            foreach (size_t i; 0 .. (uint.sizeof * 8))
             {
                 if (((1 << i) & breaks) == 0)
                     continue;
-                immutable b = tokens[i].type;
+                immutable prevType = i > 0 ? tokens[i - 1].type : tok!"";
+                immutable currentType = tokens[i].type;
                 immutable p = abs(depths[i]);
-                immutable bc = breakCost(b) * (p == 0 ? 1 : p * 2);
+                immutable bc = breakCost(prevType, currentType) * (p == 0 ? 1 : p * 2);
                 this._cost += bc;
             }
 

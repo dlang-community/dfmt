@@ -103,9 +103,9 @@ bool isBreakToken(IdType t) pure nothrow @safe @nogc
     }
 }
 
-int breakCost(IdType t) pure nothrow @safe @nogc
+int breakCost(IdType p, IdType c) pure nothrow @safe @nogc
 {
-    switch (t)
+    switch (c)
     {
     case tok!"||":
     case tok!"&&":
@@ -160,7 +160,7 @@ int breakCost(IdType t) pure nothrow @safe @nogc
     case tok!"+=":
         return 200;
     case tok!".":
-        return 900;
+        return p == tok!")" ? 0 : 900;
     default:
         return 1000;
     }
@@ -170,7 +170,7 @@ pure nothrow @safe @nogc unittest
 {
     foreach (ubyte u; 0 .. ubyte.max)
         if (isBreakToken(u))
-            assert(breakCost(u) != 1000);
+            assert(breakCost(tok!".", u) != 1000);
 }
 
 

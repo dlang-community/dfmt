@@ -47,14 +47,18 @@ immutable(short[]) generateDepthInfo(const Token[] tokens) pure nothrow @trusted
     {
         switch (t.type)
         {
-        case tok!"{":
-        case tok!"(":
         case tok!"[":
             depth++;
+            goto case;
+        case tok!"{":
+        case tok!"(":
+            depth++;
             break;
+        case tok!"]":
+            depth--;
+            goto case;
         case tok!"}":
         case tok!")":
-        case tok!"]":
             depth--;
             break;
         default:
@@ -968,6 +972,7 @@ private:
             formatRightBrace();
             break;
         case tok!".":
+            regenLineBreakHintsIfNecessary(index);
             if (linebreakHints.canFind(index) || (linebreakHints.length == 0
                     && currentLineLength + nextTokenLength() > config.max_line_length))
             {
