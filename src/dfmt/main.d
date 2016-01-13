@@ -110,6 +110,22 @@ else
             return 1;
 
         File output = stdout;
+        version(Windows)
+        {
+            // On Windows, set stdout to binary mode (needed for correct EOL writing)
+            // See Phobos' stdio.File.rawWrite
+            {
+                import std.stdio;
+                immutable fd = fileno(output.getFP());
+                setmode(fd, _O_BINARY);
+                version(CRuntime_DigitalMars)
+                {
+                    import core.atomic : atomicOp;
+                    atomicOp!"&="(__fhnd_info[fd], ~FHND_TEXT);
+                }
+            }
+        }
+
         ubyte[] buffer;
 
         if (readFromStdin)
