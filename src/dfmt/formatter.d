@@ -227,7 +227,7 @@ private:
                 int depth = 1;
                 formatStep();
                 inAsm = true;
-                while (index < tokens.length)
+                while (index < tokens.length && depth > 0)
                 {
                     if (currentIs(tok!"{"))
                         ++depth;
