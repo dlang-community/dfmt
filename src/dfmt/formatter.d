@@ -781,6 +781,11 @@ private:
                 indents.pop();
             write(" ");
         }
+        else if (currentIs(tok!":"))
+        {
+            writeToken();
+            newline();
+        }
         else if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
         {
             if (indents.topIs(tok!"if") || indents.topIs(tok!"version"))
