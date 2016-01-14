@@ -380,6 +380,8 @@ private:
                 {
                     break;
                 }
+                else if (currentIs(tok!"{") && config.dfmt_brace_style == BraceStyle.allman)
+                    break;
                 else if (t == tok!"import" && !currentIs(tok!"import")
                         && !currentIs(tok!"}") && !(currentIs(tok!"public")
                         && peekIs(tok!"import")))
