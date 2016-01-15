@@ -347,7 +347,8 @@ private:
             {
                 if (currentIs(tok!")") && indents.topIs(tok!","))
                     indents.pop();
-                else if (peekBack2Is(tok!",") && !indents.topIs(tok!","))
+                else if (peekBack2Is(tok!",") && !indents.topIs(tok!",")
+                        && indents.indentToMostRecent(tok!"enum") == -1)
                     indents.push(tok!",");
                 newline();
             }
