@@ -949,8 +949,7 @@ private:
             formatAt();
             break;
         case tok!"!":
-            if ((peekIs(tok!"is") || peekIs(tok!"in"))
-                    && !peekBackIsOneOf(false, tok!"(", tok!"="))
+            if ((peekIs(tok!"is") || peekIs(tok!"in")) && !peekBackIsOperator())
                 write(" ");
             goto case;
         case tok!"...":
@@ -1488,7 +1487,7 @@ const pure @safe @nogc:
         return peekImplementation(tokenType, -1, ignoreComments);
     }
 
-    bool peekBackIsKeyword(bool ignoreComments = true)
+    bool peekBackIsKeyword(bool ignoreComments = true) pure nothrow const @nogc @safe
     {
         if (index == 0)
             return false;
@@ -1501,6 +1500,11 @@ const pure @safe @nogc:
                 i--;
             }
         return isKeyword(tokens[i].type);
+    }
+
+    bool peekBackIsOperator() pure nothrow const @nogc @safe
+    {
+        return index == 0 ? false : isOperator(tokens[index - 1].type);
     }
 
     bool peekBackIsOneOf(bool ignoreComments, IdType[] tokenTypes...)
