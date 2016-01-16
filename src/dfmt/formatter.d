@@ -431,6 +431,11 @@ private:
     }
 
     void formatLeftParenOrBracket()
+    in
+    {
+        assert(currentIs(tok!"(") || currentIs(tok!"["));
+    }
+    body
     {
         immutable p = tokens[index].type;
         regenLineBreakHintsIfNecessary(index);
@@ -464,15 +469,18 @@ private:
     }
 
     void formatRightParen()
+    in
+    {
+        assert(currentIs(tok!")"));
+    }
+    body
     {
         parenDepth--;
         if (parenDepth == 0)
             indents.popWrapIndents();
-        if (parenDepth == 0 && (currentIs(tok!"out") || currentIs(tok!"body")))
-        {
+
+        if (parenDepth == 0 && (peekIs(tok!"in") || peekIs(tok!"out") || peekIs(tok!"body")))
             writeToken();
-            newline();
-        }
         else if (peekIsLiteralOrIdent() || peekIsBasicType())
         {
             writeToken();
@@ -770,7 +778,9 @@ private:
             if (!currentIs(tok!"{") && !currentIs(tok!";"))
                 write(" ");
         }
-        else if (!currentIs(tok!"{") && !currentIs(tok!";"))
+        else if (!currentIs(tok!"{") && !currentIs(tok!";")
+                && !currentIs(tok!"in") && !currentIs(tok!"out")
+                && !currentIs(tok!"body"))
             newline();
     }
 
@@ -835,7 +845,10 @@ private:
         case tok!"in":
             immutable isContract = astInformation.contractLocations.canFindIndex(current.index);
             if (isContract)
+            {
+                indents.popTempIndents();
                 newline();
+            }
             else if (!peekBackIsOneOf(false, tok!"(", tok!",", tok!"!"))
                 write(" ");
             writeToken();
