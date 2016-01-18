@@ -387,7 +387,8 @@ private:
                     break;
                 else if (t == tok!"import" && !currentIs(tok!"import")
                         && !currentIs(tok!"}") && !(currentIs(tok!"public")
-                        && peekIs(tok!"import")))
+                        && peekIs(tok!"import"))
+                        && !indents.topIsOneOf(tok!"if", tok!"debug", tok!"version"))
                 {
                     simpleNewline();
                     currentLineLength = 0;
@@ -481,7 +482,8 @@ private:
         if (parenDepth == 0)
             indents.popWrapIndents();
 
-        if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in") || peekIs(tok!"out") || peekIs(tok!"body")))
+        if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in")
+                || peekIs(tok!"out") || peekIs(tok!"body")))
             writeToken();
         else if (peekIsLiteralOrIdent() || peekIsBasicType())
         {
@@ -489,7 +491,8 @@ private:
             if (spaceAfterParens || parenDepth > 0)
                 write(" ");
         }
-        else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens && !peekIs(tok!"in") && !peekIs(tok!"is"))
+        else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens
+                && !peekIs(tok!"in") && !peekIs(tok!"is"))
         {
             writeToken();
             write(" ");
@@ -762,7 +765,8 @@ private:
             || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
         immutable bool c = b
             || astInformation.conditionalStatementLocations.canFindIndex(current.index);
-        immutable bool shouldPushIndent = c && !(currentIs(tok!"if") && indents.topIsWrap());
+        immutable bool shouldPushIndent = (c || peekBackIs(tok!"else"))
+            && !(currentIs(tok!"if") && indents.topIsWrap());
         if (currentIs(tok!"out") && !peekBackIs(tok!"}"))
             newline();
         if (shouldPushIndent)
@@ -863,8 +867,8 @@ private:
                 write(" ");
             break;
         case tok!"is":
-            if (!peekBackIsOneOf(false, tok!"!", tok!"(",
-                    tok!",", tok!"}", tok!"=", tok!"&&", tok!"||") && !peekBackIsKeyword())
+            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",",
+                    tok!"}", tok!"=", tok!"&&", tok!"||") && !peekBackIsKeyword())
                 write(" ");
             writeToken();
             if (!currentIs(tok!"(") && !currentIs(tok!"{"))
@@ -1223,8 +1227,8 @@ private:
                 }
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
-                    indentLevel = config.dfmt_align_switch_statements == OptionalBoolean.t
-                        ? l : indents.indentLevel;
+                    indentLevel = config.dfmt_align_switch_statements
+                        == OptionalBoolean.t ? l : indents.indentLevel;
             }
             else if (currentIs(tok!"{"))
             {
