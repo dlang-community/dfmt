@@ -481,7 +481,7 @@ private:
         if (parenDepth == 0)
             indents.popWrapIndents();
 
-        if (parenDepth == 0 && (peekIs(tok!"in") || peekIs(tok!"out") || peekIs(tok!"body")))
+        if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in") || peekIs(tok!"out") || peekIs(tok!"body")))
             writeToken();
         else if (peekIsLiteralOrIdent() || peekIsBasicType())
         {
@@ -489,7 +489,7 @@ private:
             if (spaceAfterParens || parenDepth > 0)
                 write(" ");
         }
-        else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens && !peekIs(tok!"in"))
+        else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens && !peekIs(tok!"in") && !peekIs(tok!"is"))
         {
             writeToken();
             write(" ");
@@ -623,7 +623,8 @@ private:
         {
             sBraceDepth++;
             auto e = expressionEndIndex(index);
-            immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a)).sum();
+            immutable int l = currentLineLength + tokens[index .. e].map!(
+                a => tokenLength(a)).sum();
             writeToken();
             if (l > config.dfmt_soft_max_line_length)
             {
@@ -639,7 +640,8 @@ private:
             if (peekBackIs(tok!")"))
                 write(" ");
             auto e = expressionEndIndex(index);
-            immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a)).sum();
+            immutable int l = currentLineLength + tokens[index .. e].map!(
+                a => tokenLength(a)).sum();
             immutable bool multiline = l > config.dfmt_soft_max_line_length
                 || tokens[index .. e].canFind!(a => a.type == tok!"comment"
                 || isBlockHeaderToken(a.type))();
@@ -717,9 +719,9 @@ private:
                 newline();
             write("}");
             if (index + 1 < tokens.length
-                    && astInformation.doubleNewlineLocations.canFindIndex(tokens[index].index)
-                    && !peekIs(tok!"}") && !peekIs(tok!";") && !peekIs(tok!"comment",
-                    false))
+                    && astInformation.doubleNewlineLocations.canFindIndex(
+                    tokens[index].index) && !peekIs(tok!"}")
+                    && !peekIs(tok!";") && !peekIs(tok!"comment", false))
             {
                 simpleNewline();
                 currentLineLength = 0;
@@ -781,8 +783,7 @@ private:
                 write(" ");
         }
         else if (!currentIs(tok!"{") && !currentIs(tok!";")
-                && !currentIs(tok!"in") && !currentIs(tok!"out")
-                && !currentIs(tok!"body"))
+                && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"body"))
             newline();
     }
 
@@ -862,8 +863,8 @@ private:
                 write(" ");
             break;
         case tok!"is":
-            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",",
-                    tok!"}", tok!"=", tok!"&&", tok!"||") && !peekBackIsKeyword())
+            if (!peekBackIsOneOf(false, tok!"!", tok!"(",
+                    tok!",", tok!"}", tok!"=", tok!"&&", tok!"||") && !peekBackIsKeyword())
                 write(" ");
             writeToken();
             if (!currentIs(tok!"(") && !currentIs(tok!"{"))
@@ -964,7 +965,8 @@ private:
             formatAt();
             break;
         case tok!"!":
-            if ((peekIs(tok!"is") || peekIs(tok!"in")) && !peekBackIsOperator())
+            if (((peekIs(tok!"is") || peekIs(tok!"in"))
+                    && !peekBackIsOperator()) || peekBackIs(tok!")"))
                 write(" ");
             goto case;
         case tok!"...":
@@ -1167,7 +1169,8 @@ private:
 
         if (niBraceDepth > 0 && !peekBackIsSlashSlash() && hasCurrent
                 && tokens[index].type == tok!"}"
-                && !assumeSorted(astInformation.funLitEndLocations).equalRange(tokens[index].index).empty)
+                && !assumeSorted(astInformation.funLitEndLocations).equalRange(
+                tokens[index].index).empty)
         {
             write(" ");
             return;
@@ -1220,8 +1223,8 @@ private:
                 }
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
-                    indentLevel = config.dfmt_align_switch_statements == OptionalBoolean.t ? l
-                        : indents.indentLevel;
+                    indentLevel = config.dfmt_align_switch_statements == OptionalBoolean.t
+                        ? l : indents.indentLevel;
             }
             else if (currentIs(tok!"{"))
             {
