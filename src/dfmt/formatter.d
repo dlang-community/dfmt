@@ -885,7 +885,7 @@ private:
                     write(" ");
                 indents.push(tok!"enum");
                 writeToken();
-                if (!currentIs(tok!":"))
+                if (!currentIs(tok!":") && !currentIs(tok!"{"))
                     write(" ");
             }
             break;
