@@ -318,6 +318,8 @@ private:
         {
             immutable t = tokens[index - 1].type;
             immutable canAddNewline = currTokenLine - prevTokenEndLine < 1;
+            if (peekBackIsOperator() && !isSeparationToken(t))
+                pushWrapIndent(t);
             if (prevTokenEndLine == currTokenLine || (t == tok!")" && peekIs(tok!"{")))
                 write(" ");
             else if (canAddNewline || (peekIs(tok!"{") && t == tok!"}"))
@@ -1047,8 +1049,7 @@ private:
         case tok!"..":
         case tok!"%":
         binary:
-            immutable bool isWrapToken = linebreakHints.canFind(index)
-                || peekIs(tok!"comment", false);
+            immutable bool isWrapToken = linebreakHints.canFind(index);
             if (config.dfmt_split_operator_at_line_end)
             {
                 if (isWrapToken)
@@ -1062,7 +1063,8 @@ private:
                 {
                     write(" ");
                     writeToken();
-                    write(" ");
+                    if (!currentIs(tok!"comment"))
+                        write(" ");
                 }
             }
             else
@@ -1071,11 +1073,15 @@ private:
                 {
                     pushWrapIndent();
                     newline();
+                    writeToken();
                 }
                 else
+                {
                     write(" ");
-                writeToken();
-                write(" ");
+                    writeToken();
+                }
+                if (!currentIs(tok!"comment"))
+                    write(" ");
             }
             break;
         default:
@@ -1500,7 +1506,7 @@ const pure @safe @nogc:
         return peekImplementation(tokenType, -1, ignoreComments);
     }
 
-    bool peekBackIsKeyword(bool ignoreComments = true) pure nothrow const @nogc @safe
+    bool peekBackIsKeyword(bool ignoreComments = true) nothrow
     {
         if (index == 0)
             return false;
@@ -1515,12 +1521,12 @@ const pure @safe @nogc:
         return isKeyword(tokens[i].type);
     }
 
-    bool peekBackIsOperator() pure nothrow const @nogc @safe
+    bool peekBackIsOperator() nothrow
     {
         return index == 0 ? false : isOperator(tokens[index - 1].type);
     }
 
-    bool peekBackIsOneOf(bool ignoreComments, IdType[] tokenTypes...)
+    bool peekBackIsOneOf(bool ignoreComments, IdType[] tokenTypes...) nothrow
     {
         if (index == 0)
             return false;
@@ -1610,6 +1616,12 @@ const pure @safe @nogc:
             return false;
         auto t = tokens[i + index].type;
         return isBlockHeaderToken(t);
+    }
+
+    bool isSeparationToken(IdType t) nothrow
+    {
+        return t == tok!"," || t == tok!";" || t == tok!":" || t == tok!"("
+            || t == tok!")" || t == tok!"[" || t == tok!"]" || t == tok!"{" || t == tok!"}";
     }
 }
 
