@@ -6,7 +6,7 @@ unittest
     {
         auto dd = new DtorDeclaration(declLoc, Loc(), stc, Identifier.idPool("__fieldDtor"));
         auto dd = new DtorDeclaration(declLoc, Loc(), stc, extraParam,
-            midLengthFun(param, param), longIdentifier, Identifier.idPool("__fieldDtor"));
+                midLengthFun(param, param), longIdentifier, Identifier.idPool("__fieldDtor"));
 
         memcpy(&saved_idents, &rvl.saved_idents, (const(char)*).sizeof * VC_SAVED_IDENT_CNT);
         memcpy(&saved_types, &rvl.saved_types, (Type).sizeof * VC_SAVED_TYPE_CNT);
@@ -16,8 +16,8 @@ unittest
 }
 
 void doStuff(const Token[] tokens, ref const State current,
-    const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel,
-    int depth)
+        const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel,
+        int depth)
 {
     return;
 }

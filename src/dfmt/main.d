@@ -5,7 +5,7 @@
 
 module dfmt.main;
 
-private enum VERSION = "0.4.5";
+private enum VERSION = "0.5.0";
 
 version (NoMain)
 {
@@ -32,8 +32,10 @@ else
         {
             import dfmt.editorconfig : OptionalBoolean;
             import std.exception : enforceEx;
+
             enforceEx!GetOptException(value == "true" || value == "false", "Invalid argument");
-            immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+            immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t
+                : OptionalBoolean.f;
             switch (option)
             {
             case "align_switch_statements":
@@ -54,7 +56,8 @@ else
             case "compact_labeled_statements":
                 optConfig.dfmt_compact_labeled_statements = optVal;
                 break;
-            default: assert(false, "Invalid command-line switch");
+            default:
+                assert(false, "Invalid command-line switch");
             }
         }
 
@@ -113,17 +116,19 @@ else
             return 1;
 
         File output = stdout;
-        version(Windows)
+        version (Windows)
         {
             // On Windows, set stdout to binary mode (needed for correct EOL writing)
             // See Phobos' stdio.File.rawWrite
             {
                 import std.stdio;
+
                 immutable fd = fileno(output.getFP());
                 setmode(fd, _O_BINARY);
-                version(CRuntime_DigitalMars)
+                version (CRuntime_DigitalMars)
                 {
                     import core.atomic : atomicOp;
+
                     atomicOp!"&="(__fhnd_info[fd], ~FHND_TEXT);
                 }
             }
@@ -176,15 +181,18 @@ else
     }
 }
 
-private string optionsToString(E)() if(is(E == enum)) {
-	import std.traits:EnumMembers;
-	import std.conv;
-	string result = "[";
-	foreach(i, option; EnumMembers!E) {
-		result ~= to!string(option) ~ "|";
-	}
-	result = result[0 .. $-1] ~ "]";
-	return result;
+private string optionsToString(E)() if (is(E == enum))
+{
+    import std.traits : EnumMembers;
+    import std.conv;
+
+    string result = "[";
+    foreach (i, option; EnumMembers!E)
+    {
+        result ~= to!string(option) ~ "|";
+    }
+    result = result[0 .. $ - 1] ~ "]";
+    return result;
 }
 
 private void printHelp()
@@ -199,11 +207,13 @@ Options:
 
 Formatting Options:
     --align_switch_statements
-    --brace_style	`, optionsToString!(typeof(Config.dfmt_brace_style))(), `
+    --brace_style	`,
+            optionsToString!(typeof(Config.dfmt_brace_style))(), `
     --end_of_line
     --help|h
     --indent_size
-    --indent_style|t	`, optionsToString!(typeof(Config.indent_style))(), `
+    --indent_style|t	`,
+            optionsToString!(typeof(Config.indent_style))(), `
     --soft_max_line_length
     --max_line_length
     --outdent_attributes
@@ -211,7 +221,8 @@ Formatting Options:
     --selective_import_space
     --split_operator_at_line_end
     --compact_labeled_statements
-    --template_constraint_style	`, optionsToString!(typeof(Config.dfmt_template_constraint_style))());
+    --template_constraint_style	`,
+            optionsToString!(typeof(Config.dfmt_template_constraint_style))());
 }
 
 private string createFilePath(bool readFromStdin, string fileName)

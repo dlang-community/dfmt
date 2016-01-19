@@ -15,7 +15,7 @@ import dfmt.wrapping;
 import std.array;
 
 void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
-    Config* formatterConfig)
+        Config* formatterConfig)
 {
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
@@ -33,7 +33,7 @@ void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
     auto tokens = byToken(buffer, config, &cache).array();
     auto depths = generateDepthInfo(tokens);
     auto tokenFormatter = TokenFormatter!OutputRange(buffer, tokens, depths,
-        output, &astInformation, formatterConfig);
+            output, &astInformation, formatterConfig);
     tokenFormatter.format();
 }
 
@@ -79,7 +79,7 @@ struct TokenFormatter(OutputRange)
      *         decisions.
      */
     this(const ubyte[] rawSource, const(Token)[] tokens, immutable short[] depths,
-        OutputRange output, ASTInformation* astInformation, Config* config)
+            OutputRange output, ASTInformation* astInformation, Config* config)
     {
         this.rawSource = rawSource;
         this.tokens = tokens;
@@ -259,7 +259,7 @@ private:
                     || isBasicType(current.type) || currentIs(tok!"@")
                     || currentIs(tok!"if")
                     || isNumberLiteral(tokens[index].type) || (inAsm
-                    && peekBack2Is(tok!";") && currentIs(tok!"["))))
+                        && peekBack2Is(tok!";") && currentIs(tok!"["))))
             {
                 write(" ");
             }
@@ -351,7 +351,7 @@ private:
                     indents.pop();
                 else if (peekBack2Is(tok!",") && !indents.topIs(tok!",")
                         && indents.indentToMostRecent(tok!"enum") == -1)
-                    indents.push(tok!",");
+                    pushWrapIndent(tok!",");
                 newline();
             }
         }
@@ -387,7 +387,7 @@ private:
                     break;
                 else if (t == tok!"import" && !currentIs(tok!"import")
                         && !currentIs(tok!"}") && !(currentIs(tok!"public")
-                        && peekIs(tok!"import"))
+                            && peekIs(tok!"import"))
                         && !indents.topIsOneOf(tok!"if", tok!"debug", tok!"version"))
                 {
                     simpleNewline();
@@ -440,11 +440,12 @@ private:
     }
     body
     {
-        immutable p = tokens[index].type;
+        immutable p = current.type;
         regenLineBreakHintsIfNecessary(index);
         writeToken();
         if (p == tok!"(")
         {
+            indents.push(p);
             spaceAfterParens = true;
             parenDepth++;
         }
@@ -454,19 +455,18 @@ private:
         if (arrayInitializerStart)
         {
             // Use the close bracket as the indent token to distinguish
-            // the array initialiazer from an array index in the newling
+            // the array initialiazer from an array index in the newline
             // handling code
             pushWrapIndent(tok!"]");
             newline();
             immutable size_t j = expressionEndIndex(index);
             linebreakHints = chooseLineBreakTokens(index, tokens[index .. j],
-                depths[index .. j], config, currentLineLength, indentLevel);
+                    depths[index .. j], config, currentLineLength, indentLevel);
         }
         else if (!currentIs(tok!")") && !currentIs(tok!"]")
                 && (linebreakHints.canFindIndex(index - 1)
-                || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
+                    || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
         {
-            pushWrapIndent(p);
             newline();
         }
     }
@@ -479,8 +479,9 @@ private:
     body
     {
         parenDepth--;
-        if (parenDepth == 0)
-            indents.popWrapIndents();
+        indents.popWrapIndents();
+        if (indents.topIs(tok!"("))
+            indents.pop();
 
         if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in")
                 || peekIs(tok!"out") || peekIs(tok!"body")))
@@ -505,17 +506,13 @@ private:
                 immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
                 if (l > config.dfmt_soft_max_line_length)
                 {
-                    // The order of these two calls is intentional
                     newline();
-                    pushWrapIndent(tok!"!");
                 }
                 else
                     write(" ");
                 break;
             case always_newline:
-                // The order of these two calls is intentional
                 newline();
-                pushWrapIndent(tok!"!");
                 break;
             case conditional_newline_indent:
                 immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
@@ -688,7 +685,7 @@ private:
                 a => tokenLength(a)).sum();
             immutable bool multiline = l > config.dfmt_soft_max_line_length
                 || tokens[index .. e].canFind!(a => a.type == tok!"comment"
-                || isBlockHeaderToken(a.type))();
+                    || isBlockHeaderToken(a.type))();
             writeToken();
             if (multiline)
             {
@@ -801,6 +798,8 @@ private:
 
     void formatBlockHeader()
     {
+        if (indents.topIs(tok!"!"))
+            indents.pop();
         immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug");
         immutable bool b = a
             || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
@@ -1150,10 +1149,10 @@ private:
         }
         else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
                 || (linebreakHints.length == 0
-                && currentLineLength > config.dfmt_soft_max_line_length)))
+                    && currentLineLength > config.dfmt_soft_max_line_length)))
         {
+            pushWrapIndent();
             writeToken();
-            pushWrapIndent(tok!",");
             newline();
         }
         else
@@ -1172,7 +1171,7 @@ private:
     {
         immutable size_t j = expressionEndIndex(i);
         linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], depths[i .. j],
-            config, currentLineLength, indentLevel);
+                config, currentLineLength, indentLevel);
     }
 
     void regenLineBreakHintsIfNecessary(immutable size_t i)
@@ -1271,6 +1270,12 @@ private:
                     indentLevel = config.dfmt_align_switch_statements
                         == OptionalBoolean.t ? l : indents.indentLevel;
             }
+            else if (currentIs(tok!")"))
+            {
+                if (indents.topIs(tok!"("))
+                    indents.pop();
+                indentLevel = indents.indentLevel;
+            }
             else if (currentIs(tok!"{"))
             {
                 indents.popWrapIndents();
@@ -1292,7 +1297,7 @@ private:
                 }
                 while (sBraceDepth == 0 && indents.topIsTemp()
                         && ((indents.top != tok!"if"
-                        && indents.top != tok!"version") || !peekIs(tok!"else")))
+                            && indents.top != tok!"version") || !peekIs(tok!"else")))
                 {
                     indents.pop();
                 }
@@ -1378,7 +1383,7 @@ private:
             {
                 if (currentLineLength >= config.dfmt_soft_max_line_length)
                 {
-                    pushWrapIndent(tok!";");
+                    pushWrapIndent();
                     writeToken();
                     newline();
                 }

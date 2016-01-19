@@ -96,7 +96,8 @@ final class FormatVisitor : ASTVisitor
             auto condition = dec.compileCondition;
             if (condition.versionCondition !is null)
             {
-                astInformation.conditionalWithElseLocations ~= condition.versionCondition.versionIndex;
+                astInformation.conditionalWithElseLocations
+                    ~= condition.versionCondition.versionIndex;
             }
             else if (condition.debugCondition !is null)
             {
@@ -151,8 +152,10 @@ final class FormatVisitor : ASTVisitor
     {
         if (functionBody.blockStatement !is null)
             astInformation.doubleNewlineLocations ~= functionBody.blockStatement.endLocation;
-        if (functionBody.bodyStatement !is null && functionBody.bodyStatement.blockStatement !is null)
-            astInformation.doubleNewlineLocations ~= functionBody.bodyStatement.blockStatement.endLocation;
+        if (functionBody.bodyStatement !is null && functionBody.bodyStatement
+                .blockStatement !is null)
+            astInformation.doubleNewlineLocations
+                ~= functionBody.bodyStatement.blockStatement.endLocation;
         functionBody.accept(this);
     }
 
@@ -203,8 +206,8 @@ final class FormatVisitor : ASTVisitor
     override void visit(const UnaryExpression unary)
     {
         if (unary.prefix.type == tok!"~" || unary.prefix.type == tok!"&"
-                || unary.prefix.type == tok!"*" || unary.prefix.type == tok!"+"
-                || unary.prefix.type == tok!"-")
+                || unary.prefix.type == tok!"*"
+                || unary.prefix.type == tok!"+" || unary.prefix.type == tok!"-")
         {
             astInformation.unaryLocations ~= unary.prefix.index;
         }
