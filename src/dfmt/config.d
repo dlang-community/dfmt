@@ -19,6 +19,15 @@ enum BraceStyle
     stroustrup
 }
 
+enum TemplateConstraintStyle
+{
+	unspecified,
+    conditional_newline_indent,
+    conditional_newline,
+    always_newline,
+    always_newline_indent
+}
+
 /// Configuration options for formatting
 struct Config
 {
@@ -40,6 +49,8 @@ struct Config
     OptionalBoolean dfmt_selective_import_space;
     ///
     OptionalBoolean dfmt_compact_labeled_statements;
+    ///
+    TemplateConstraintStyle dfmt_template_constraint_style;
 
     mixin StandardEditorConfigFields;
 
@@ -65,6 +76,7 @@ struct Config
         dfmt_split_operator_at_line_end = OptionalBoolean.f;
         dfmt_selective_import_space = OptionalBoolean.t;
         dfmt_compact_labeled_statements = OptionalBoolean.t;
+        dfmt_template_constraint_style = TemplateConstraintStyle.conditional_newline_indent;
     }
 
     /**

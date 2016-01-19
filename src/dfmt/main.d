@@ -60,6 +60,7 @@ else
 
         try
         {
+            // dfmt off
             getopt(args,
                 "version", &showVersion,
                 "align_switch_statements", &handleBooleans,
@@ -76,7 +77,9 @@ else
                 "selective_import_space", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
                 "compact_labeled_statements", &handleBooleans,
-                "tab_width", &optConfig.tab_width);
+                "tab_width", &optConfig.tab_width,
+                "template_constraint_style", &optConfig.dfmt_template_constraint_style);
+            // dfmt on
         }
         catch (GetOptException e)
         {
@@ -207,7 +210,8 @@ Formatting Options:
     --space_after_cast
     --selective_import_space
     --split_operator_at_line_end
-    --compact_labeled_statements`);
+    --compact_labeled_statements
+    --template_constraint_style	`, optionsToString!(typeof(Config.dfmt_template_constraint_style))());
 }
 
 private string createFilePath(bool readFromStdin, string fileName)

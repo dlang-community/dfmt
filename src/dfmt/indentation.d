@@ -17,7 +17,7 @@ bool isWrapIndent(IdType type) pure nothrow @nogc @safe
 }
 
 /**
- * Returns: true if the given token type is a wrap indent type
+ * Returns: true if the given token type is a temporary indent type
  */
 bool isTempIndent(IdType type) pure nothrow @nogc @safe
 {

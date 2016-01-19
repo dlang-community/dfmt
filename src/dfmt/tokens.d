@@ -10,6 +10,28 @@ import dparse.lexer;
 /// Length of an invalid token
 enum int INVALID_TOKEN_LENGTH = -1;
 
+uint betweenParenLength(const Token[] tokens) pure @safe @nogc
+in
+{
+    assert(tokens[0].type == tok!"(");
+}
+body
+{
+    uint length = 0;
+    size_t i = 1;
+    int depth = 1;
+    while (i < tokens.length && depth > 0)
+    {
+        if (tokens[i].type == tok!"(")
+            depth++;
+        else if (tokens[i].type == tok!")")
+            depth--;
+        length += tokenLength(tokens[i]);
+        i++;
+    }
+    return length;
+}
+
 int tokenLength(ref const Token t) pure @safe @nogc
 {
     import std.algorithm : countUntil;

@@ -491,6 +491,48 @@ private:
             if (spaceAfterParens || parenDepth > 0)
                 write(" ");
         }
+        else if (peekIs(tok!"if") && !indents.topIsTemp())
+        {
+            writeToken();
+            if (!peekIs(tok!"("))
+                return;
+            // assume that "if" following ")" is a template constraint
+            with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
+            {
+            case unspecified:
+                assert(false, "Config was not validated properly");
+            case conditional_newline:
+                immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
+                if (l > config.dfmt_soft_max_line_length)
+                {
+                    // The order of these two calls is intentional
+                    newline();
+                    pushWrapIndent(tok!"!");
+                }
+                else
+                    write(" ");
+                break;
+            case always_newline:
+                // The order of these two calls is intentional
+                newline();
+                pushWrapIndent(tok!"!");
+                break;
+            case conditional_newline_indent:
+                immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
+                if (l > config.dfmt_soft_max_line_length)
+                {
+                    pushWrapIndent(tok!"!");
+                    newline();
+                }
+                else
+                    write(" ");
+                break;
+            case always_newline_indent:
+                pushWrapIndent(tok!"!");
+                newline();
+                break;
+            }
+        }
         else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens
                 && !peekIs(tok!"in") && !peekIs(tok!"is"))
         {
@@ -540,7 +582,6 @@ private:
                     indents.push(tok!"@");
                 newline();
             }
-
         }
         else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!"{", true)
                 || peekBack2Is(tok!"}", true) || peekBack2Is(tok!";", true)
@@ -1352,6 +1393,8 @@ private:
                 formatStep();
         }
         while (index < tokens.length && parenDepth > 0);
+        if (indents.topIs(tok!"!"))
+            indents.pop();
         parenDepth = depth;
         spaceAfterParens = spaceAfter;
     }
