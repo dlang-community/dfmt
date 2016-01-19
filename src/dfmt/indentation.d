@@ -12,8 +12,8 @@ import dparse.lexer;
  */
 bool isWrapIndent(IdType type) pure nothrow @nogc @safe
 {
-	return type != tok!"{" && type != tok!"case" && type != tok!"@"
-		&& type != tok!"]" && type != tok!"(" && isOperator(type);
+    return type != tok!"{" && type != tok!"case" && type != tok!"@"
+        && type != tok!"]" && type != tok!"(" && isOperator(type);
 }
 
 /**
@@ -151,6 +151,15 @@ struct IndentStack
         return cast(int) index;
     }
 
+    void dump()
+    {
+        /+import std.stdio : stderr;
+        import dparse.lexer : str;
+        import std.algorithm.iteration : map;
+
+        stderr.writefln("\033[31m%(%s %)\033[0m", arr[0 .. index].map!(a => str(a)));+/
+    }
+
 private:
 
     size_t index;
@@ -163,12 +172,24 @@ private:
             return 0;
         immutable size_t j = k == size_t.max ? index : k;
         int size = 0;
+        int parenCount;
         foreach (i; 0 .. j)
         {
             if (i + 1 < index)
             {
-                if (arr[i] == tok!"]")
+                if (arr[i] == tok!"(")
+                    parenCount++;
+                else if (arr[i] == tok!"]")
                     continue;
+                else
+                {
+                    if (isWrapIndent(arr[i]) && parenCount > 0)
+                    {
+                        parenCount = 0;
+                        continue;
+                    }
+                    //parenCount = 0;
+                }
                 immutable currentIsNonWrapTemp = !isWrapIndent(arr[i]) && isTempIndent(arr[i]);
                 immutable nextIsParenOrSwitch = arr[i + 1] == tok!"("
                     || arr[i + 1] == tok!"switch" || arr[i + 1] == tok!"{";

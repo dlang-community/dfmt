@@ -12,13 +12,14 @@ import dfmt.config;
 struct State
 {
     this(uint breaks, const Token[] tokens, immutable short[] depths,
-        const Config* config, int currentLineLength, int indentLevel) pure @safe
+            const Config* config, int currentLineLength, int indentLevel) pure @safe
     {
         import std.math : abs;
         import core.bitop : popcnt, bsf;
         import std.algorithm : min, map, sum;
 
-        immutable int remainingCharsMultiplier = config.max_line_length - config.dfmt_soft_max_line_length;
+        immutable int remainingCharsMultiplier = config.max_line_length
+            - config.dfmt_soft_max_line_length;
         immutable int newlinePenalty = remainingCharsMultiplier * 20;
 
         this.breaks = breaks;
@@ -119,7 +120,7 @@ private:
 }
 
 size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
-    immutable short[] depths, const Config* config, int currentLineLength, int indentLevel)
+        immutable short[] depths, const Config* config, int currentLineLength, int indentLevel)
 {
     import std.container.rbtree : RedBlackTree;
     import std.algorithm : filter, min;
@@ -139,7 +140,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
     immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
     auto open = new RedBlackTree!State;
     open.insert(State(0, tokens[0 .. tokensEnd], depths[0 .. tokensEnd], config,
-        currentLineLength, indentLevel));
+            currentLineLength, indentLevel));
     State lowest;
     while (!open.empty)
     {
@@ -152,7 +153,8 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
             return genRetVal(current.breaks, index);
         }
         validMoves!(typeof(open))(open, tokens[0 .. tokensEnd],
-            depths[0 .. tokensEnd], current.breaks, config, currentLineLength, indentLevel);
+                depths[0 .. tokensEnd], current.breaks, config, currentLineLength,
+                indentLevel);
     }
     if (open.empty)
         return genRetVal(lowest.breaks, index);
@@ -162,8 +164,8 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
 }
 
 void validMoves(OR)(auto ref OR output, const Token[] tokens,
-    immutable short[] depths, uint current, const Config* config,
-    int currentLineLength, int indentLevel)
+        immutable short[] depths, uint current, const Config* config,
+        int currentLineLength, int indentLevel)
 {
     import std.algorithm : sort, canFind;
     import std.array : insertInPlace;
