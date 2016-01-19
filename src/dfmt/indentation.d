@@ -13,7 +13,7 @@ import dparse.lexer;
 bool isWrapIndent(IdType type) pure nothrow @nogc @safe
 {
 	return type != tok!"{" && type != tok!"case" && type != tok!"@"
-		&& type != tok!"]" && isOperator(type);
+		&& type != tok!"]" && type != tok!"(" && isOperator(type);
 }
 
 /**
@@ -30,8 +30,7 @@ bool isTempIndent(IdType type) pure nothrow @nogc @safe
 struct IndentStack
 {
     /**
-     * Modifies the indent stack to match the state that it had at the most
-     * recent appearance of the given token type.
+     * Get the indent size at the most recent occurence of the given indent type
      */
     int indentToMostRecent(IdType item) const
     {
@@ -173,7 +172,8 @@ private:
                 immutable bool currentIsTemp = isTempIndent(arr[i]);
                 immutable bool nextIsTemp = isTempIndent(arr[i + 1]);
                 immutable bool nextIsSwitch = arr[i + 1] == tok!"switch";
-                if (currentIsTemp && (!nextIsTemp || nextIsSwitch))
+                immutable bool nextIsWrap = isWrapIndent(arr[i + 1]);
+                if (((nextIsSwitch || nextIsWrap) && currentIsTemp))
                     continue;
             }
             size++;
