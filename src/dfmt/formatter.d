@@ -1278,7 +1278,6 @@ private:
             }
             else if (currentIs(tok!"{"))
             {
-                indents.dump();
                 indents.popWrapIndents();
                 if (peekBackIsSlashSlash() && peekBack2Is(tok!";"))
                 {
