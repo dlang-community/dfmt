@@ -151,14 +151,14 @@ struct IndentStack
         return cast(int) index;
     }
 
-    void dump()
+    /+void dump()
     {
-        /+import std.stdio : stderr;
+        import std.stdio : stderr;
         import dparse.lexer : str;
         import std.algorithm.iteration : map;
 
-        stderr.writefln("\033[31m%(%s %)\033[0m", arr[0 .. index].map!(a => str(a)));+/
-    }
+        stderr.writefln("\033[31m%(%s %)\033[0m", arr[0 .. index].map!(a => str(a)));
+    }+/
 
 private:
 
@@ -188,7 +188,7 @@ private:
                         parenCount = 0;
                         continue;
                     }
-                    //parenCount = 0;
+                    parenCount = 0;
                 }
                 immutable currentIsNonWrapTemp = !isWrapIndent(arr[i]) && isTempIndent(arr[i]);
                 immutable nextIsParenOrSwitch = arr[i + 1] == tok!"("

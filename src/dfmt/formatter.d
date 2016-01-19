@@ -761,7 +761,7 @@ private:
             write("}");
             if (index + 1 < tokens.length
                     && astInformation.doubleNewlineLocations.canFindIndex(
-                        tokens[index].index) && !peekIs(tok!"}")
+                    tokens[index].index) && !peekIs(tok!"}")
                     && !peekIs(tok!";") && !peekIs(tok!"comment", false))
             {
                 simpleNewline();
@@ -1214,7 +1214,7 @@ private:
         if (niBraceDepth > 0 && !peekBackIsSlashSlash() && hasCurrent
                 && tokens[index].type == tok!"}"
                 && !assumeSorted(astInformation.funLitEndLocations).equalRange(
-                    tokens[index].index).empty)
+                tokens[index].index).empty)
         {
             write(" ");
             return;
@@ -1298,7 +1298,7 @@ private:
                 }
                 while (sBraceDepth == 0 && indents.topIsTemp()
                         && ((indents.top != tok!"if"
-                                && indents.top != tok!"version") || !peekIs(tok!"else")))
+                            && indents.top != tok!"version") || !peekIs(tok!"else")))
                 {
                     indents.pop();
                 }
@@ -1329,12 +1329,10 @@ private:
             }
             else
             {
-				indents.dump();
                 if (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}",
                         tok!";") && indents.top != tok!";"))
                     indents.popTempIndents();
                 indentLevel = indents.indentLevel;
-				indents.dump();
             }
             indent();
         }
