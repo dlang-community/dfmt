@@ -445,7 +445,7 @@ private:
         writeToken();
         if (p == tok!"(")
         {
-			indents.push(p);
+            indents.push(p);
             spaceAfterParens = true;
             parenDepth++;
         }
@@ -481,8 +481,8 @@ private:
         parenDepth--;
         if (parenDepth == 0)
             indents.popWrapIndents();
-		if (indents.topIs(tok!"("))
-			indents.pop();
+        if (indents.topIs(tok!"("))
+            indents.pop();
 
         if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in")
                 || peekIs(tok!"out") || peekIs(tok!"body")))
@@ -1271,6 +1271,12 @@ private:
                     indentLevel = config.dfmt_align_switch_statements
                         == OptionalBoolean.t ? l : indents.indentLevel;
             }
+            else if (currentIs(tok!")"))
+            {
+                if (indents.topIs(tok!"("))
+                    indents.pop();
+                indentLevel = indents.indentLevel;
+            }
             else if (currentIs(tok!"{"))
             {
                 indents.popWrapIndents();
@@ -1326,7 +1332,7 @@ private:
                 if (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}",
                         tok!";") && indents.top != tok!";"))
                     indents.popTempIndents();
-                indentLevel = indents.indentLevel + parenDepth;
+                indentLevel = indents.indentLevel;
             }
             indent();
         }

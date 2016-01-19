@@ -8,9 +8,9 @@ unittest
 {
     {
         bool anotherTemplatedFunction(One, Two, Three)(One alpha, Two bravo,
-            Three charlie, double delta)
+                Three charlie, double delta)
         if (isNumeric!One && isNumeric!Two && isNumeric!Three && echo
-            && foxtrot && golf && hotel && india && juliet)
+                && foxtrot && golf && hotel && india && juliet)
         {
 
         }

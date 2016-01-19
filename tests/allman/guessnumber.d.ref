@@ -4,7 +4,7 @@ void main()
 {
     immutable interval = tuple(1, 100);
     writefln("Guess my target number that is between " ~ "%d and %d (inclusive).\n",
-        interval[]);
+            interval[]);
     immutable target = uniform!"[]"(interval[]);
 
     foreach (immutable i; sequence!q{n})

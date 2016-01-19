@@ -169,13 +169,14 @@ private:
             {
                 if (arr[i] == tok!"]")
                     continue;
-                immutable bool currentIsTemp = isTempIndent(arr[i]);
-                immutable bool nextIsTemp = isTempIndent(arr[i + 1]);
-                immutable bool nextIsSwitch = arr[i + 1] == tok!"switch";
-                immutable bool nextIsWrap = isWrapIndent(arr[i + 1]);
-                if (((nextIsSwitch || nextIsWrap) && currentIsTemp))
+                immutable currentIsNonWrapTemp = !isWrapIndent(arr[i]) && isTempIndent(arr[i]);
+                immutable nextIsParenOrSwitch = arr[i + 1] == tok!"("
+                    || arr[i + 1] == tok!"switch" || arr[i + 1] == tok!"{";
+                if (currentIsNonWrapTemp && nextIsParenOrSwitch)
                     continue;
             }
+            if (arr[i] == tok!"!")
+                size++;
             size++;
         }
         return size;
