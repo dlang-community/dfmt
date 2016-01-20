@@ -15,8 +15,7 @@ unittest {
 }
 
 void doStuff(const Token[] tokens, ref const State current,
-        const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel,
-        int depth) {
+        const FormatterConfig* formatterConfig, int currentLineLength, int indentLevel, int depth) {
     return;
 }
 

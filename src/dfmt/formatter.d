@@ -1158,7 +1158,7 @@ private:
         }
         else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
                 || (linebreakHints.length == 0
-                    && currentLineLength > config.dfmt_soft_max_line_length)))
+                    && currentLineLength > config.max_line_length)))
         {
             pushWrapIndent();
             writeToken();
