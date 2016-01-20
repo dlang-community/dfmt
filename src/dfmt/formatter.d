@@ -152,6 +152,8 @@ private:
 
     void formatStep()
     {
+        import std.range : assumeSorted;
+
         assert(index < tokens.length);
         if (currentIs(tok!"comment"))
         {
@@ -207,7 +209,11 @@ private:
         else if ((isBlockHeader() || currentIs(tok!"version")
                 || currentIs(tok!"debug")) && peekIs(tok!"(", false))
         {
-            formatBlockHeader();
+            if (!assumeSorted(astInformation.constraintLocations)
+                    .equalRange(current.index).empty)
+                formatConstrtaint();
+            else
+                formatBlockHeader();
         }
         else if (currentIs(tok!"do"))
         {
@@ -271,6 +277,47 @@ private:
         }
         else
             writeToken();
+    }
+
+    void formatConstrtaint()
+    {
+        with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
+        {
+        case unspecified:
+            assert(false, "Config was not validated properly");
+        case conditional_newline:
+            immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
+            if (l > config.dfmt_soft_max_line_length)
+            {
+                newline();
+            }
+            else
+                write(" ");
+            break;
+        case always_newline:
+            newline();
+            break;
+        case conditional_newline_indent:
+            immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
+            if (l > config.dfmt_soft_max_line_length)
+            {
+                pushWrapIndent(tok!"!");
+                newline();
+            }
+            else
+                write(" ");
+            break;
+        case always_newline_indent:
+            pushWrapIndent(tok!"!");
+            newline();
+            break;
+        }
+        // if
+        writeToken();
+        // assume that the parens are present, otherwise the parser would not
+        // have told is there was a constraint here
+        write(" ");
+        writeParens(false);
     }
 
     string commentText(size_t i)
@@ -479,6 +526,8 @@ private:
     body
     {
         parenDepth--;
+        if (parenDepth == 0 && indents.topIs(tok!"!"))
+            indents.pop();
         indents.popWrapIndents();
         if (indents.topIs(tok!"("))
             indents.pop();
@@ -491,44 +540,6 @@ private:
             writeToken();
             if (spaceAfterParens || parenDepth > 0)
                 write(" ");
-        }
-        else if (peekIs(tok!"if") && !indents.topIsTemp())
-        {
-            writeToken();
-            if (!peekIs(tok!"("))
-                return;
-            // assume that "if" following ")" is a template constraint
-            with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
-            {
-            case unspecified:
-                assert(false, "Config was not validated properly");
-            case conditional_newline:
-                immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
-                if (l > config.dfmt_soft_max_line_length)
-                {
-                    newline();
-                }
-                else
-                    write(" ");
-                break;
-            case always_newline:
-                newline();
-                break;
-            case conditional_newline_indent:
-                immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
-                if (l > config.dfmt_soft_max_line_length)
-                {
-                    pushWrapIndent(tok!"!");
-                    newline();
-                }
-                else
-                    write(" ");
-                break;
-            case always_newline_indent:
-                pushWrapIndent(tok!"!");
-                newline();
-                break;
-            }
         }
         else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens
                 && !peekIs(tok!"in") && !peekIs(tok!"is"))

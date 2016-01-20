@@ -29,6 +29,7 @@ struct ASTInformation
         sort(conditionalStatementLocations);
         sort(arrayStartLocations);
         sort(contractLocations);
+        sort(constraintLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -69,6 +70,9 @@ struct ASTInformation
 
     /// Locations of "in" and "out" tokens that begin contracts
     size_t[] contractLocations;
+
+    /// Locations of template constraint "if" tokens
+    size_t[] constraintLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -107,6 +111,12 @@ final class FormatVisitor : ASTVisitor
             // it properly
         }
         dec.accept(this);
+    }
+
+    override void visit(const Constraint constraint)
+    {
+        astInformation.constraintLocations ~= constraint.location;
+        constraint.accept(this);
     }
 
     override void visit(const ConditionalStatement statement)
