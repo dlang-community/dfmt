@@ -211,7 +211,8 @@ Formatting Options:
     --align_switch_statements
     --brace_style	`,
             optionsToString!(typeof(Config.dfmt_brace_style))(), `
-    --end_of_line
+    --end_of_line	`,
+            optionsToString!(typeof(Config.end_of_line))(), `
     --help|h
     --indent_size
     --indent_style|t	`,
