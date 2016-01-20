@@ -41,6 +41,7 @@ found in .editorconfig files.
 * **--tab_width**: See **tab_width** below
 * **--selective_import_space**: See **dfmt_selective_import_space** below
 * **--compact_labeled_statements**: See **dfmt_compact_labeled_statements** below
+* **--template_constraint_style**: See **dfmt_template_constraint_style** below
 
 ### Example
 ```
