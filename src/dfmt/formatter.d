@@ -288,10 +288,8 @@ private:
         case conditional_newline:
             immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
             if (l > config.dfmt_soft_max_line_length)
-            {
                 newline();
-            }
-            else
+            else if (peekBackIs(tok!")"))
                 write(" ");
             break;
         case always_newline:
@@ -304,7 +302,7 @@ private:
                 pushWrapIndent(tok!"!");
                 newline();
             }
-            else
+            else if (peekBackIs(tok!")"))
                 write(" ");
             break;
         case always_newline_indent:
@@ -542,7 +540,7 @@ private:
                 write(" ");
         }
         else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens
-                && !peekIs(tok!"in") && !peekIs(tok!"is"))
+                && !peekIs(tok!"in") && !peekIs(tok!"is") && !peekIs(tok!"if"))
         {
             writeToken();
             write(" ");
