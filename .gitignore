@@ -4,4 +4,4 @@ bin
 .dub
 dub.selections.json
 .gdb_history
-dfmt
+bin/dfmt

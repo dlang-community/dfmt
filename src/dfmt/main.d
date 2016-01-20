@@ -184,12 +184,14 @@ else
 private string optionsToString(E)() if (is(E == enum))
 {
     import std.traits : EnumMembers;
-    import std.conv;
+    import std.conv : to;
 
     string result = "[";
     foreach (i, option; EnumMembers!E)
     {
-        result ~= to!string(option) ~ "|";
+        immutable s = to!string(option);
+        if (s != "unspecified")
+            result ~= s ~ "|";
     }
     result = result[0 .. $ - 1] ~ "]";
     return result;
@@ -209,7 +211,8 @@ Formatting Options:
     --align_switch_statements
     --brace_style	`,
             optionsToString!(typeof(Config.dfmt_brace_style))(), `
-    --end_of_line
+    --end_of_line	`,
+            optionsToString!(typeof(Config.end_of_line))(), `
     --help|h
     --indent_size
     --indent_style|t	`,

@@ -89,13 +89,14 @@ Property Name | Allowed Values | Default Value | Description
 --------------|----------------|---------------|------------
 dfmt_brace_style | `allman`, `otbs`, or `stroustrup` | `allman` | [See Wikipedia](https://en.wikipedia.org/wiki/Brace_style)
 dfmt_soft_max_line_length | positive integers | `80` | The formatting process will usually keep lines below this length, but they may be up to max_line_length columns long.
-dfmt_align_switch_statements (Not yet implemented) | `true`, `false` | `true` | Align labels, cases, and defaults with their enclosing switch
-dfmt_outdent_attributes (Not yet implemented) | `true`, `false` | `true` | Decrease the indentation level of attributes
-dfmt_split_operator_at_line_end | `true`, `false` | `false` | Place operators on the end of the previous line when splitting lines
-dfmt_space_after_cast | `true`, `false` | `true` | Insert space after the closing paren of a `cast` expression
-dfmt_space_after_keywords (Not yet implemented) | `true`, `false` | `true` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`
-dfmt_selective_import_space | `true`, `false` | `true` | Insert space after the module name and before the `:` for selective imports
-dfmt_compact_labeled_statements | `true`, `false` | `true` | Place labels on the same line as the labeled `switch`, `for`, `foreach`, or `while` statement
+dfmt_align_switch_statements (Not yet implemented) | `true`, `false` | `true` | Align labels, cases, and defaults with their enclosing switch.
+dfmt_outdent_attributes (Not yet implemented) | `true`, `false` | `true` | Decrease the indentation level of attributes.
+dfmt_split_operator_at_line_end | `true`, `false` | `false` | Place operators on the end of the previous line when splitting lines.
+dfmt_space_after_cast | `true`, `false` | `true` | Insert space after the closing paren of a `cast` expression.
+dfmt_space_after_keywords (Not yet implemented) | `true`, `false` | `true` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`.
+dfmt_selective_import_space | `true`, `false` | `true` | Insert space after the module name and before the `:` for selective imports.
+dfmt_compact_labeled_statements | `true`, `false` | `true` | Place labels on the same line as the labeled `switch`, `for`, `foreach`, or `while` statement.
+dfmt_template_constraint_style | `conditional_newline_indent` `conditional_newline` `always_newline` `always_newline_indent` | `conditional_newline_indent` | Control the formatting of template constraints.
 
 ## Terminology
 * Braces - `{` and `}`
