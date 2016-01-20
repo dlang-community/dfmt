@@ -184,12 +184,14 @@ else
 private string optionsToString(E)() if (is(E == enum))
 {
     import std.traits : EnumMembers;
-    import std.conv;
+    import std.conv : to;
 
     string result = "[";
     foreach (i, option; EnumMembers!E)
     {
-        result ~= to!string(option) ~ "|";
+        immutable s = to!string(option);
+        if (s != "unspecified")
+            result ~= s ~ "|";
     }
     result = result[0 .. $ - 1] ~ "]";
     return result;
