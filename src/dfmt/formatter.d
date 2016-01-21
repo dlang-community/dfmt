@@ -209,8 +209,7 @@ private:
         else if ((isBlockHeader() || currentIs(tok!"version")
                 || currentIs(tok!"debug")) && peekIs(tok!"(", false))
         {
-            if (!assumeSorted(astInformation.constraintLocations)
-                    .equalRange(current.index).empty)
+            if (!assumeSorted(astInformation.constraintLocations).equalRange(current.index).empty)
                 formatConstrtaint();
             else
                 formatBlockHeader();
@@ -365,7 +364,9 @@ private:
             immutable canAddNewline = currTokenLine - prevTokenEndLine < 1;
             if (peekBackIsOperator() && !isSeparationToken(t))
                 pushWrapIndent(t);
-            if (prevTokenEndLine == currTokenLine || (t == tok!")" && peekIs(tok!"{")))
+            if (peekBackIs(tok!")") && !canAddNewline && prevTokenEndLine < currTokenLine)
+                write(" ");
+            else if (prevTokenEndLine == currTokenLine || (t == tok!")" && peekIs(tok!"{")))
                 write(" ");
             else if (canAddNewline || (peekIs(tok!"{") && t == tok!"}"))
                 newline();
@@ -1157,8 +1158,7 @@ private:
             newline();
         }
         else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
-                || (linebreakHints.length == 0
-                    && currentLineLength > config.max_line_length)))
+                || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
         {
             pushWrapIndent();
             writeToken();
