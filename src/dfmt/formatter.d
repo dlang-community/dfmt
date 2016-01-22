@@ -563,6 +563,8 @@ private:
         if (currentIs(tok!"("))
         {
             writeParens(false);
+            if (tokens[index].type == tok!"{")
+                return;
             if (index < tokens.length && tokens[index - 1].line < tokens[index].line)
                 newline();
             else
