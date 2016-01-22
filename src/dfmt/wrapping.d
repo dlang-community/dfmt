@@ -153,8 +153,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
             return genRetVal(current.breaks, index);
         }
         validMoves!(typeof(open))(open, tokens[0 .. tokensEnd],
-                depths[0 .. tokensEnd], current.breaks, config, currentLineLength,
-                indentLevel);
+                depths[0 .. tokensEnd], current.breaks, config, currentLineLength, indentLevel);
     }
     if (open.empty)
         return genRetVal(lowest.breaks, index);

@@ -264,7 +264,7 @@ private:
                     || isBasicType(current.type) || currentIs(tok!"@")
                     || currentIs(tok!"if")
                     || isNumberLiteral(tokens[index].type) || (inAsm
-                        && peekBack2Is(tok!";") && currentIs(tok!"["))))
+                    && peekBack2Is(tok!";") && currentIs(tok!"["))))
             {
                 write(" ");
             }
@@ -493,7 +493,10 @@ private:
         writeToken();
         if (p == tok!"(")
         {
-            indents.push(p);
+            if (isBlockHeaderToken(tokens[index - 2].type))
+                indents.push(tok!")");
+            else
+                indents.push(p);
             spaceAfterParens = true;
             parenDepth++;
         }
@@ -527,9 +530,9 @@ private:
     body
     {
         parenDepth--;
-        if (parenDepth == 0 && indents.topIs(tok!"!"))
-            indents.pop();
         indents.popWrapIndents();
+        while (indents.topIsOneOf(tok!"!", tok!")"))
+            indents.pop();
         if (indents.topIs(tok!"("))
             indents.pop();
 
@@ -773,7 +776,7 @@ private:
             write("}");
             if (index + 1 < tokens.length
                     && astInformation.doubleNewlineLocations.canFindIndex(
-                    tokens[index].index) && !peekIs(tok!"}")
+                        tokens[index].index) && !peekIs(tok!"}")
                     && !peekIs(tok!";") && !peekIs(tok!"comment", false))
             {
                 simpleNewline();
@@ -1225,7 +1228,7 @@ private:
         if (niBraceDepth > 0 && !peekBackIsSlashSlash() && hasCurrent
                 && tokens[index].type == tok!"}"
                 && !assumeSorted(astInformation.funLitEndLocations).equalRange(
-                tokens[index].index).empty)
+                    tokens[index].index).empty)
         {
             write(" ");
             return;

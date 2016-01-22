@@ -8,7 +8,7 @@ struct SomeStructName
             {
                 void longFunctionName(AAAAAAAA)(AAAAAAAA a) @property 
                         if (someThingsAreTrue!AAAAAAAA && long_condition
-                                && is(some < elaborate && expression))
+                            && is(some < elaborate && expression))
                 {
                 }
             }

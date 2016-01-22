@@ -13,7 +13,7 @@ import dparse.lexer;
 bool isWrapIndent(IdType type) pure nothrow @nogc @safe
 {
     return type != tok!"{" && type != tok!"case" && type != tok!"@"
-        && type != tok!"]" && type != tok!"(" && isOperator(type);
+        && type != tok!"]" && type != tok!"(" && type != tok!")" && isOperator(type);
 }
 
 /**
@@ -21,7 +21,7 @@ bool isWrapIndent(IdType type) pure nothrow @nogc @safe
  */
 bool isTempIndent(IdType type) pure nothrow @nogc @safe
 {
-    return type != tok!"{" && type != tok!"case" && type != tok!"@";
+    return type != tok!")" && type != tok!"{" && type != tok!"case" && type != tok!"@";
 }
 
 /**
@@ -175,29 +175,29 @@ private:
         int parenCount;
         foreach (i; 0 .. j)
         {
+            immutable int pc = (arr[i] == tok!"!" || arr[i] == tok!"(" || arr[i] == tok!")") ? parenCount + 1
+                : parenCount;
+            if ((isWrapIndent(arr[i]) || arr[i] == tok!"(") && parenCount > 1)
+            {
+                parenCount = pc;
+                continue;
+            }
             if (i + 1 < index)
             {
-                if (arr[i] == tok!"(")
-                    parenCount++;
-                else if (arr[i] == tok!"]")
+                if (arr[i] == tok!"]")
                     continue;
-                else
+                immutable currentIsNonWrapTemp = !isWrapIndent(arr[i])
+                    && isTempIndent(arr[i]) && arr[i] != tok!")" && arr[i] != tok!"!";
+                if (currentIsNonWrapTemp && (arr[i + 1] == tok!"switch"
+                        || arr[i + 1] == tok!"{" || arr[i + 1] == tok!")"))
                 {
-                    if (isWrapIndent(arr[i]) && parenCount > 0)
-                    {
-                        parenCount = 0;
-                        continue;
-                    }
-                    parenCount = 0;
-                }
-                immutable currentIsNonWrapTemp = !isWrapIndent(arr[i]) && isTempIndent(arr[i]);
-                immutable nextIsParenOrSwitch = arr[i + 1] == tok!"("
-                    || arr[i + 1] == tok!"switch" || arr[i + 1] == tok!"{";
-                if (currentIsNonWrapTemp && nextIsParenOrSwitch)
+                    parenCount = pc;
                     continue;
+                }
             }
             if (arr[i] == tok!"!")
                 size++;
+            parenCount = pc;
             size++;
         }
         return size;
