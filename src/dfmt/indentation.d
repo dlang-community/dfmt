@@ -97,6 +97,14 @@ struct IndentStack
             index--;
     }
 
+    bool topAre(IdType[] types...)
+    {
+        if (types.length > index)
+            return false;
+        return arr[index - types.length .. index] == types;
+
+    }
+
     /**
      * Returns: `true` if the top of the indent stack is the given indent type.
      */
@@ -188,6 +196,12 @@ private:
                     continue;
                 immutable currentIsNonWrapTemp = !isWrapIndent(arr[i])
                     && isTempIndent(arr[i]) && arr[i] != tok!")" && arr[i] != tok!"!";
+                if (arr[i] == tok!"static" && (arr[i + 1] == tok!"if" || arr[i + 1] == tok!"else")
+                        && (i + 2 >= index || arr[i + 2] != tok!"{"))
+                {
+                    parenCount = pc;
+                    continue;
+                }
                 if (currentIsNonWrapTemp && (arr[i + 1] == tok!"switch"
                         || arr[i + 1] == tok!"{" || arr[i + 1] == tok!")"))
                 {

@@ -656,6 +656,11 @@ private:
             linebreakHints = [];
             while (indents.topIs(tok!"enum"))
                 indents.pop();
+            if (indents.topAre(tok!"static", tok!"else"))
+            {
+                indents.pop();
+                indents.pop();
+            }
             if (config.dfmt_brace_style == BraceStyle.allman)
             {
                 if (!currentIs(tok!"{"))
@@ -726,7 +731,7 @@ private:
             }
             else
             {
-                if (indents.length && isTempIndent(indents.top))
+                if (indents.topIsTemp && indents.indentToMostRecent(tok!"static") == -1)
                     indentLevel = indents.indentLevel - 1;
                 else
                     indentLevel = indents.indentLevel;
@@ -777,13 +782,14 @@ private:
             if (index + 1 < tokens.length
                     && astInformation.doubleNewlineLocations.canFindIndex(
                         tokens[index].index) && !peekIs(tok!"}")
-                    && !peekIs(tok!";") && !peekIs(tok!"comment", false))
+                    && !peekIs(tok!"else") && !peekIs(tok!";") && !peekIs(tok!"comment", false))
             {
                 simpleNewline();
                 currentLineLength = 0;
                 justAddedExtraNewline = true;
             }
-            if (config.dfmt_brace_style == BraceStyle.otbs && peekIs(tok!"else"))
+            if (config.dfmt_brace_style == BraceStyle.otbs && peekIs(tok!"else")
+                && !indents.topAre(tok!"static", tok!"if"))
             {
                 write(" ");
                 index++;
@@ -794,6 +800,8 @@ private:
                         && !peekIs(tok!";") && !peekIs(tok!"{"))
                 {
                     index++;
+                    if (indents.topIs(tok!"static"))
+                        indents.pop();
                     newline();
                 }
                 else
@@ -825,7 +833,16 @@ private:
         if (currentIs(tok!"out") && !peekBackIs(tok!"}"))
             newline();
         if (shouldPushIndent)
+        {
+            if (peekBackIs(tok!"static"))
+            {
+                if (indents.topIs(tok!"else"))
+                    indents.pop();
+                if (!indents.topIs(tok!"static"))
+                    indents.push(tok!"static");
+            }
             indents.push(current.type);
+        }
         writeToken();
         if (currentIs(tok!"("))
         {
@@ -844,6 +861,14 @@ private:
         else if (!currentIs(tok!"{") && !currentIs(tok!";")
                 && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"body"))
             newline();
+        else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"if"))
+        {
+            // Hacks to format braced vs non-braced static if declarations.
+            indents.pop();
+            indents.pop();
+            indents.push(tok!"if");
+            formatLeftBrace();
+        }
     }
 
     void formatElse()
@@ -863,7 +888,7 @@ private:
         }
         else if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
         {
-            if (indents.topIs(tok!"if") || indents.topIs(tok!"version"))
+            if (indents.topIsOneOf(tok!"if", tok!"version"))
                 indents.pop();
             indents.push(tok!"else");
             newline();
@@ -1249,8 +1274,8 @@ private:
         {
             if (currentIs(tok!"else"))
             {
-                auto i = indents.indentToMostRecent(tok!"if");
-                auto v = indents.indentToMostRecent(tok!"version");
+                immutable i = indents.indentToMostRecent(tok!"if");
+                immutable v = indents.indentToMostRecent(tok!"version");
                 immutable mostRecent = max(i, v);
                 if (mostRecent != -1)
                     indentLevel = mostRecent;
@@ -1302,7 +1327,7 @@ private:
             else if (currentIs(tok!"}"))
             {
                 indents.popTempIndents();
-                while (indents.topIs(tok!"case") || indents.topIs(tok!"@"))
+                while (indents.topIsOneOf(tok!"case", tok!"@", tok!"static"))
                     indents.pop();
                 if (indents.topIs(tok!"{"))
                 {
@@ -1310,8 +1335,8 @@ private:
                     indents.pop();
                 }
                 while (sBraceDepth == 0 && indents.topIsTemp()
-                        && ((indents.top != tok!"if"
-                            && indents.top != tok!"version") || !peekIs(tok!"else")))
+                        && ((!indents.topIsOneOf(tok!"else", tok!"if", tok!"static", tok!"version"))
+                        || !peekIs(tok!"else")))
                 {
                     indents.pop();
                 }
