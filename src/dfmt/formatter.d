@@ -364,7 +364,9 @@ private:
             immutable canAddNewline = currTokenLine - prevTokenEndLine < 1;
             if (peekBackIsOperator() && !isSeparationToken(t))
                 pushWrapIndent(t);
-            if (peekBackIs(tok!")") && !canAddNewline && prevTokenEndLine < currTokenLine)
+            if (peekBackIsOperator() && !peekBackIsOneOf(false, tok!"comment",
+                    tok!"{", tok!"}", tok!":", tok!";", tok!",", tok!"[", tok!"(")
+                    && !canAddNewline && prevTokenEndLine < currTokenLine)
                 write(" ");
             else if (prevTokenEndLine == currTokenLine || (t == tok!")" && peekIs(tok!"{")))
                 write(" ");
