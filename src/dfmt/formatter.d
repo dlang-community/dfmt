@@ -364,6 +364,9 @@ private:
             immutable canAddNewline = currTokenLine - prevTokenEndLine < 1;
             if (peekBackIsOperator() && !isSeparationToken(t))
                 pushWrapIndent(t);
+            else if (peekBackIs(tok!",") && prevTokenEndLine == currTokenLine
+                    && indents.indentToMostRecent(tok!"enum") == -1)
+                pushWrapIndent(tok!",");
             if (peekBackIsOperator() && !peekBackIsOneOf(false, tok!"comment",
                     tok!"{", tok!"}", tok!":", tok!";", tok!",", tok!"[", tok!"(")
                     && !canAddNewline && prevTokenEndLine < currTokenLine)
