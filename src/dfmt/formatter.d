@@ -898,6 +898,12 @@ private:
             indents.push(tok!"else");
             newline();
         }
+        else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"if"))
+        {
+            indents.pop();
+            indents.pop();
+            indents.push(tok!"else");
+        }
     }
 
     void formatKeyword()
