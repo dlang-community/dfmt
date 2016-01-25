@@ -16,9 +16,8 @@ unittest {
     });
     callFunc({
         int i = 10;
-        foo(alpha_longVarName, bravo_longVarName, charlie_longVarName,
-            delta_longVarName, echo_longVarName, foxtrot_longVarName,
-            golf_longVarName, echo_longVarName);
+        foo(alpha_longVarName, bravo_longVarName, charlie_longVarName, delta_longVarName,
+            echo_longVarName, foxtrot_longVarName, golf_longVarName, echo_longVarName);
         doStuff(withThings, andOtherStuff);
         return i;
     }, more_stuff);

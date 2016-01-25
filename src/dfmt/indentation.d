@@ -209,6 +209,8 @@ private:
                     continue;
                 }
             }
+            else if (parenCount == 0 && arr[i] == tok!"(")
+                size++;
             if (arr[i] == tok!"!")
                 size++;
             parenCount = pc;

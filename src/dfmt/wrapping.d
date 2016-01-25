@@ -18,14 +18,12 @@ struct State
         import core.bitop : popcnt, bsf;
         import std.algorithm : min, map, sum;
 
-        immutable int remainingCharsMultiplier = config.max_line_length
-            - config.dfmt_soft_max_line_length;
-        immutable int newlinePenalty = remainingCharsMultiplier * 20;
+        immutable int remainingCharsMultiplier = 25;
+        immutable int newlinePenalty = 480;
 
         this.breaks = breaks;
         this._cost = 0;
         this._solved = true;
-        int ll = currentLineLength;
 
         if (breaks == 0)
         {
@@ -36,8 +34,6 @@ struct State
                 this._cost += longPenalty;
                 this._solved = longPenalty < newlinePenalty;
             }
-            else
-                this._solved = true;
         }
         else
         {
@@ -49,15 +45,16 @@ struct State
                 immutable currentType = tokens[i].type;
                 immutable p = abs(depths[i]);
                 immutable bc = breakCost(prevType, currentType) * (p == 0 ? 1 : p * 2);
-                this._cost += bc;
+                this._cost += bc + newlinePenalty;
             }
 
+            int ll = currentLineLength;
             size_t i = 0;
             foreach (_; 0 .. uint.sizeof * 8)
             {
                 immutable uint k = breaks >>> i;
                 immutable bool b = k == 0;
-                immutable uint bits = b ? 0 : bsf(k);
+                immutable uint bits = b ? ALGORITHMIC_COMPLEXITY_SUCKS : bsf(k);
                 immutable size_t j = min(i + bits + 1, tokens.length);
                 ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
                 if (ll > config.dfmt_soft_max_line_length)
@@ -71,12 +68,14 @@ struct State
                     break;
                 }
                 i = j;
-                ll = indentLevel * config.indent_size;
+                if (indentLevel < 0)
+                    ll = (abs(indentLevel) + 1) * config.indent_size;
+                else
+                    ll = (indentLevel + (i == 0 ? 0 : 1)) * config.indent_size;
                 if (b)
                     break;
             }
         }
-        this._cost += popcnt(breaks) * newlinePenalty;
     }
 
     int cost() const pure nothrow @safe @property
@@ -93,13 +92,12 @@ struct State
     {
         import core.bitop : bsf, popcnt;
 
-        if (_cost < other._cost || (_cost == other._cost && ((breaks != 0
-                && other.breaks != 0 && bsf(breaks) > bsf(other.breaks))
-                || (_solved && !other.solved))))
-        {
+        if (_cost < other._cost)
             return -1;
-        }
-        return other._cost > _cost;
+        if (_cost == other._cost && (breaks != 0 && other.breaks != 0
+                && bsf(breaks) > bsf(other.breaks)))
+            return -1;
+        return _cost > other._cost;
     }
 
     bool opEquals(ref const State other) const pure nothrow @safe
@@ -119,6 +117,12 @@ private:
     bool _solved;
 }
 
+private enum ALGORITHMIC_COMPLEXITY_SUCKS = uint.sizeof * 8;
+
+/**
+ * Note: Negative values for `indentLevel` are treated specially: costs for
+ *     continuation indents are reduced. This is used for array literals.
+ */
 size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
         immutable short[] depths, const Config* config, int currentLineLength, int indentLevel)
 {
@@ -136,24 +140,24 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
         return retVal;
     }
 
-    enum ALGORITHMIC_COMPLEXITY_SUCKS = uint.sizeof * 8;
     immutable size_t tokensEnd = min(tokens.length, ALGORITHMIC_COMPLEXITY_SUCKS);
     auto open = new RedBlackTree!State;
     open.insert(State(0, tokens[0 .. tokensEnd], depths[0 .. tokensEnd], config,
             currentLineLength, indentLevel));
     State lowest;
-    while (!open.empty)
+    lowest._solved = false;
+    int tries = 0;
+    while (!open.empty && tries < 10_00)
     {
+        tries++;
         State current = open.front();
-        if (current.cost < lowest.cost)
-            lowest = current;
         open.removeFront();
         if (current.solved)
-        {
             return genRetVal(current.breaks, index);
-        }
-        validMoves!(typeof(open))(open, tokens[0 .. tokensEnd],
-                depths[0 .. tokensEnd], current.breaks, config, currentLineLength, indentLevel);
+        if (current < lowest)
+            lowest = current;
+        validMoves!(typeof(open))(open, tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
+                current.breaks, config, currentLineLength, indentLevel);
     }
     if (open.empty)
         return genRetVal(lowest.breaks, index);
@@ -166,7 +170,7 @@ void validMoves(OR)(auto ref OR output, const Token[] tokens,
         immutable short[] depths, uint current, const Config* config,
         int currentLineLength, int indentLevel)
 {
-    import std.algorithm : sort, canFind;
+    import std.algorithm : sort, canFind, min;
     import std.array : insertInPlace;
 
     foreach (i, token; tokens)

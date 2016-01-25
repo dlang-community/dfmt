@@ -1220,8 +1220,10 @@ private:
     void regenLineBreakHints(immutable size_t i)
     {
         immutable size_t j = expressionEndIndex(i);
+        // Use magical negative value for array literals and wrap indents
+        immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel : indentLevel;
         linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], depths[i .. j],
-                config, currentLineLength, indentLevel);
+                config, currentLineLength, inLvl);
     }
 
     void regenLineBreakHintsIfNecessary(immutable size_t i)
