@@ -133,12 +133,13 @@ int breakCost(IdType p, IdType c) pure nothrow @safe @nogc
     case tok!"||":
     case tok!"&&":
     case tok!",":
+    case tok!":":
+    case tok!"?":
         return 0;
     case tok!"(":
         return 60;
     case tok!"[":
         return 300;
-    case tok!":":
     case tok!";":
     case tok!"^^":
     case tok!"^=":
@@ -169,7 +170,6 @@ int breakCost(IdType p, IdType c) pure nothrow @safe @nogc
     case tok!"!=":
     case tok!"!>=":
     case tok!"!>":
-    case tok!"?":
     case tok!"/=":
     case tok!"/":
     case tok!"..":

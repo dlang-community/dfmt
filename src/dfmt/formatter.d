@@ -1320,8 +1320,8 @@ private:
                 }
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
-                    indentLevel = config.dfmt_align_switch_statements
-                        == OptionalBoolean.t ? l : indents.indentLevel;
+                    indentLevel = config.dfmt_align_switch_statements == OptionalBoolean.t
+                        ? l : indents.indentLevel;
             }
             else if (currentIs(tok!")"))
             {

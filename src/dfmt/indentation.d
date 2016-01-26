@@ -183,8 +183,8 @@ private:
         int parenCount;
         foreach (i; 0 .. j)
         {
-            immutable int pc = (arr[i] == tok!"!" || arr[i] == tok!"(" || arr[i] == tok!")") ? parenCount
-                + 1 : parenCount;
+            immutable int pc = (arr[i] == tok!"!" || arr[i] == tok!"(" || arr[i] == tok!")") ? parenCount + 1
+                : parenCount;
             if ((isWrapIndent(arr[i]) || arr[i] == tok!"(") && parenCount > 1)
             {
                 parenCount = pc;
