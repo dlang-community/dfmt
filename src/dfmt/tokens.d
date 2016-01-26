@@ -111,6 +111,7 @@ bool isBreakToken(IdType t) pure nothrow @safe @nogc
     case tok!"/":
     case tok!"..":
     case tok!"*=":
+    case tok!"*":
     case tok!"&=":
     case tok!"%=":
     case tok!"%":
@@ -173,6 +174,7 @@ int breakCost(IdType p, IdType c) pure nothrow @safe @nogc
     case tok!"/":
     case tok!"..":
     case tok!"*=":
+    case tok!"*":
     case tok!"&=":
     case tok!"%=":
     case tok!"%":

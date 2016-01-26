@@ -1022,11 +1022,13 @@ private:
                 }
                 break;
             }
-            else if (!astInformation.unaryLocations.canFindIndex(current.index))
-                goto binary;
-            else
+            else if (astInformation.unaryLocations.canFindIndex(current.index))
+            {
                 writeToken();
-            break;
+                break;
+            }
+            regenLineBreakHintsIfNecessary(index);
+            goto binary;
         case tok!"~":
             if (peekIs(tok!"this"))
             {
@@ -1048,6 +1050,7 @@ private:
                 writeToken();
                 break;
             }
+            regenLineBreakHintsIfNecessary(index);
             goto binary;
         case tok!"[":
         case tok!"(":
