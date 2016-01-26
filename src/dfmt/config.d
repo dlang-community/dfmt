@@ -88,8 +88,7 @@ struct Config
 
         if (dfmt_soft_max_line_length > max_line_length)
         {
-            stderr.writefln(
-                "Column hard limit (%d) must be greater than or equal to column soft limit (%d)",
+            stderr.writefln("Column hard limit (%d) must be greater than or equal to column soft limit (%d)",
                     max_line_length, dfmt_soft_max_line_length);
             return false;
         }

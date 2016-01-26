@@ -261,8 +261,7 @@ private:
         {
             writeToken();
             if (index < tokens.length && (currentIs(tok!"identifier")
-                    || isBasicType(current.type) || currentIs(tok!"@")
-                    || currentIs(tok!"if")
+                    || isBasicType(current.type) || currentIs(tok!"@") || currentIs(tok!"if")
                     || isNumberLiteral(tokens[index].type) || (inAsm
                     && peekBack2Is(tok!";") && currentIs(tok!"["))))
             {
@@ -438,8 +437,8 @@ private:
                     break;
                 else if (t == tok!"import" && !currentIs(tok!"import")
                         && !currentIs(tok!"}") && !(currentIs(tok!"public")
-                            && peekIs(tok!"import"))
-                        && !indents.topIsOneOf(tok!"if", tok!"debug", tok!"version"))
+                            && peekIs(tok!"import")) && !indents.topIsOneOf(tok!"if",
+                            tok!"debug", tok!"version"))
                 {
                     simpleNewline();
                     currentLineLength = 0;
@@ -503,8 +502,7 @@ private:
             spaceAfterParens = true;
             parenDepth++;
         }
-        immutable bool arrayInitializerStart = p == tok!"["
-            && linebreakHints.length != 0
+        immutable bool arrayInitializerStart = p == tok!"[" && linebreakHints.length != 0
             && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
         if (arrayInitializerStart)
         {
@@ -518,8 +516,8 @@ private:
                     depths[index .. j], config, currentLineLength, indentLevel);
         }
         else if (!currentIs(tok!")") && !currentIs(tok!"]")
-                && (linebreakHints.canFindIndex(index - 1)
-                    || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
+                && (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
+                    && currentLineLength > config.max_line_length)))
         {
             newline();
         }
@@ -585,7 +583,7 @@ private:
 
         immutable bool isCase = astInformation.caseEndLocations.canFindIndex(current.index);
         immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(
-            current.line);
+                current.line);
         if (isCase || isAttribute)
         {
             writeToken();
@@ -689,8 +687,8 @@ private:
         {
             sBraceDepth++;
             auto e = expressionEndIndex(index);
-            immutable int l = currentLineLength + tokens[index .. e].map!(
-                a => tokenLength(a)).sum();
+            immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a))
+                .sum();
             writeToken();
             if (l > config.dfmt_soft_max_line_length)
             {
@@ -706,8 +704,8 @@ private:
             if (peekBackIs(tok!")"))
                 write(" ");
             auto e = expressionEndIndex(index);
-            immutable int l = currentLineLength + tokens[index .. e].map!(
-                a => tokenLength(a)).sum();
+            immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a))
+                .sum();
             immutable bool multiline = l > config.dfmt_soft_max_line_length
                 || tokens[index .. e].canFind!(a => a.type == tok!"comment"
                     || isBlockHeaderToken(a.type))();
@@ -785,16 +783,16 @@ private:
                 newline();
             write("}");
             if (index + 1 < tokens.length
-                    && astInformation.doubleNewlineLocations.canFindIndex(
-                        tokens[index].index) && !peekIs(tok!"}")
-                    && !peekIs(tok!"else") && !peekIs(tok!";") && !peekIs(tok!"comment", false))
+                    && astInformation.doubleNewlineLocations.canFindIndex(tokens[index].index)
+                    && !peekIs(tok!"}") && !peekIs(tok!"else")
+                    && !peekIs(tok!";") && !peekIs(tok!"comment", false))
             {
                 simpleNewline();
                 currentLineLength = 0;
                 justAddedExtraNewline = true;
             }
-            if (config.dfmt_brace_style == BraceStyle.otbs && peekIs(tok!"else")
-                && !indents.topAre(tok!"static", tok!"if"))
+            if (config.dfmt_brace_style == BraceStyle.otbs
+                    && peekIs(tok!"else") && !indents.topAre(tok!"static", tok!"if"))
             {
                 write(" ");
                 index++;
@@ -951,7 +949,7 @@ private:
                 write(" ");
             writeToken();
             immutable isFunctionLit = astInformation.funLitStartLocations.canFindIndex(
-                current.index);
+                    current.index);
             if (isFunctionLit && config.dfmt_brace_style == BraceStyle.allman)
                 newline();
             else if (!isContract)
@@ -1224,7 +1222,8 @@ private:
     {
         immutable size_t j = expressionEndIndex(i);
         // Use magical negative value for array literals and wrap indents
-        immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel : indentLevel;
+        immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel
+            : indentLevel;
         linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], depths[i .. j],
                 config, currentLineLength, inLvl);
     }
@@ -1266,8 +1265,7 @@ private:
 
         immutable bool hasCurrent = index < tokens.length;
 
-        if (niBraceDepth > 0 && !peekBackIsSlashSlash() && hasCurrent
-                && tokens[index].type == tok!"}"
+        if (niBraceDepth > 0 && !peekBackIsSlashSlash() && hasCurrent && tokens[index].type == tok!"}"
                 && !assumeSorted(astInformation.funLitEndLocations).equalRange(
                     tokens[index].index).empty)
         {
@@ -1351,8 +1349,8 @@ private:
                     indents.pop();
                 }
                 while (sBraceDepth == 0 && indents.topIsTemp()
-                        && ((!indents.topIsOneOf(tok!"else", tok!"if", tok!"static", tok!"version"))
-                        || !peekIs(tok!"else")))
+                        && ((!indents.topIsOneOf(tok!"else", tok!"if",
+                            tok!"static", tok!"version")) || !peekIs(tok!"else")))
                 {
                     indents.pop();
                 }
@@ -1714,10 +1712,10 @@ const pure @safe @nogc:
 
     bool isBlockHeaderToken(IdType t)
     {
-        return t == tok!"for" || t == tok!"foreach"
-            || t == tok!"foreach_reverse" || t == tok!"while" || t == tok!"if"
-            || t == tok!"out" || t == tok!"do" || t == tok!"catch"
-            || t == tok!"with" || t == tok!"synchronized" || t == tok!"scope";
+        return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
+            || t == tok!"while" || t == tok!"if" || t == tok!"out"
+            || t == tok!"do" || t == tok!"catch" || t == tok!"with"
+            || t == tok!"synchronized" || t == tok!"scope";
     }
 
     bool isBlockHeader(int i = 0) nothrow

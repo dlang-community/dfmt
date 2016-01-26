@@ -30,7 +30,8 @@ struct State
             immutable int l = currentLineLength + tokens.map!(a => tokenLength(a)).sum();
             if (l > config.dfmt_soft_max_line_length)
             {
-                immutable int longPenalty = (l - config.dfmt_soft_max_line_length) * remainingCharsMultiplier;
+                immutable int longPenalty = (l - config.dfmt_soft_max_line_length)
+                    * remainingCharsMultiplier;
                 this._cost += longPenalty;
                 this._solved = longPenalty < newlinePenalty;
             }
@@ -59,7 +60,8 @@ struct State
                 ll += tokens[i .. j].map!(a => tokenLength(a)).sum();
                 if (ll > config.dfmt_soft_max_line_length)
                 {
-                    immutable int longPenalty = (ll - config.dfmt_soft_max_line_length) * remainingCharsMultiplier;
+                    immutable int longPenalty = (ll - config.dfmt_soft_max_line_length)
+                        * remainingCharsMultiplier;
                     this._cost += longPenalty;
                 }
                 if (ll > config.max_line_length)
@@ -166,9 +168,8 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
     assert(false);
 }
 
-void validMoves(OR)(auto ref OR output, const Token[] tokens,
-        immutable short[] depths, uint current, const Config* config,
-        int currentLineLength, int indentLevel)
+void validMoves(OR)(auto ref OR output, const Token[] tokens, immutable short[] depths,
+        uint current, const Config* config, int currentLineLength, int indentLevel)
 {
     import std.algorithm : sort, canFind, min;
     import std.array : insertInPlace;

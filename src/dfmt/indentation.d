@@ -183,8 +183,8 @@ private:
         int parenCount;
         foreach (i; 0 .. j)
         {
-            immutable int pc = (arr[i] == tok!"!" || arr[i] == tok!"(" || arr[i] == tok!")") ? parenCount + 1
-                : parenCount;
+            immutable int pc = (arr[i] == tok!"!" || arr[i] == tok!"(" || arr[i] == tok!")") ? parenCount
+                + 1 : parenCount;
             if ((isWrapIndent(arr[i]) || arr[i] == tok!"(") && parenCount > 1)
             {
                 parenCount = pc;
@@ -196,8 +196,8 @@ private:
                     continue;
                 immutable currentIsNonWrapTemp = !isWrapIndent(arr[i])
                     && isTempIndent(arr[i]) && arr[i] != tok!")" && arr[i] != tok!"!";
-                if (arr[i] == tok!"static" && (arr[i + 1] == tok!"if" || arr[i + 1] == tok!"else")
-                        && (i + 2 >= index || arr[i + 2] != tok!"{"))
+                if (arr[i] == tok!"static" && (arr[i + 1] == tok!"if"
+                        || arr[i + 1] == tok!"else") && (i + 2 >= index || arr[i + 2] != tok!"{"))
                 {
                     parenCount = pc;
                     continue;
