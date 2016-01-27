@@ -186,14 +186,14 @@ private string optionsToString(E)() if (is(E == enum))
     import std.traits : EnumMembers;
     import std.conv : to;
 
-    string result = "[";
+    string result = "(";
     foreach (i, option; EnumMembers!E)
     {
         immutable s = to!string(option);
         if (s != "unspecified")
             result ~= s ~ "|";
     }
-    result = result[0 .. $ - 1] ~ "]";
+    result = result[0 .. $ - 1] ~ ")";
     return result;
 }
 
@@ -203,18 +203,17 @@ private void printHelp()
 https://github.com/Hackerpilot/dfmt
 
 Options:
-    --help|h            Print this help message
-    --inplace|i         Edit files in place
+    --help, -h          Print this help message
+    --inplace, -i       Edit files in place
     --version           Print the version number and then exit
 
 Formatting Options:
     --align_switch_statements
-    --brace_style	`, optionsToString!(typeof(Config.dfmt_brace_style))(),
+    --brace_style               `, optionsToString!(typeof(Config.dfmt_brace_style))(),
             `
-    --end_of_line	`, optionsToString!(typeof(Config.end_of_line))(), `
-    --help|h
+    --end_of_line               `, optionsToString!(typeof(Config.end_of_line))(), `
     --indent_size
-    --indent_style|t	`,
+    --indent_style, -t          `,
             optionsToString!(typeof(Config.indent_style))(), `
     --soft_max_line_length
     --max_line_length
@@ -223,8 +222,8 @@ Formatting Options:
     --selective_import_space
     --split_operator_at_line_end
     --compact_labeled_statements
-    --template_constraint_style	`,
-            optionsToString!(typeof(Config.dfmt_template_constraint_style))());
+    --template_constraint_style
+        `, optionsToString!(typeof(Config.dfmt_template_constraint_style))());
 }
 
 private string createFilePath(bool readFromStdin, string fileName)
