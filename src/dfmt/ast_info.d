@@ -135,8 +135,11 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const FunctionLiteralExpression funcLit)
     {
-        astInformation.funLitStartLocations ~= funcLit.functionBody.blockStatement.startLocation;
-        astInformation.funLitEndLocations ~= funcLit.functionBody.blockStatement.endLocation;
+        if (funcLit.functionBody !is null)
+        {
+            astInformation.funLitStartLocations ~= funcLit.functionBody.blockStatement.startLocation;
+            astInformation.funLitEndLocations ~= funcLit.functionBody.blockStatement.endLocation;
+        }
         funcLit.accept(this);
     }
 
