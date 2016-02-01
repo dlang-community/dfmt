@@ -1398,6 +1398,9 @@ private:
 
     void writeToken()
     {
+        import std.range:retro;
+        import std.algorithm.searching:countUntil;
+
         if (current.text is null)
         {
             immutable s = str(current.type);
@@ -1412,7 +1415,18 @@ private:
                 output.put(current.text.replace("\r", ""));
             else
                 output.put(current.text);
-            currentLineLength += current.text.length;
+            switch (current.type)
+            {
+            case tok!"stringLiteral":
+            case tok!"wstringLiteral":
+            case tok!"dstringLiteral":
+                immutable o = current.text.retro().countUntil('\n');
+                currentLineLength += o == -1 ? current.text.length : o;
+                break;
+            default:
+                currentLineLength += current.text.length;
+                break;
+            }
         }
         index++;
     }
