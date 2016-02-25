@@ -161,11 +161,12 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
         validMoves!(typeof(open))(open, tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
                 current.breaks, config, currentLineLength, indentLevel);
     }
-    if (open.empty)
-        return genRetVal(lowest.breaks, index);
     foreach (r; open[].filter!(a => a.solved))
         return genRetVal(r.breaks, index);
-    assert(false);
+    if (open[].front < lowest)
+        return genRetVal(open[].front.breaks, index);
+    else
+        return genRetVal(lowest.breaks, index);
 }
 
 void validMoves(OR)(auto ref OR output, const Token[] tokens, immutable short[] depths,

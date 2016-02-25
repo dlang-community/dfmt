@@ -1038,8 +1038,7 @@ private:
                 writeToken();
                 break;
             }
-            else
-                goto case;
+            goto case;
         case tok!"&":
         case tok!"+":
         case tok!"-":
@@ -1106,6 +1105,7 @@ private:
             break;
         case tok!"&&":
         case tok!"||":
+        case tok!"|":
             regenLineBreakHintsIfNecessary(index);
             goto case;
         case tok!"=":
@@ -1134,7 +1134,6 @@ private:
         case tok!">>>":
         case tok!">>":
         case tok!">":
-        case tok!"|":
         case tok!"!<=":
         case tok!"!<>=":
         case tok!"!<>":
