@@ -73,10 +73,13 @@ struct TokenFormatter(OutputRange)
 {
     /**
      * Params:
+     *     rawSource = ?
      *     tokens = the tokens to format
+     *     depths = ?
      *     output = the output range that the code will be formatted to
      *     astInformation = information about the AST used to inform formatting
      *         decisions.
+     *     config = ?
      */
     this(const ubyte[] rawSource, const(Token)[] tokens, immutable short[] depths,
             OutputRange output, ASTInformation* astInformation, Config* config)
@@ -89,7 +92,7 @@ struct TokenFormatter(OutputRange)
         this.config = config;
     }
 
-    /// Runs the foramtting process
+    /// Runs the formatting process
     void format()
     {
         while (index < tokens.length)
@@ -122,7 +125,7 @@ private:
     /// Information about the AST
     const ASTInformation* astInformation;
 
-    /// token indicies where line breaks should be placed
+    /// Token indices where line breaks should be placed
     size_t[] linebreakHints;
 
     /// Current indentation stack for the file
@@ -210,7 +213,7 @@ private:
                 || currentIs(tok!"debug")) && peekIs(tok!"(", false))
         {
             if (!assumeSorted(astInformation.constraintLocations).equalRange(current.index).empty)
-                formatConstrtaint();
+                formatConstraint();
             else
                 formatBlockHeader();
         }
@@ -277,7 +280,7 @@ private:
             writeToken();
     }
 
-    void formatConstrtaint()
+    void formatConstraint()
     {
         with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
         {
@@ -311,7 +314,7 @@ private:
         // if
         writeToken();
         // assume that the parens are present, otherwise the parser would not
-        // have told is there was a constraint here
+        // have told us there was a constraint here
         write(" ");
         writeParens(false);
     }
