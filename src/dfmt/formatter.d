@@ -73,10 +73,13 @@ struct TokenFormatter(OutputRange)
 {
     /**
      * Params:
+     *     rawSource = ?
      *     tokens = the tokens to format
+     *     depths = ?
      *     output = the output range that the code will be formatted to
      *     astInformation = information about the AST used to inform formatting
      *         decisions.
+     *     config = ?
      */
     this(const ubyte[] rawSource, const(Token)[] tokens, immutable short[] depths,
             OutputRange output, ASTInformation* astInformation, Config* config)
