@@ -210,7 +210,7 @@ private:
                 || currentIs(tok!"debug")) && peekIs(tok!"(", false))
         {
             if (!assumeSorted(astInformation.constraintLocations).equalRange(current.index).empty)
-                formatConstrtaint();
+                formatConstraint();
             else
                 formatBlockHeader();
         }
@@ -277,7 +277,7 @@ private:
             writeToken();
     }
 
-    void formatConstrtaint()
+    void formatConstraint()
     {
         with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
         {
