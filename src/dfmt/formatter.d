@@ -89,7 +89,7 @@ struct TokenFormatter(OutputRange)
         this.config = config;
     }
 
-    /// Runs the foramtting process
+    /// Runs the formatting process
     void format()
     {
         while (index < tokens.length)
@@ -122,7 +122,7 @@ private:
     /// Information about the AST
     const ASTInformation* astInformation;
 
-    /// token indicies where line breaks should be placed
+    /// Token indices where line breaks should be placed
     size_t[] linebreakHints;
 
     /// Current indentation stack for the file
@@ -311,7 +311,7 @@ private:
         // if
         writeToken();
         // assume that the parens are present, otherwise the parser would not
-        // have told is there was a constraint here
+        // have told us there was a constraint here
         write(" ");
         writeParens(false);
     }
