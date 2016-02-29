@@ -30,7 +30,7 @@ bool isTempIndent(IdType type) pure nothrow @nogc @safe
 struct IndentStack
 {
     /**
-     * Get the indent size at the most recent occurence of the given indent type
+     * Get the indent size at the most recent occurrence of the given indent type
      */
     int indentToMostRecent(IdType item) const
     {

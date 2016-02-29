@@ -82,7 +82,7 @@ insert_final_newline | | `true` | Not supported. `dfmt` always inserts a final n
 charset | | `UTf-8` | Not supported. `dfmt` only works correctly on UTF-8.
 indent_style | `tab`, `space` | `space` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#indent_style)
 indent_size | positive integers | `4` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#indent_size)
-tab_width | positive integers | `8` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#tab_width)
+tab_width | positive integers | `4` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#tab_width)
 trim_trailing_whitespace | | `true` | Not supported. `dfmt` does not emit trailing whitespace.
 max_line_length | positive integers | `120` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#max_line_length)
 ### dfmt-specific properties
