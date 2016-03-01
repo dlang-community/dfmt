@@ -27,7 +27,8 @@ else
         optConfig.pattern = "*.d";
         bool showHelp;
         bool showVersion;
-
+        string assumeFileName = "dummy.d";
+        
         void handleBooleans(string option, string value)
         {
             import dfmt.editorconfig : OptionalBoolean;
@@ -67,6 +68,7 @@ else
             getopt(args,
                 "version", &showVersion,
                 "align_switch_statements", &handleBooleans,
+                "assume_filename", &assumeFileName,
                 "brace_style", &optConfig.dfmt_brace_style,
                 "end_of_line", &optConfig.end_of_line,
                 "help|h", &showHelp,
@@ -104,7 +106,8 @@ else
 
         args.popFront();
         immutable bool readFromStdin = args.length == 0;
-        immutable string filePath = createFilePath(readFromStdin, readFromStdin ? null : args[0]);
+        immutable string filePath = createFilePath(readFromStdin ? assumeFileName : args[0]);
+
         Config config;
         config.initializeWithDefaults();
         Config fileConfig = getConfigFor!Config(filePath);
@@ -207,6 +210,11 @@ Options:
     --inplace, -i       Edit files in place
     --version           Print the version number and then exit
 
+Editor integration options:
+    --assume_filename=<string>
+                        When reading from stdin, dfmt assumes
+                        this filename to look for a style config file.
+
 Formatting Options:
     --align_switch_statements
     --brace_style               `, optionsToString!(typeof(Config.dfmt_brace_style))(),
@@ -226,14 +234,12 @@ Formatting Options:
         `, optionsToString!(typeof(Config.dfmt_template_constraint_style))());
 }
 
-private string createFilePath(bool readFromStdin, string fileName)
+private string createFilePath(string fileName)
 {
     import std.file : getcwd;
     import std.path : isRooted;
 
     immutable string cwd = getcwd();
-    if (readFromStdin)
-        return buildPath(cwd, "dummy.d");
     if (isRooted(fileName))
         return fileName;
     else
