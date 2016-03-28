@@ -104,16 +104,6 @@ else
 
         args.popFront();
         immutable bool readFromStdin = args.length == 0;
-        immutable string filePath = createFilePath(readFromStdin, readFromStdin ? null : args[0]);
-        Config config;
-        config.initializeWithDefaults();
-        Config fileConfig = getConfigFor!Config(filePath);
-        fileConfig.pattern = "*.d";
-        config.merge(fileConfig, filePath);
-        config.merge(optConfig, filePath);
-
-        if (!config.isValid())
-            return 1;
 
         File output = stdout;
         version (Windows)
@@ -121,7 +111,7 @@ else
             // On Windows, set stdout to binary mode (needed for correct EOL writing)
             // See Phobos' stdio.File.rawWrite
             {
-                import std.stdio:fileno, _O_BINARY, setmode;
+                import std.stdio : fileno, _O_BINARY, setmode;
 
                 immutable fd = fileno(output.getFP());
                 setmode(fd, _O_BINARY);
@@ -138,6 +128,11 @@ else
 
         if (readFromStdin)
         {
+            Config config;
+            config.initializeWithDefaults();
+            config.merge(optConfig, null);
+            if (!config.isValid())
+                return 1;
             ubyte[4096] inputBuffer;
             ubyte[] b;
             while (true)
@@ -164,11 +159,17 @@ else
                 {
                     inplace = true;
                     foreach (string name; dirEntries(path, "*.d", SpanMode.depth))
-                    {
                         args ~= name;
-                    }
                     continue;
                 }
+                Config config;
+                config.initializeWithDefaults();
+                Config fileConfig = getConfigFor!Config(path);
+                fileConfig.pattern = "*.d";
+                config.merge(fileConfig, path);
+                config.merge(optConfig, path);
+                if (!config.isValid())
+                    return 1;
                 File f = File(path);
                 buffer = new ubyte[](cast(size_t) f.size);
                 f.rawRead(buffer);
@@ -223,7 +224,8 @@ Formatting Options:
     --split_operator_at_line_end
     --compact_labeled_statements
     --template_constraint_style
-        `, optionsToString!(typeof(Config.dfmt_template_constraint_style))());
+        `,
+            optionsToString!(typeof(Config.dfmt_template_constraint_style))());
 }
 
 private string createFilePath(bool readFromStdin, string fileName)

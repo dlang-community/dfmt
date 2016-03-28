@@ -122,14 +122,18 @@ EC getConfigFor(EC)(string path)
 {
     import std.stdio : File;
     import std.regex : regex, match;
-    import std.path : globMatch, dirName, baseName, pathSplitter, buildPath;
+    import std.path : globMatch, dirName, baseName, pathSplitter, buildPath,
+        absolutePath;
     import std.algorithm : reverse, map, filter;
     import std.array : array;
+    import std.file : isDir;
 
     EC result;
     EC[][] configs;
-    string dir = dirName(path);
-    immutable string fileName = baseName(path);
+    immutable expanded = absolutePath(path);
+    immutable bool id = isDir(expanded);
+    immutable string dir = dirName(expanded);
+    immutable string fileName = id ? "dummy.d" : baseName(expanded);
     string[] pathParts = cast(string[]) pathSplitter(dir).array();
     for (size_t i = pathParts.length; i > 1; i--)
     {
