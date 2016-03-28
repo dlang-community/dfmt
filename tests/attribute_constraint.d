@@ -6,7 +6,7 @@ struct SomeStructName
 		{
 			static if (condition)
 			{
-				void longFunctionName(AAAAAAAA)(AAAAAAAA a) @property if (someThingsAreTrue!AAAAAAAA && long_condition && is(some < elaborate && expression))
+				void longFunctionName(AAAAAAAA)(AAAAAAAA a) @property if (someThingsAreTrue!AAAAAAAA && long_condition && is(elaborate == expression))
 				{
 				}
 			}
