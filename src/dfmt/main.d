@@ -121,7 +121,7 @@ else
             // On Windows, set stdout to binary mode (needed for correct EOL writing)
             // See Phobos' stdio.File.rawWrite
             {
-                import std.stdio;
+                import std.stdio:fileno, _O_BINARY, setmode;
 
                 immutable fd = fileno(output.getFP());
                 setmode(fd, _O_BINARY);
@@ -148,7 +148,7 @@ else
                 else
                     break;
             }
-            dfmt.formatter.format("stdin", buffer, output.lockingTextWriter(), &config);
+            format("stdin", buffer, output.lockingTextWriter(), &config);
         }
         else
         {
@@ -174,7 +174,7 @@ else
                 f.rawRead(buffer);
                 if (inplace)
                     output = File(path, "wb");
-                dfmt.formatter.format(path, buffer, output.lockingTextWriter(), &config);
+                format(path, buffer, output.lockingTextWriter(), &config);
             }
         }
         return 0;

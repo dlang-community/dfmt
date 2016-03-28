@@ -2,7 +2,7 @@ module dfmt.editorconfig;
 import std.regex : ctRegex;
 
 static if (__VERSION__ >= 2067)
-    import std.traits : FieldNameTuple;
+    public import std.traits : FieldNameTuple;
 else
 {
     private enum NameOf(alias T) = T.stringof;

@@ -7,6 +7,7 @@ module dfmt.formatter;
 
 import dparse.lexer;
 import dparse.parser;
+import dparse.rollback_allocator;
 import dfmt.config;
 import dfmt.ast_info;
 import dfmt.indentation;
@@ -25,8 +26,9 @@ void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
     parseConfig.whitespaceBehavior = WhitespaceBehavior.skip;
     StringCache cache = StringCache(StringCache.defaultBucketCount);
     ASTInformation astInformation;
+    RollbackAllocator allocator;
     auto parseTokens = getTokensForParser(buffer, parseConfig, &cache);
-    auto mod = parseModule(parseTokens, source_desc);
+    auto mod = parseModule(parseTokens, source_desc, &allocator);
     auto visitor = new FormatVisitor(&astInformation);
     visitor.visit(mod);
     astInformation.cleanup();
