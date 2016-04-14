@@ -111,13 +111,14 @@ else
             // On Windows, set stdout to binary mode (needed for correct EOL writing)
             // See Phobos' stdio.File.rawWrite
             {
-                import std.stdio : fileno, _O_BINARY, setmode;
+                import std.stdio: fileno, _O_BINARY, setmode;
 
                 immutable fd = fileno(output.getFP());
                 setmode(fd, _O_BINARY);
                 version (CRuntime_DigitalMars)
                 {
                     import core.atomic : atomicOp;
+                    import core.stdc.stdio: __fhnd_info, FHND_TEXT;
 
                     atomicOp!"&="(__fhnd_info[fd], ~FHND_TEXT);
                 }

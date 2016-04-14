@@ -6,6 +6,7 @@ set CORE=
 set STD=
 set STDD=
 set STDE=
+set OBIN=bin\dfmt
 
 for %%x in (src\dfmt\*.d) do set CORE=!CORE! %%x
 for %%x in (libdparse\src\std\experimental\*.d) do set STD=!STD! %%x
@@ -14,4 +15,6 @@ for %%x in (libdparse\experimental_allocator\src\std\experimental\allocator\*.d)
 for %%x in (libdparse\experimental_allocator\src\std\experimental\allocator\building_blocks\*.d) do set STDE=!STDE! %%x
 
 @echo on
-dmd %CORE% %STD% %STDD% %STDE% %DFLAGS% -ofbin\dfmt.exe
+dmd %CORE% %STD% %STDD% %STDE% %DFLAGS% -of%OBIN%.exe
+
+if exist %OBIN%.obj del %OBIN%.obj
