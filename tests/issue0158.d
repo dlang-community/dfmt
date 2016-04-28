@@ -1,2 +1,2 @@
-@Foo enum Bar {}
+@Foo enum Bar { a }
 @foo class Baz {}
