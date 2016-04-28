@@ -943,6 +943,11 @@ private:
                 newline();
             }
             break;
+        case tok!"body":
+            if (!peekBackIs(tok!"}"))
+                newline();
+            writeToken();
+            break;
         case tok!"in":
             immutable isContract = astInformation.contractLocations.canFindIndex(current.index);
             if (isContract)
