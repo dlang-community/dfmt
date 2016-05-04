@@ -16,7 +16,7 @@ else
     import std.stdio : stdout, stdin, stderr, writeln, File;
     import dfmt.config : Config;
     import dfmt.formatter : format;
-    import std.path : buildPath, expandTilde;
+    import std.path : buildPath, dirName, expandTilde;
     import dfmt.editorconfig : getConfigFor;
     import std.getopt : getopt, GetOptException;
 
@@ -27,6 +27,7 @@ else
         optConfig.pattern = "*.d";
         bool showHelp;
         bool showVersion;
+        string explicitConfigDir;
 
         void handleBooleans(string option, string value)
         {
@@ -68,6 +69,7 @@ else
                 "version", &showVersion,
                 "align_switch_statements", &handleBooleans,
                 "brace_style", &optConfig.dfmt_brace_style,
+                "config|c", &explicitConfigDir,
                 "end_of_line", &optConfig.end_of_line,
                 "help|h", &showHelp,
                 "indent_size", &optConfig.indent_size,
@@ -111,14 +113,14 @@ else
             // On Windows, set stdout to binary mode (needed for correct EOL writing)
             // See Phobos' stdio.File.rawWrite
             {
-                import std.stdio: fileno, _O_BINARY, setmode;
+                import std.stdio : fileno, _O_BINARY, setmode;
 
                 immutable fd = fileno(output.getFP());
                 setmode(fd, _O_BINARY);
                 version (CRuntime_DigitalMars)
                 {
                     import core.atomic : atomicOp;
-                    import core.stdc.stdio: __fhnd_info, FHND_TEXT;
+                    import core.stdc.stdio : __fhnd_info, FHND_TEXT;
 
                     atomicOp!"&="(__fhnd_info[fd], ~FHND_TEXT);
                 }
@@ -127,11 +129,31 @@ else
 
         ubyte[] buffer;
 
+        Config explicitConfig;
+        if (explicitConfigDir)
+        {
+            import std.path : exists, isDir;
+
+            if (!exists(explicitConfigDir) || !isDir(explicitConfigDir))
+            {
+                stderr.writeln("--config_dir|c must specify existing directory path");
+                return 1;
+            }
+            explicitConfig = getConfigFor!Config(explicitConfigDir);
+            explicitConfig.pattern = "*.d";
+        }
+
         if (readFromStdin)
         {
+            import std.file : getcwd;
+
             Config config;
             config.initializeWithDefaults();
-            config.merge(optConfig, null);
+            if (explicitConfigDir != "")
+            {
+                config.merge(explicitConfig, buildPath(explicitConfigDir, "dummy.d"));
+            }
+            config.merge(optConfig, buildPath(getcwd(), "dummy.d"));
             if (!config.isValid())
                 return 1;
             ubyte[4096] inputBuffer;
@@ -165,9 +187,16 @@ else
                 }
                 Config config;
                 config.initializeWithDefaults();
-                Config fileConfig = getConfigFor!Config(path);
-                fileConfig.pattern = "*.d";
-                config.merge(fileConfig, path);
+                if (explicitConfigDir != "")
+                {
+                    config.merge(explicitConfig, buildPath(explicitConfigDir, "dummy.d"));
+                }
+                else
+                {
+                    Config fileConfig = getConfigFor!Config(path);
+                    fileConfig.pattern = "*.d";
+                    config.merge(fileConfig, path);
+                }
                 config.merge(optConfig, path);
                 if (!config.isValid())
                     return 1;
@@ -207,6 +236,7 @@ https://github.com/Hackerpilot/dfmt
 Options:
     --help, -h          Print this help message
     --inplace, -i       Edit files in place
+    --config_dir, -c    Path to directory to load .editconfig file from.
     --version           Print the version number and then exit
 
 Formatting Options:
