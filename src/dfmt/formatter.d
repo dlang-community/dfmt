@@ -255,7 +255,7 @@ private:
         else if (isBasicType(current.type))
         {
             writeToken();
-            if (currentIs(tok!"identifier") || isKeyword(current.type))
+            if (currentIs(tok!"identifier") || isKeyword(current.type) || inAsm)
                 write(" ");
         }
         else if (isOperator(current.type))
