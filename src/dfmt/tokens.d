@@ -36,6 +36,7 @@ int tokenLength(ref const Token t) pure @safe @nogc
 {
     import std.algorithm : countUntil;
 
+    int c;
     switch (t.type)
     {
     case tok!"doubleLiteral":
@@ -55,7 +56,7 @@ int tokenLength(ref const Token t) pure @safe @nogc
     case tok!"wstringLiteral":
     case tok!"dstringLiteral":
         // TODO: Unicode line breaks and old-Mac line endings
-        auto c = cast(int) t.text.countUntil('\n');
+        c = cast(int) t.text.countUntil('\n');
         if (c == -1)
             return cast(int) t.text.length;
         else
