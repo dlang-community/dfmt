@@ -248,7 +248,7 @@ https://github.com/Hackerpilot/dfmt
 Options:
     --help, -h          Print this help message
     --inplace, -i       Edit files in place
-    --config_dir, -c    Path to directory to load .editconfig file from.
+    --config_dir, -c    Path to directory to load .editorconfig file from.
     --version           Print the version number and then exit
 
 Formatting Options:
