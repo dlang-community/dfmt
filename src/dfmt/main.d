@@ -113,9 +113,8 @@ else
             // On Windows, set stdout to binary mode (needed for correct EOL writing)
             // See Phobos' stdio.File.rawWrite
             {
-                import std.stdio : _fileno, _O_BINARY, _setmode;
-
-                immutable fd = _fileno(output.getFP());
+                import std.stdio : _O_BINARY;
+                immutable fd = output.fileno;
                 _setmode(fd, _O_BINARY);
                 version (CRuntime_DigitalMars)
                 {
@@ -209,6 +208,19 @@ else
             }
         }
         return 0;
+    }
+}
+
+private version (Windows)
+{
+    version(CRuntime_DigitalMars)
+    {
+        extern(C) int setmode(int, int) nothrow @nogc;
+        alias _setmode = setmode;
+    }
+    else version(CRuntime_Microsoft)
+    {
+        extern(C) int _setmode(int, int) nothrow @nogc;
     }
 }
 
