@@ -132,9 +132,9 @@ EC getConfigFor(EC)(string path)
     EC[][] configs;
     immutable expanded = absolutePath(path);
     immutable bool id = isDir(expanded);
-    immutable string dir = dirName(expanded);
     immutable string fileName = id ? "dummy.d" : baseName(expanded);
-    string[] pathParts = cast(string[]) pathSplitter(dir).array();
+    string[] pathParts = cast(string[]) pathSplitter(expanded).array();
+
     for (size_t i = pathParts.length; i > 1; i--)
     {
         EC[] sections = parseConfig!EC(buildPath(pathParts[0 .. i]));
