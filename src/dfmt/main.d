@@ -113,9 +113,8 @@ else
             // On Windows, set stdout to binary mode (needed for correct EOL writing)
             // See Phobos' stdio.File.rawWrite
             {
-                import std.stdio : _fileno, _O_BINARY, _setmode;
-
-                immutable fd = _fileno(output.getFP());
+                import std.stdio : _O_BINARY;
+                immutable fd = output.fileno;
                 _setmode(fd, _O_BINARY);
                 version (CRuntime_DigitalMars)
                 {
@@ -212,6 +211,19 @@ else
     }
 }
 
+private version (Windows)
+{
+    version(CRuntime_DigitalMars)
+    {
+        extern(C) int setmode(int, int) nothrow @nogc;
+        alias _setmode = setmode;
+    }
+    else version(CRuntime_Microsoft)
+    {
+        extern(C) int _setmode(int, int) nothrow @nogc;
+    }
+}
+
 private string optionsToString(E)() if (is(E == enum))
 {
     import std.traits : EnumMembers;
@@ -236,7 +248,7 @@ https://github.com/Hackerpilot/dfmt
 Options:
     --help, -h          Print this help message
     --inplace, -i       Edit files in place
-    --config_dir, -c    Path to directory to load .editconfig file from.
+    --config_dir, -c    Path to directory to load .editorconfig file from.
     --version           Print the version number and then exit
 
 Formatting Options:
