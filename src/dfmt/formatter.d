@@ -1038,7 +1038,7 @@ private:
             regenLineBreakHintsIfNecessary(index);
             goto binary;
         case tok!"~":
-            if (peekIs(tok!"this"))
+            if (peekIs(tok!"this") && peek2Is(tok!"("))
             {
                 if (!(index == 0 || peekBackIs(tok!"{", true)
                         || peekBackIs(tok!"}", true) || peekBackIs(tok!";", true)))
