@@ -1,7 +1,7 @@
 {
     "name": "dfmt",
     "description": "Dfmt is a formatter for D source code",
-    "targetType": "executable",
+    "targetType": "autodetect",
     "license": "BSL-1.0",
     "dependencies": {
       "libdparse": "~>0.7.1-beta.1"
