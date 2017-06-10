@@ -1,6 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
 
+IF "%DC%"=="" SET DC="dmd"
+
 set DFLAGS=-g
 set CORE=
 set STD=
@@ -15,6 +17,6 @@ for %%x in (libdparse\experimental_allocator\src\std\experimental\allocator\*.d)
 for %%x in (libdparse\experimental_allocator\src\std\experimental\allocator\building_blocks\*.d) do set STDE=!STDE! %%x
 
 @echo on
-dmd %CORE% %STD% %STDD% %STDE% %DFLAGS% -of%OBIN%.exe
+%DC% %CORE% %STD% %STDD% %STDE% %DFLAGS% -of%OBIN%.exe
 
 if exist %OBIN%.obj del %OBIN%.obj
