@@ -84,7 +84,7 @@ Property Name | Allowed Values | Default Value | Description
 --------------|----------------|---------------|------------
 end_of_line | `cr`, `crlf` and `lf` | `lf` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#end_of_line)
 insert_final_newline | | `true` | Not supported. `dfmt` always inserts a final newline.
-charset | | `UTf-8` | Not supported. `dfmt` only works correctly on UTF-8.
+charset | | `UTF-8` | Not supported. `dfmt` only works correctly on UTF-8.
 indent_style | `tab`, `space` | `space` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#indent_style)
 indent_size | positive integers | `4` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#indent_size)
 tab_width | positive integers | `4` | [See EditorConfig documentation.](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#tab_width)
