@@ -4,6 +4,6 @@
     "targetType": "executable",
     "license": "BSL-1.0",
     "dependencies": {
-      "libdparse": "~>0.7.1-beta.1"
+      "libdparse": "~>0.7.1-beta.7"
     }
 }
