@@ -146,13 +146,21 @@ else
         {
             import std.file : getcwd;
 
+            auto cwdDummyPath = buildPath(getcwd(), "dummy.d");
+
             Config config;
             config.initializeWithDefaults();
             if (explicitConfigDir != "")
             {
                 config.merge(explicitConfig, buildPath(explicitConfigDir, "dummy.d"));
             }
-            config.merge(optConfig, buildPath(getcwd(), "dummy.d"));
+            else
+            {
+                Config fileConfig = getConfigFor!Config(getcwd());
+                fileConfig.pattern = "*.d";
+                config.merge(fileConfig, cwdDummyPath);
+            }
+            config.merge(optConfig, cwdDummyPath);
             if (!config.isValid())
                 return 1;
             ubyte[4096] inputBuffer;
