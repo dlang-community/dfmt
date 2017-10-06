@@ -92,6 +92,18 @@ struct TokenFormatter(OutputRange)
         this.output = output;
         this.astInformation = astInformation;
         this.config = config;
+
+        {
+            auto eol = config.end_of_line;
+            if (eol == eol.cr)
+                this.eolString = "\r";
+            else if (eol == eol.lf)
+                this.eolString = "\n";
+            else if (eol == eol.crlf)
+                this.eolString = "\r\n";
+            else if (eol == eol.unspecified)
+                assert(false, "config.end_of_line was unspecified");
+        }
     }
 
     /// Runs the formatting process
@@ -135,6 +147,9 @@ private:
 
     /// Configuration
     const Config* config;
+
+    /// chached end of line string
+    const string eolString;
 
     /// Keep track of whether or not an extra newline was just added because of
     /// an import statement.
@@ -1247,20 +1262,7 @@ private:
     {
         import dfmt.editorconfig : EOL;
 
-        final switch (config.end_of_line)
-        {
-        case EOL.cr:
-            output.put("\r");
-            break;
-        case EOL.lf:
-            output.put("\n");
-            break;
-        case EOL.crlf:
-            output.put("\r\n");
-            break;
-        case EOL.unspecified:
-            assert(false, "config.end_of_line was unspecified");
-        }
+        output.put(eolString);
     }
 
     void newline()
