@@ -281,6 +281,8 @@ private:
         {
             writeToken();
             if (index < tokens.length && (currentIs(tok!"identifier")
+                    || ( ( isBasicType(peekBack().type) || peekBackIs(tok!"identifier") ) &&
+                         currentIs(tok!("(")) && config.dfmt_space_before_function_parameters)
                     || isBasicType(current.type) || currentIs(tok!"@") || currentIs(tok!"if")
                     || isNumberLiteral(tokens[index].type) || (inAsm
                     && peekBack2Is(tok!";") && currentIs(tok!"["))))

@@ -48,6 +48,9 @@ else
             case "space_after_cast":
                 optConfig.dfmt_space_after_cast = optVal;
                 break;
+            case "space_before_function_parameters":
+                optConfig.dfmt_space_before_function_parameters = optVal;
+		break;
             case "split_operator_at_line_end":
                 optConfig.dfmt_split_operator_at_line_end = optVal;
                 break;
@@ -80,6 +83,7 @@ else
                 "outdent_attributes", &handleBooleans,
                 "space_after_cast", &handleBooleans,
                 "selective_import_space", &handleBooleans,
+		"space_before_function_parameters", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
                 "compact_labeled_statements", &handleBooleans,
                 "tab_width", &optConfig.tab_width,
@@ -271,6 +275,7 @@ Formatting Options:
     --max_line_length
     --outdent_attributes
     --space_after_cast
+    --space_before_function_parameters
     --selective_import_space
     --split_operator_at_line_end
     --compact_labeled_statements
