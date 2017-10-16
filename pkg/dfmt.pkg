@@ -1,0 +1,31 @@
+# dfmt packaging configuration
+# ============================
+
+dfmt_bindir='bin'
+
+#-------------------------------------------------------------------------------
+#    Define the keyword arguments to pass to fpm (via the OPTS dict)
+#-------------------------------------------------------------------------------
+
+OPTS.update(
+    name = "dfmt",
+    url = 'https://github.com/dlang-community/dfmt',
+    maintainer = 'Stefan Koch <stefan.koch@sociomantic.com>',
+    vendor = 'Sociomantic Labs GmbH',
+    provides = "dfmt",
+    description = '''\
+D source code formatter
+''',
+    depends = FUN.autodeps('dfmt', path=dfmt_bindir),
+)
+
+#-------------------------------------------------------------------------------
+#    Define the positional arguments to pass to fpm (via the ARGS list)
+#-------------------------------------------------------------------------------
+
+ARGS.extend(FUN.mapfiles(dfmt_bindir, '/usr/bin', 'dfmt'))
+ARGS.extend([
+ 'bash-completion/completion/dfmt=/usr/share/bash-completion/completion/dfmt'
+])
+
+# vim: set ft=python tw=80 :
