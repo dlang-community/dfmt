@@ -83,7 +83,7 @@ else
                 "outdent_attributes", &handleBooleans,
                 "space_after_cast", &handleBooleans,
                 "selective_import_space", &handleBooleans,
-		"space_before_function_parameters", &handleBooleans,
+                "space_before_function_parameters", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
                 "compact_labeled_statements", &handleBooleans,
                 "tab_width", &optConfig.tab_width,
