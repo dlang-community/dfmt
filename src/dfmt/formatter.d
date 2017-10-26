@@ -595,7 +595,8 @@ private:
         }
         else if (index < tokens.length && (currentIs(tok!"@")
                 || isBasicType(tokens[index].type)
-                || currentIs(tok!"identifier") || currentIs(tok!"if")))
+                || currentIs(tok!"identifier") || currentIs(tok!"if"))
+                && !currentIsIndentedTemplateConstraint())
             write(" ");
     }
 
@@ -1021,13 +1022,22 @@ private:
                 else
                 {
                     writeToken();
-                    write(" ");
+                    if (!currentIsIndentedTemplateConstraint())
+                        write(" ");
                 }
             }
             else
                 writeToken();
             break;
         }
+    }
+
+    bool currentIsIndentedTemplateConstraint()
+    {
+        return index < tokens.length
+            && astInformation.constraintLocations.canFindIndex(current.index)
+            && (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline
+                || currentLineLength >= config.dfmt_soft_max_line_length);
     }
 
     void formatOperator()
