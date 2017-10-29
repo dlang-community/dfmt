@@ -281,8 +281,8 @@ private:
         {
             writeToken();
             if (index < tokens.length && (currentIs(tok!"identifier")
-                    || ( ( isBasicType(peekBack().type) || peekBackIs(tok!"identifier") ) &&
-                         currentIs(tok!("(")) && config.dfmt_space_before_function_parameters)
+                    || ( index < 1 && ( isBasicType(peekBack(2).type) || peekBack2Is(tok!"identifier") ) &&
+                         currentIs(tok!("(")) && config.dfmt_space_before_function_parameters )
                     || isBasicType(current.type) || currentIs(tok!"@") || currentIs(tok!"if")
                     || isNumberLiteral(tokens[index].type) || (inAsm
                     && peekBack2Is(tok!";") && currentIs(tok!"["))))
@@ -1586,10 +1586,13 @@ const pure @safe @nogc:
         return tokens[index];
     }
 
-    const(Token) peekBack() nothrow
+    const(Token) peekBack(uint distance = 1) nothrow
     {
-        assert(index > 0);
-        return tokens[index - 1];
+        if (index < distance)
+	{
+		assert(0, "Trying to peek before the first token");
+	}
+        return tokens[index - distance];
     }
 
     bool peekBackIsLiteralOrIdent() nothrow
