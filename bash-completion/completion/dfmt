@@ -4,21 +4,36 @@ _dfmt()
 	local cur prev opts
 	COMPREPLY=()
 	cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--help -h --inplace -i --version --align_switch_statements --brace_style\
-		--end_of_line --indent_size --indent_style -t --soft_max_line_length\
-		--max_line_length --outdent_attributes --space_after_cast\
+	prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+	booleans="--align_switch_statements --outdent_attributes --space_after_cast\
 		--space_before_function_parameters --selective_import_space\
-		--split_operator_at_line_end --compact_labeled_statements\
-		--template_constraint_style"
+		--split_operator_at_line_end --compact_labeled_statements"
+
+	# Uncomment code below to print the list of boolean options incase you edit it
+	# and replace it in the case below
+	#
+	#booleans=${booleans//		/	}
+	#booleans=${booleans//	/ }
+	#bared_booleans=\"${booleans// /\"|\"}\"
+	#echo ${bared_booleans}
+
+	opts="--help -h --inplace -i --version --brace_style\
+		--end_of_line --indent_size --indent_style -t --soft_max_line_length\
+		--max_line_length ${booleans} --template_constraint_style"
+
 	eolOpts="lf cr crlf"
+	boolOpts="true false"
 	braceOpts="allman otbs stroustrup"
 	indentOpts="tab space"
 	constraintOpts="conditional_newline_indent conditional_newline always_newline always_newline_indent"
+
 	if [[ ${cur} == -* ]]; then
 		COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
 		return 0;
 	fi
+
+
 	case "${prev}" in
 		"--brace_style")
 			COMPREPLY=($(compgen -W "${braceOpts}" -- ${cur}))
@@ -36,6 +51,10 @@ _dfmt()
 			;;
 		"--template_constraint_style")
 			COMPREPLY=($(compgen -W "${constraintOpts}" -- ${cur}))
+			return 0
+			;;
+		"--align_switch_statements"|"--outdent_attributes"|"--space_after_cast"|"--space_before_function_parameters"|"--selective_import_space"|"--split_operator_at_line_end"|"--compact_labeled_statements")
+			COMPREPLY=($(compgen -W "${boolOpts}" -- ${cur}))
 			return 0
 			;;
 		*)
