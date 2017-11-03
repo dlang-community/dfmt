@@ -4,8 +4,61 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 module dfmt.main;
+static immutable VERSION = () {
+    debug
+    {
+        enum DEBUG_SUFFIX = "-debug";
+    }
+    else
+    {
+        enum DEBUG_SUFFIX = "";
+    }
 
-private enum VERSION = "0.5.0";
+    static if (is(typeof(import("VERSION"))))
+    {
+        // takes the `git describe --tags` output and removes the leading
+        // 'v' as well as any kind of newline
+	// if the tag is considered malformed it gets used verbatim
+
+        enum gitDescribeOutput = import("VERSION");
+
+	string result;
+
+        if (gitDescribeOutput[0] == 'v')
+            result = gitDescribeOutput[1 .. $];
+        else
+            result = null;
+
+	uint minusCount;
+
+        foreach (i, c; result)
+        {
+            if (c == '\n' || c == '\r')
+            {
+                result = result[0 .. i];
+                break;
+            }
+
+	    if (c == '-')
+	    {
+                ++minusCount;
+            }
+        }
+
+        if (minusCount > 1)
+		result = null;
+
+        return result ? result ~ DEBUG_SUFFIX
+                      : gitDescribeOutput ~ DEBUG_SUFFIX;
+
+    }
+    else
+    {
+        return "unknown"  ~ DEBUG_SUFFIX ~ "-version";
+    }
+
+} ();
+
 
 version (NoMain)
 {
