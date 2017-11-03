@@ -50,6 +50,8 @@ struct Config
     ///
     OptionalBoolean dfmt_selective_import_space;
     ///
+    OptionalBoolean dfmt_sort_imports;
+    ///
     OptionalBoolean dfmt_compact_labeled_statements;
     ///
     TemplateConstraintStyle dfmt_template_constraint_style;
@@ -77,6 +79,7 @@ struct Config
         dfmt_space_before_function_parameters = OptionalBoolean.f;
         dfmt_split_operator_at_line_end = OptionalBoolean.f;
         dfmt_selective_import_space = OptionalBoolean.t;
+        dfmt_sort_imports = OptionalBoolean.f;
         dfmt_compact_labeled_statements = OptionalBoolean.t;
         dfmt_template_constraint_style = TemplateConstraintStyle.conditional_newline_indent;
     }

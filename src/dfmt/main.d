@@ -18,18 +18,18 @@ static immutable VERSION = () {
     {
         // takes the `git describe --tags` output and removes the leading
         // 'v' as well as any kind of newline
-	// if the tag is considered malformed it gets used verbatim
+        // if the tag is considered malformed it gets used verbatim
 
         enum gitDescribeOutput = import("VERSION");
 
-	string result;
+        string result;
 
         if (gitDescribeOutput[0] == 'v')
             result = gitDescribeOutput[1 .. $];
         else
             result = null;
 
-	uint minusCount;
+        uint minusCount;
 
         foreach (i, c; result)
         {
@@ -39,14 +39,14 @@ static immutable VERSION = () {
                 break;
             }
 
-	    if (c == '-')
-	    {
+                if (c == '-')
+                {
                 ++minusCount;
             }
         }
 
         if (minusCount > 1)
-		result = null;
+            result = null;
 
         return result ? result ~ DEBUG_SUFFIX
                       : gitDescribeOutput ~ DEBUG_SUFFIX;
@@ -87,7 +87,7 @@ else
             import dfmt.editorconfig : OptionalBoolean;
             import std.exception : enforceEx;
 
-            enforceEx!GetOptException(value == "true" || value == "false", "Invalid argument");
+            enforceEx!GetOptException(value == "true" || value == "false", "Invalid argument '" ~ value ~ "' for " ~ option ~ " should be 'true' or 'false'");
             immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t
                 : OptionalBoolean.f;
             switch (option)
@@ -103,12 +103,15 @@ else
                 break;
             case "space_before_function_parameters":
                 optConfig.dfmt_space_before_function_parameters = optVal;
-		break;
+                break;
             case "split_operator_at_line_end":
                 optConfig.dfmt_split_operator_at_line_end = optVal;
                 break;
             case "selective_import_space":
                 optConfig.dfmt_selective_import_space = optVal;
+                break;
+            case "sort_imports":
+                optConfig.dfmt_sort_imports = optVal;
                 break;
             case "compact_labeled_statements":
                 optConfig.dfmt_compact_labeled_statements = optVal;
@@ -136,6 +139,7 @@ else
                 "outdent_attributes", &handleBooleans,
                 "space_after_cast", &handleBooleans,
                 "selective_import_space", &handleBooleans,
+                "sort_imports", &handleBooleans,
                 "space_before_function_parameters", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
                 "compact_labeled_statements", &handleBooleans,
