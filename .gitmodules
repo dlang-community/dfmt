@@ -1,3 +1,6 @@
 [submodule "libdparse"]
 	path = libdparse
 	url = https://github.com/dlang-community/libdparse.git
+[submodule "makd"]
+	path = makd
+	url = https://github.com/sociomantic-tsunami/makd

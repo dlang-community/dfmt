@@ -38,3 +38,8 @@ bin/dfmt: views/VERSION $(SRC)
 debug: views/VERSION $(SRC)
 	$(DC) $(DMD_DEBUG_FLAGS) $(filter %.d,$^) -ofbin/dfmt
 
+pkg: dmd
+	$(MAKE) -f makd/Makd.mak pkg
+
+clean:
+	$(RM) bin/dfmt
