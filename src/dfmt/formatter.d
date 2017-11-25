@@ -895,6 +895,20 @@ private:
             indents.push(tok!"if");
             formatLeftBrace();
         }
+        else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"foreach"))
+        {
+            indents.pop();
+            indents.pop();
+            indents.push(tok!"foreach");
+            formatLeftBrace();
+        }
+        else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"foreach_reverse"))
+        {
+            indents.pop();
+            indents.pop();
+            indents.push(tok!"foreach_reverse");
+            formatLeftBrace();
+        }
     }
 
     void formatElse()

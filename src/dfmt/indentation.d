@@ -197,7 +197,8 @@ private:
                 immutable currentIsNonWrapTemp = !isWrapIndent(arr[i])
                     && isTempIndent(arr[i]) && arr[i] != tok!")" && arr[i] != tok!"!";
                 if (arr[i] == tok!"static" && (arr[i + 1] == tok!"if"
-                        || arr[i + 1] == tok!"else") && (i + 2 >= index || arr[i + 2] != tok!"{"))
+                        || arr[i + 1] == tok!"else" || arr[i + 1] == tok!"foreach"
+                        || arr[i + 1] == tok!"foreach_reverse") && (i + 2 >= index || arr[i + 2] != tok!"{"))
                 {
                     parenCount = pc;
                     continue;
