@@ -1,10 +1,10 @@
 static foreach (thing; things) {
-    doStuff();
+    pragma(msg, thing);
 }
 static foreach_reverse (thing; things) {
-    doStuff();
+    pragma(msg, thing);
 }
 static foreach (thing; things)
-    doStuff();
+    pragma(msg, thing);
 static foreach_reverse (thing; things)
-    doStuff();
+    pragma(msg, thing);

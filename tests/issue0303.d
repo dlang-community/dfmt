@@ -1,4 +1,4 @@
-static foreach (thing; things){doStuff();}
-static foreach_reverse (thing; things){doStuff();}
-static foreach (thing; things) doStuff();
-static foreach_reverse (thing; things) doStuff();
+static foreach (thing; things){pragma(msg,thing);}
+static foreach_reverse (thing; things){pragma(msg,thing);}
+static foreach (thing; things) pragma(msg,thing);
+static foreach_reverse (thing; things) pragma(msg,thing);
