@@ -12,6 +12,7 @@ struct Import
 {
     string[] importStrings;
     string renamedAs;
+	string attribString;
 }
 
 extern (C) static bool importStringLess(const Import a, const Import b)
@@ -50,6 +51,8 @@ struct ASTInformation
         sort(arrayStartLocations);
         sort(contractLocations);
         sort(constraintLocations);
+        sort(skipTokenLocations);
+
     }
 
     /// Locations of end braces for struct bodies
@@ -107,7 +110,7 @@ struct ASTInformation
 
             foreach(imp;(cast(Import[])imports).sort!(importStringLess))
             {
-                result[idx++] = imp.importStrings.join(".");
+                result[idx++] = imp.attribString ~ imp.importStrings.join(".");
             }
         }
         else
@@ -120,6 +123,9 @@ struct ASTInformation
 
     /// Locations of unary operators
     size_t[] unaryLocations;
+
+    /// Locations of tokens to be skipped
+    size_t[] skipTokenLocations;
 
     /// Lines containing attribute declarations
     size_t[] attributeDeclarationLines;
@@ -169,6 +175,7 @@ final class FormatVisitor : ASTVisitor
      * Params:
      *     astInformation = the AST information that will be filled in
      */
+
     this(ASTInformation* astInformation)
     {
         this.astInformation = astInformation;
@@ -192,9 +199,9 @@ final class FormatVisitor : ASTVisitor
         arrayInitializer.accept(this);
     }
 
-    void addImport(size_t scopeId, string[] importString, string renamedAs = null)
+    void addImport(size_t scopeId, string[] importString, string renamedAs, string importAttribString)
     {
-        astInformation.importScopes[scopeId] ~= Import(importString, renamedAs);
+        astInformation.importScopes[scopeId] ~= Import(importString, renamedAs, importAttribString);
     }
 
     override void visit(const SingleImport singleImport)
@@ -217,7 +224,7 @@ final class FormatVisitor : ASTVisitor
             if (singleImport.rename.text && singleImport.rename.text.length)
                 renamedAs = singleImport.rename.text;
 
-            addImport(scopeOrdinal, importString, renamedAs);
+            addImport(scopeOrdinal, importString, renamedAs, importAttribString);
 
         }
         else
@@ -283,6 +290,49 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.caseEndLocations ~= defaultStatement.colonLocation;
         defaultStatement.accept(this);
+    }
+
+    /// this is the very limited usecase of printing attribs which may be
+    /// attached to imports (therefore it's not compleate at all)
+    /// HACK this method also adds the original token to the ignore_tokens
+
+    private string toImportAttribString (const (Attribute)[] attributes)
+    {
+        string result;
+
+        foreach(attrib;attributes)
+        {
+
+            if (attrib.attribute.type == tok!"public")
+            {
+                result ~= "public ";
+                astInformation.skipTokenLocations ~= attrib.attribute.index;
+            }
+            else if (attrib.attribute.type == tok!"private")
+            {
+                result ~= "private ";
+                astInformation.skipTokenLocations ~= attrib.attribute.index;
+            }
+            else if (attrib.attribute.type == tok!"static")
+            {
+                result ~= "static ";
+                astInformation.skipTokenLocations ~= attrib.attribute.index;
+            }
+        }
+
+        return result;
+    }
+
+    override void visit(const Declaration declaration)
+    {
+        if (declaration.importDeclaration)
+        {
+            importAttribString = toImportAttribString(declaration.attributes);
+        }
+
+        declaration.accept(this);
+
+        importAttribString = null;
     }
 
     override void visit(const CaseStatement caseStatement)
@@ -395,5 +445,7 @@ final class FormatVisitor : ASTVisitor
 
 private:
     ASTInformation* astInformation;
+    string importAttribString;
+
     alias visit = ASTVisitor.visit;
 }
