@@ -518,14 +518,17 @@ private:
         }
         else
         {
+            if (!isImport)
+                writeImportLinesFor(0);
+
             while(currentIs(tok!"import"))
             {
                 // skip to the ending ; of the import statement
-                while(!currentIs(tok!";")) { index++; }
+                while(!currentIs(tok!";")) 
+                    index++;
                 // skip past the ;
                 index++;
             }
-            newline();
         }
     }
 
@@ -622,6 +625,38 @@ private:
                 || currentIs(tok!"identifier") || currentIs(tok!"if"))
                 && !currentIsIndentedTemplateConstraint())
             write(" ");
+    }
+
+    void writeImportLinesFor(size_t scopeOrdinal)
+    {
+        foreach(importLine;astInformation.importLinesFor(scopeOrdinal))
+        {
+            if (importLine.importString !is null)
+            {
+                newline();
+                write(importLine.attribString);
+                write("import ");
+                if (importLine.renamedAs)
+                {
+                    write(importLine.renamedAs);
+                    write(" = ");
+                }
+                /+ TODO deal with selective imports
+                if (importLine.selctiveImports)
+                {
+                }
+                +/
+                write(importLine.importString);
+                write(";");
+            }
+            else
+            {
+                simpleNewline();
+            }
+        }
+
+        simpleNewline();
+        simpleNewline();
     }
 
     void formatColon()
@@ -814,16 +849,7 @@ private:
 
             if (writeImports && astInformation.importScopes[scopeOrdinal].length)
             {
-                foreach(importString;astInformation.importsFor(scopeOrdinal))
-                {
-                    newline();
-                    if (importString !is null)
-                    {
-                        write("import ");
-                        write(importString);
-                        write(";");
-                    }
-                }
+                writeImportLinesFor(scopeOrdinal);
             }
         }
     }
@@ -1472,6 +1498,12 @@ private:
 
     void writeToken()
     {
+        if (config.dfmt_sort_imports && astInformation.skipTokenLocations.canFindIndex(current.index))
+        {
+            index++;
+            return ;
+        }
+
         import std.range : retro;
         import std.algorithm.searching : countUntil;
 

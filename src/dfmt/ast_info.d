@@ -97,17 +97,24 @@ struct ASTInformation
         return result;
     }
 
+    static struct ImportLine
+    {
+        string importString;
+        string attribString;
+        string renamedAs;
+    }
+
     /// returns an array of indecies into the token array
     /// which are the indecies of the imports to be written
     /// in sorted order
     /// newlines for grouping are enoded as a null entry
-    string[] importsFor(const size_t scopeOrdinal) const
+    ImportLine[] importLinesFor(const size_t scopeOrdinal) const
     {
         import std.algorithm;
         import std.range;
 
         uint idx = 0;
-        string[] result;
+        ImportLine[] result;
 
         auto imports = importScopes[scopeOrdinal];
 
@@ -129,12 +136,13 @@ struct ASTInformation
                         || imp.importStrings[0 .. $-1] != prev.importStrings[0 .. $-1]
                     )
                     {
-                        result[idx++] = null;
+                        result[idx++].importString = null;
                     }
                 }
 
-                result[idx++] = imp.attribString ~ imp.importStrings.join(".");
-
+                result[idx].importString = imp.importStrings.join(".");
+                result[idx].renamedAs = imp.renamedAs;
+                result[idx++].attribString = imp.attribString;
             }
 
             result = result[0 .. idx];
@@ -155,6 +163,9 @@ struct ASTInformation
 
     /// Lines containing attribute declarations
     size_t[] attributeDeclarationLines;
+
+    /// lines in which imports end
+    size_t[] importEndLines;
 
     /// Case statement colon locations
     size_t[] caseEndLocations;
@@ -226,9 +237,13 @@ final class FormatVisitor : ASTVisitor
         astInformation.arrayStartLocations ~= arrayInitializer.startLocation;
         arrayInitializer.accept(this);
     }
-
+ 
     void addImport(size_t scopeId, string[] importString, string renamedAs, string importAttribString)
     {
+        import std.stdio;
+
+        writeln("addImport(", scopeId, ", ", importString, ", ",  renamedAs, ", ", importAttribString, ")");
+
         astInformation.importScopes[scopeId] ~= Import(importString, renamedAs, importAttribString);
     }
 
