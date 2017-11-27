@@ -817,12 +817,13 @@ private:
                 foreach(importString;astInformation.importsFor(scopeOrdinal))
                 {
                     newline();
-                    write("import ");
-                    write(importString);
-                    write(";");
+                    if (importString !is null)
+                    {
+                        write("import ");
+                        write(importString);
+                        write(";");
+                    }
                 }
-                newline();
-
             }
         }
     }

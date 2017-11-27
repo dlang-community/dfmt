@@ -15,12 +15,6 @@ struct Import
 	string attribString;
 }
 
-extern (C) static bool importStringLess(const Import a, const Import b)
-{
-    return a.importStrings < b.importStrings;
-}
-
-
 /// AST information that is needed by the formatter.
 struct ASTInformation
 {
@@ -89,11 +83,24 @@ struct ASTInformation
         return bestOrdinal;
     }
 
+    bool importStringLess(const Import a, const Import b) const
+    {
+        bool result;
+        result = a.importStrings < b.importStrings;
+        /*
+        if (moduleNameStrings.length && isCloserTo(a.importStrings, b.importStrings, moduleNameStrings)
+        {
+            
+        }
+        */
+
+        return result;
+    }
 
     /// returns an array of indecies into the token array
     /// which are the indecies of the imports to be written
     /// in sorted order
-
+    /// newlines for grouping are enoded as a null entry
     string[] importsFor(const size_t scopeOrdinal) const
     {
         import std.algorithm;
@@ -106,12 +113,31 @@ struct ASTInformation
 
         if (imports.length)
         {
-            result.length = imports.length;
+            const max_sorted_imports_length = imports.length * 2;
+            // account for newlines
+            result.length = max_sorted_imports_length;
+            auto sortedImports =
+                (cast(Import[])imports).sort!((a, b) => importStringLess(a, b))
+                .release;
 
-            foreach(imp;(cast(Import[])imports).sort!(importStringLess))
+            foreach(i, imp;sortedImports)
             {
+                if (i > 0 && imp.importStrings.length > 1)
+                {
+                    const prev = sortedImports[i-1];
+                    if (prev.importStrings.length < 2
+                        || imp.importStrings[0 .. $-1] != prev.importStrings[0 .. $-1]
+                    )
+                    {
+                        result[idx++] = null;
+                    }
+                }
+
                 result[idx++] = imp.attribString ~ imp.importStrings.join(".");
+
             }
+
+            result = result[0 .. idx];
         }
         else
         {
@@ -166,6 +192,8 @@ struct ASTInformation
     /// contains all imports inside scope
     Import[][] importScopes;
 
+    ///contain the current fqn of the module
+    string[] moduleNameStrings;
 }
 
 /// Collects information from the AST that is useful for the formatter
