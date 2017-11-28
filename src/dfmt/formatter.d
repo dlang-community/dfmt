@@ -463,8 +463,6 @@ private:
                     }
                     else if (currentIs(tok!"{") && config.dfmt_brace_style == BraceStyle.allman)
                         break;
-                    else if (currentIs(tok!"{") && config.dfmt_brace_style == BraceStyle.allman)
-                        break;
                     else if (isImport && !currentIs(tok!"import")
                         && !currentIs(tok!"}")
                         && !((currentIs(tok!"public")

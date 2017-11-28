@@ -83,6 +83,20 @@ struct ASTInformation
         return bestOrdinal;
     }
 
+    /// true if a is closer to t then b
+    /// with bias towards true
+    static bool isCloserTo(const string[] a, const string[] b, const string[] t)
+    {
+        import std.algorithm : min;
+
+        foreach(i;0 .. min(a.length, b.length, t.length))
+        {
+            
+        }
+
+        return false;
+    }
+
     bool importStringLess(const Import a, const Import b) const
     {
         bool result;
@@ -132,11 +146,22 @@ struct ASTInformation
                 if (i > 0)
                 {
                     const prev = sortedImports[i-1];
-                    if (prev.importStrings.length < 2
-                        || imp.importStrings[0 .. $-1] != prev.importStrings[0 .. $-1]
-                    )
+                    static if (false)
                     {
-                        result[idx++].importString = null;
+                        if (prev.importStrings.length < 2
+                            || imp.importStrings[0 .. $-1] 
+                                != prev.importStrings[0 .. $-1]
+                        )
+                        {
+                            result[idx++].importString = null;
+                        }
+                    }
+                    else
+                    {
+                        if (imp.importStrings[0] != prev.importStrings[0])
+                        {
+                            result[idx++].importString = null;
+                        }
                     }
                 }
 
