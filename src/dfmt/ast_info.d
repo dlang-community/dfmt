@@ -129,7 +129,7 @@ struct ASTInformation
 
             foreach(i, imp;sortedImports)
             {
-                if (i > 0 && imp.importStrings.length > 1)
+                if (i > 0)
                 {
                     const prev = sortedImports[i-1];
                     if (prev.importStrings.length < 2
@@ -142,7 +142,8 @@ struct ASTInformation
 
                 result[idx].importString = imp.importStrings.join(".");
                 result[idx].renamedAs = imp.renamedAs;
-                result[idx++].attribString = imp.attribString;
+                result[idx].attribString = imp.attribString;
+                idx++;
             }
 
             result = result[0 .. idx];
