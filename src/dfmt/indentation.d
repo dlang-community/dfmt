@@ -176,6 +176,7 @@ private:
 
     int indentSize(const size_t k = size_t.max) const pure nothrow @safe @nogc
     {
+        import std.algorithm : among;
         if (index == 0 || k == 0)
             return 0;
         immutable size_t j = k == size_t.max ? index : k;
@@ -196,8 +197,9 @@ private:
                     continue;
                 immutable currentIsNonWrapTemp = !isWrapIndent(arr[i])
                     && isTempIndent(arr[i]) && arr[i] != tok!")" && arr[i] != tok!"!";
-                if (arr[i] == tok!"static" && (arr[i + 1] == tok!"if"
-                        || arr[i + 1] == tok!"else") && (i + 2 >= index || arr[i + 2] != tok!"{"))
+                if (arr[i] == tok!"static"
+                    && arr[i + 1].among!(tok!"if", tok!"else", tok!"foreach", tok!"foreach_reverse")
+                    && (i + 2 >= index || arr[i + 2] != tok!"{"))
                 {
                     parenCount = pc;
                     continue;
