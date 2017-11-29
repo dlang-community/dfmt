@@ -4,7 +4,6 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 module dfmt.formatter;
-
 import dparse.lexer;
 import dparse.parser;
 import dparse.rollback_allocator;
@@ -148,7 +147,7 @@ private:
     /// Configuration
     const Config* config;
 
-    /// chached end of line string
+    /// cached end of line string
     const string eolString;
 
     /// Keep track of whether or not an extra newline was just added because of
@@ -170,6 +169,9 @@ private:
     /// True if we're in an ASM block
     bool inAsm;
 
+    /// formarts a variable number of tokes per call
+    /// called until no tokens remain
+    /// maybe called recursively
     void formatStep()
     {
         import std.range : assumeSorted;
@@ -191,7 +193,7 @@ private:
                     write(" ");
             }
         }
-        else if (currentIs(tok!"module") || currentIs(tok!"import"))
+        else if (currentIs(tok!"import") || currentIs(tok!"module"))
         {
             formatModuleOrImport();
         }
@@ -281,11 +283,12 @@ private:
         {
             writeToken();
             if (index < tokens.length && (currentIs(tok!"identifier")
-                    || ( index < 1 && ( isBasicType(peekBack(2).type) || peekBack2Is(tok!"identifier") ) &&
-                         currentIs(tok!("(")) && config.dfmt_space_before_function_parameters )
-                    || isBasicType(current.type) || currentIs(tok!"@") || currentIs(tok!"if")
-                    || isNumberLiteral(tokens[index].type) || (inAsm
-                    && peekBack2Is(tok!";") && currentIs(tok!"["))))
+                    || (index < 1 && (isBasicType(peekBack(2).type)
+                    || peekBack2Is(tok!"identifier")) && currentIs(tok!("("))
+                    && config.dfmt_space_before_function_parameters)
+                    || isBasicType(current.type) || currentIs(tok!"@")
+                    || currentIs(tok!"if") || isNumberLiteral(tokens[index].type)
+                    || (inAsm && peekBack2Is(tok!";") && currentIs(tok!"["))))
             {
                 write(" ");
             }
@@ -433,78 +436,97 @@ private:
 
     void formatModuleOrImport()
     {
-        immutable t = current.type;
-        writeToken();
-        if (currentIs(tok!"("))
+        immutable isImport = (current.type == tok!"import");
+        if (!config.dfmt_sort_imports || peekIs(tok!("(")) || !isImport)
         {
-            writeParens(false);
-            return;
-        }
-        write(" ");
-        while (index < tokens.length)
-        {
-            if (currentIs(tok!";"))
+            writeToken();
+            if (currentIs(tok!"("))
             {
-                writeToken();
-                if (index >= tokens.length)
-                {
-                    newline();
-                    break;
-                }
-                if (currentIs(tok!"comment") && current.line == peekBack().line)
-                {
-                    break;
-                }
-                else if (currentIs(tok!"{") && config.dfmt_brace_style == BraceStyle.allman)
-                    break;
-                else if (t == tok!"import" && !currentIs(tok!"import")
-                        && !currentIs(tok!"}")
-                            && !((currentIs(tok!"public")
-                                || currentIs(tok!"private")
-                                || currentIs(tok!"static"))
-                            && peekIs(tok!"import")) && !indents.topIsOneOf(tok!"if",
-                            tok!"debug", tok!"version"))
-                {
-                    simpleNewline();
-                    currentLineLength = 0;
-                    justAddedExtraNewline = true;
-                    newline();
-                }
-                else
-                    newline();
-                break;
+                writeParens(false);
+                return;
             }
-            else if (currentIs(tok!":"))
+            write(" ");
+
+            while (index < tokens.length)
             {
-                if (config.dfmt_selective_import_space)
-                    write(" ");
-                writeToken();
-                write(" ");
-            }
-            else if (currentIs(tok!","))
-            {
-                // compute length until next ',' or ';'
-                int lengthOfNextChunk;
-                for (size_t i = index + 1; i < tokens.length; i++)
+                if (currentIs(tok!";"))
                 {
-                    if (tokens[i].type == tok!"," || tokens[i].type == tok!";")
+                    writeToken();
+                    if (index >= tokens.length)
+                    {
+                        newline();
                         break;
-                    const len = tokenLength(tokens[i]);
-                    assert(len >= 0);
-                    lengthOfNextChunk += len;
+                    }
+                    if (currentIs(tok!"comment") && current.line == peekBack().line)
+                    {
+                        break;
+                    }
+                    else if (currentIs(tok!"{") && config.dfmt_brace_style == BraceStyle.allman)
+                        break;
+                    else if (isImport && !currentIs(tok!"import")
+                        && !currentIs(tok!"}")
+                        && !((currentIs(tok!"public")
+                            || currentIs(tok!"private")
+                            || currentIs(tok!"static"))
+                        && peekIs(tok!"import")) && !indents.topIsOneOf(tok!"if",
+                            tok!"debug", tok!"version"))
+                    {
+                        simpleNewline();
+                        currentLineLength = 0;
+                        justAddedExtraNewline = true;
+                        newline();
+                    }
+                    else
+                        newline();
+                    break;
                 }
-                assert(lengthOfNextChunk > 0);
-                writeToken();
-                if (currentLineLength + 1 + lengthOfNextChunk >= config.dfmt_soft_max_line_length)
+                else if (currentIs(tok!":"))
                 {
-                    pushWrapIndent(tok!",");
-                    newline();
+                    if (config.dfmt_selective_import_space)
+                        write(" ");
+                    writeToken();
+                    write(" ");
+                }
+                else if (currentIs(tok!","))
+                {
+                    // compute length until next ',' or ';'
+                    int lengthOfNextChunk;
+                    for (size_t i = index + 1; i < tokens.length; i++)
+                    {
+                        if (tokens[i].type == tok!"," || tokens[i].type == tok!";")
+                            break;
+                        const len = tokenLength(tokens[i]);
+                        assert(len >= 0);
+                        lengthOfNextChunk += len;
+                    }
+                    assert(lengthOfNextChunk > 0);
+                    writeToken();
+                    if (currentLineLength + 1 + lengthOfNextChunk >= config
+                            .dfmt_soft_max_line_length)
+                    {
+                        pushWrapIndent(tok!",");
+                        newline();
+                    }
+                    else
+                        write(" ");
                 }
                 else
-                    write(" ");
+                      formatStep();
+              }
+
+              if (config.dfmt_sort_imports && !isImport)
+                  writeImportLinesFor(0);
+        }
+        else
+        {
+            while(currentIs(tok!"import"))
+            {
+                // skip to the ending ; of the import statement
+                while(!currentIs(tok!";")) 
+                    index++;
+                // skip past the ;
+                index++;
             }
-            else
-                formatStep();
         }
     }
 
@@ -601,6 +623,41 @@ private:
                 || currentIs(tok!"identifier") || currentIs(tok!"if"))
                 && !currentIsIndentedTemplateConstraint())
             write(" ");
+    }
+
+    void writeImportLinesFor(size_t scopeOrdinal)
+    {
+        foreach(importLine;astInformation.importLinesFor(scopeOrdinal))
+        {
+            if (importLine.importString !is null)
+            {
+                // for some reason newline() creates double 
+                // newlines in module-scope
+                scopeOrdinal ? newline() : simpleNewline();
+
+                write(importLine.attribString);
+                write("import ");
+                if (importLine.renamedAs)
+                {
+                    write(importLine.renamedAs);
+                    write(" = ");
+                }
+                /+ TODO deal with selective imports
+                if (importLine.selctiveImports)
+                {
+                }
+                +/
+                write(importLine.importString);
+                write(";");
+            }
+            else
+            {
+                simpleNewline();
+            }
+        }
+
+        simpleNewline();
+        simpleNewline();
     }
 
     void formatColon()
@@ -749,6 +806,19 @@ private:
         }
         else
         {
+            bool writeImports = false;
+            size_t scopeOrdinal = void;
+            if (config.dfmt_sort_imports)
+            {
+                scopeOrdinal = astInformation.scopeOrdinalOfLocation(current.index);
+                if (scopeOrdinal)
+                {
+                    auto range = astInformation.scopeLocationRanges[scopeOrdinal];
+                    if (range.startLocation == current.index)
+                        writeImports = true;
+                }
+            }
+
             if (peekBackIsSlashSlash())
             {
                 if (peekBack2Is(tok!";"))
@@ -773,9 +843,15 @@ private:
             }
 
             indents.push(tok!"{");
+
             if (!currentIs(tok!"{"))
                 newline();
             linebreakHints = [];
+
+            if (writeImports && astInformation.importScopes[scopeOrdinal].length)
+            {
+                writeImportLinesFor(scopeOrdinal);
+            }
         }
     }
 
@@ -1051,10 +1127,9 @@ private:
 
     bool currentIsIndentedTemplateConstraint()
     {
-        return index < tokens.length
-            && astInformation.constraintLocations.canFindIndex(current.index)
+        return index < tokens.length && astInformation.constraintLocations.canFindIndex(current.index)
             && (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline
-                || currentLineLength >= config.dfmt_soft_max_line_length);
+                    || currentLineLength >= config.dfmt_soft_max_line_length);
     }
 
     void formatOperator()
@@ -1438,8 +1513,14 @@ private:
 
     void writeToken()
     {
-        import std.range:retro;
-        import std.algorithm.searching:countUntil;
+        if (config.dfmt_sort_imports && astInformation.skipTokenLocations.canFindIndex(current.index))
+        {
+            index++;
+            return ;
+        }
+
+        import std.range : retro;
+        import std.algorithm.searching : countUntil;
 
         if (current.text is null)
         {
@@ -1606,9 +1687,9 @@ const pure @safe @nogc:
     const(Token) peekBack(uint distance = 1) nothrow
     {
         if (index < distance)
-	{
-		assert(0, "Trying to peek before the first token");
-	}
+        {
+            assert(0, "Trying to peek before the first token");
+        }
         return tokens[index - distance];
     }
 
