@@ -10,8 +10,11 @@ import dparse.ast;
 
 struct Import
 {
+    /// the identifier chain of the import
     string[] importStrings;
+    /// the lhs of renamed imports 
     string renamedAs;
+    /// attribs for the import
 	string attribString;
 }
 
@@ -100,7 +103,30 @@ struct ASTInformation
     bool importStringLess(const Import a, const Import b) const
     {
         bool result;
-        result = a.importStrings < b.importStrings;
+        const (string)[] sortKeyA = a.importStrings;
+        const (string)[] sortKeyB = b.importStrings;
+/+
+        if (sortKeyA.length > 2)
+        {
+            const last = a.importStrings[$ - 1];
+            foreach(i,s;a.importStrings[1 .. $-1])
+            {
+                sortKeyA[i + 2] = s;
+            }
+            sortKeyA[1] = last; 
+        }
+
+        if (sortKeyB.length > 2)
+        {
+            const last = b.importStrings[$ - 1];
+            foreach(i,s;sortKeyB[1 .. $-1])
+            {
+                sortKeyB[i + 2] = s;
+            }
+            sortKeyB[1] = last; 
+        }
++/
+        result = sortKeyA < sortKeyB;
         /*
         if (moduleNameStrings.length && isCloserTo(a.importStrings, b.importStrings, moduleNameStrings)
         {
@@ -154,6 +180,7 @@ struct ASTInformation
                         )
                         {
                             result[idx++].importString = null;
+                            // a null importString means a blank line is inserted
                         }
                     }
                     else
@@ -161,6 +188,7 @@ struct ASTInformation
                         if (imp.importStrings[0] != prev.importStrings[0])
                         {
                             result[idx++].importString = null;
+                            // a null importString means a blank line is inserted
                         }
                     }
                 }
@@ -266,10 +294,6 @@ final class FormatVisitor : ASTVisitor
  
     void addImport(size_t scopeId, string[] importString, string renamedAs, string importAttribString)
     {
-        import std.stdio;
-
-        writeln("addImport(", scopeId, ", ", importString, ", ",  renamedAs, ", ", importAttribString, ")");
-
         astInformation.importScopes[scopeId] ~= Import(importString, renamedAs, importAttribString);
     }
 
@@ -301,7 +325,7 @@ final class FormatVisitor : ASTVisitor
             assert (0, "singleImport without identifierChain");
         }
 
-
+        singleImport.accept(this);
     }
 
     override void visit(const ConditionalDeclaration dec)

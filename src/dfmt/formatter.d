@@ -147,7 +147,7 @@ private:
     /// Configuration
     const Config* config;
 
-    /// chached end of line string
+    /// cached end of line string
     const string eolString;
 
     /// Keep track of whether or not an extra newline was just added because of
@@ -513,12 +513,12 @@ private:
                 else
                       formatStep();
               }
+
+              if (config.dfmt_sort_imports && !isImport)
+                  writeImportLinesFor(0);
         }
         else
         {
-            if (!isImport)
-                writeImportLinesFor(0);
-
             while(currentIs(tok!"import"))
             {
                 // skip to the ending ; of the import statement
