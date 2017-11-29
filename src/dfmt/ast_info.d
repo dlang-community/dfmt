@@ -105,34 +105,10 @@ struct ASTInformation
         bool result;
         const (string)[] sortKeyA = a.importStrings;
         const (string)[] sortKeyB = b.importStrings;
-/+
-        if (sortKeyA.length > 2)
-        {
-            const last = a.importStrings[$ - 1];
-            foreach(i,s;a.importStrings[1 .. $-1])
-            {
-                sortKeyA[i + 2] = s;
-            }
-            sortKeyA[1] = last; 
-        }
 
-        if (sortKeyB.length > 2)
-        {
-            const last = b.importStrings[$ - 1];
-            foreach(i,s;sortKeyB[1 .. $-1])
-            {
-                sortKeyB[i + 2] = s;
-            }
-            sortKeyB[1] = last; 
-        }
-+/
         result = sortKeyA < sortKeyB;
-        /*
-        if (moduleNameStrings.length && isCloserTo(a.importStrings, b.importStrings, moduleNameStrings)
-        {
-            
-        }
-        */
+
+        //TODO take the module-name of the module we are formatting into account
 
         return result;
     }

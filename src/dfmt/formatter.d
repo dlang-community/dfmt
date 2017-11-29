@@ -631,7 +631,10 @@ private:
         {
             if (importLine.importString !is null)
             {
-                newline();
+                // for some reason newline() creates double 
+                // newlines in module-scope
+                scopeOrdinal ? newline() : simpleNewline();
+
                 write(importLine.attribString);
                 write("import ");
                 if (importLine.renamedAs)
