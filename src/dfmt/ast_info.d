@@ -30,6 +30,7 @@ struct ASTInformation
         sort(arrayStartLocations);
         sort(contractLocations);
         sort(constraintLocations);
+        sort(constructorDestructorLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -73,6 +74,9 @@ struct ASTInformation
 
     /// Locations of template constraint "if" tokens
     size_t[] constraintLocations;
+
+    /// Locations of constructor/destructor "this" tokens ?
+    size_t[] constructorDestructorLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -91,6 +95,18 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.arrayStartLocations ~= arrayInitializer.startLocation;
         arrayInitializer.accept(this);
+    }
+
+    override void visit(const Constructor constructor)
+    {
+        astInformation.constructorDestructorLocations ~= constructor.location;
+        constructor.accept(this);
+    }
+
+    override void visit(const Destructor destructor)
+    {
+        astInformation.constructorDestructorLocations ~= destructor.index;
+        destructor.accept(this);
     }
 
     override void visit(const ConditionalDeclaration dec)

@@ -1,3 +1,4 @@
+
 //          Copyright Brian Schott 2015.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE.txt or copy at
@@ -263,6 +264,17 @@ private:
                 inAsm = false;
             }
         }
+        else if (currentIs(tok!"this"))
+        {
+            const thisIndex = current.index;
+            formatKeyword();
+            if (config.dfmt_space_before_function_parameters
+                && astInformation.constructorDestructorLocations
+                    .canFindIndex(thisIndex))
+            {
+                write(" ");
+            }
+        }
         else if (isKeyword(current.type))
         {
             formatKeyword();
@@ -280,12 +292,19 @@ private:
         else if (currentIs(tok!"identifier"))
         {
             writeToken();
-            if (index < tokens.length && (currentIs(tok!"identifier")
-                    || ( index > 1 && ( isBasicType(peekBack(2).type) || peekBack2Is(tok!"identifier") ) &&
-                         currentIs(tok!("(")) && config.dfmt_space_before_function_parameters )
+            //dfmt off
+            if (index < tokens.length && ( currentIs(tok!"identifier")
+                    || ( index > 1 && config.dfmt_space_before_function_parameters
+                        && ( isBasicType(peekBack(2).type)
+                            || peekBack2Is(tok!"identifier")
+                            || peekBack2Is(tok!")")
+                            || peekBack2Is(tok!"]") )
+                        && currentIs(tok!("(") )
                     || isBasicType(current.type) || currentIs(tok!"@") || currentIs(tok!"if")
-                    || isNumberLiteral(tokens[index].type) || (inAsm
-                    && peekBack2Is(tok!";") && currentIs(tok!"["))))
+                    || isNumberLiteral(tokens[index].type)
+                    || (inAsm  && peekBack2Is(tok!";") && currentIs(tok!"["))
+            )))
+            //dfmt on
             {
                 write(" ");
             }
