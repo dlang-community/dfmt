@@ -31,6 +31,8 @@ struct ASTInformation
         sort(contractLocations);
         sort(constraintLocations);
         sort(constructorDestructorLocations);
+        sort(staticConstructorDestructorLocations);
+        sort(sharedStaticConstructorDestructorLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -75,6 +77,12 @@ struct ASTInformation
     /// Locations of template constraint "if" tokens
     size_t[] constraintLocations;
 
+    /// Locations of constructor/destructor "shared" tokens ?
+    size_t[] sharedStaticConstructorDestructorLocations;
+
+    /// Locations of constructor/destructor "static" tokens ?
+    size_t[] staticConstructorDestructorLocations;
+
     /// Locations of constructor/destructor "this" tokens ?
     size_t[] constructorDestructorLocations;
 }
@@ -97,13 +105,37 @@ final class FormatVisitor : ASTVisitor
         arrayInitializer.accept(this);
     }
 
-    override void visit(const Constructor constructor)
+    override void visit (const SharedStaticConstructor sharedStaticConstructor)
+    {
+        astInformation.sharedStaticConstructorDestructorLocations ~= sharedStaticConstructor.location;
+        sharedStaticConstructor.accept(this);
+    }
+
+    override void visit (const SharedStaticDestructor sharedStaticDestructor)
+    {
+        astInformation.sharedStaticConstructorDestructorLocations ~= sharedStaticDestructor.location;
+        sharedStaticDestructor.accept(this);
+    }
+
+    override void visit (const StaticConstructor staticConstructor)
+    {
+        astInformation.staticConstructorDestructorLocations ~= staticConstructor.location;
+        staticConstructor.accept(this);
+    }
+
+    override void visit (const StaticDestructor staticDestructor)
+    {
+        astInformation.staticConstructorDestructorLocations ~= staticDestructor.location;
+        staticDestructor.accept(this);
+    }
+
+    override void visit (const Constructor constructor)
     {
         astInformation.constructorDestructorLocations ~= constructor.location;
         constructor.accept(this);
     }
 
-    override void visit(const Destructor destructor)
+    override void visit (const Destructor destructor)
     {
         astInformation.constructorDestructorLocations ~= destructor.index;
         destructor.accept(this);
