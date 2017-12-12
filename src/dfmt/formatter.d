@@ -171,6 +171,9 @@ private:
     /// True if we're in an ASM block
     bool inAsm;
 
+    /// True if the next "this" should have a space behind it
+    bool thisSpace;
+
     void formatStep()
     {
         import std.range : assumeSorted;
@@ -269,10 +272,11 @@ private:
             const thisIndex = current.index;
             formatKeyword();
             if (config.dfmt_space_before_function_parameters
-                && astInformation.constructorDestructorLocations
-                    .canFindIndex(thisIndex))
+                && (thisSpace || astInformation.constructorDestructorLocations
+                    .canFindIndex(thisIndex)))
             {
                 write(" ");
+                thisSpace = false;
             }
         }
         else if (isKeyword(current.type))
@@ -1047,6 +1051,24 @@ private:
                     write(" ");
             }
             break;
+        case tok!"static":
+            {
+                if (astInformation.staticConstructorDestructorLocations
+                    .canFindIndex(current.index))
+                {
+                    thisSpace = true;
+                }
+            }
+            goto default;
+        case tok!"shared":
+            {
+                if (astInformation.sharedStaticConstructorDestructorLocations
+                    .canFindIndex(current.index))
+                {
+                    thisSpace = true;
+                }
+            }
+            goto default;
         default:
             if (peekBackIs(tok!"identifier"))
                 write(" ");
