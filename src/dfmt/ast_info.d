@@ -90,6 +90,8 @@ struct ASTInformation
 /// Collects information from the AST that is useful for the formatter
 final class FormatVisitor : ASTVisitor
 {
+    alias visit = ASTVisitor.visit;
+
     /**
      * Params:
      *     astInformation = the AST information that will be filled in
@@ -295,5 +297,4 @@ final class FormatVisitor : ASTVisitor
 
 private:
     ASTInformation* astInformation;
-    alias visit = ASTVisitor.visit;
 }
