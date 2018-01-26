@@ -9,7 +9,7 @@ d:
 
 os:
   - linux
-#  - osx # disabled since until travis has more mac resources
+#  - osx # disabled until travis has more mac resources
 
 env:
   - BUILD=
