@@ -841,7 +841,8 @@ private:
                 justAddedExtraNewline = true;
             }
             if (config.dfmt_brace_style == BraceStyle.otbs
-                    && peekIs(tok!"else") && !indents.topAre(tok!"static", tok!"if"))
+                    && peekIs(tok!"else") && !indents.topAre(tok!"static", tok!"if")
+                    && !indents.topIs(tok!"foreach"))
             {
                 write(" ");
                 index++;
@@ -852,7 +853,7 @@ private:
                         && !peekIs(tok!";") && !peekIs(tok!"{"))
                 {
                     index++;
-                    if (indents.topIs(tok!"static"))
+                    if (indents.topIsOneOf(tok!"static", tok!"foreach"))
                         indents.pop();
                     newline();
                 }
