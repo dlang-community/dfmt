@@ -159,14 +159,17 @@ struct IndentStack
         return cast(int) index;
     }
 
-    /+void dump()
+    /**
+     * Dumps the current state of the indentation stack to `stderr`. Used for debugging.
+     */
+    void dump()
     {
         import std.stdio : stderr;
         import dparse.lexer : str;
         import std.algorithm.iteration : map;
 
         stderr.writefln("\033[31m%(%s %)\033[0m", arr[0 .. index].map!(a => str(a)));
-    }+/
+    }
 
 private:
 
