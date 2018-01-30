@@ -38,7 +38,7 @@ jobs:
               - beaver dlang make pkg
           deploy:
               provider: script
-              script: beaver bintray upload build/last/pkg/*.deb
+              script: beaver bintray upload -d dlang-community/apt/dfmt build/last/pkg/*.deb
               skip_cleanup: true
               on:
                   tags: true # must be a git tag
