@@ -313,7 +313,7 @@ private:
                 write(" ");
             }
         }
-        else if (currentIs(tok!"scriptLine"))
+        else if (currentIs(tok!"scriptLine") || currentIs(tok!"specialTokenSequence"))
         {
             writeToken();
             newline();
