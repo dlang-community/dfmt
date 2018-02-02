@@ -1,0 +1,4 @@
+void main()
+{
+	foreach (v; a) try { foo(); } catch (Exception e) { bar(); } catch (Exception e) { bar(); } finally {} stuff();
+}
