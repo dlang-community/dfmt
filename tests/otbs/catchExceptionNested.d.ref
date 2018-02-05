@@ -16,8 +16,7 @@ void foo() {
     foreach (immutable i; 0 .. 2) {
         try {
             i.bar;
-        }
-        catch (U0) {
+        } catch (U0) {
             "Function foo caught exception U0".writeln;
         }
     }
