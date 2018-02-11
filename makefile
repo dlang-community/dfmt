@@ -1,6 +1,7 @@
 SRC := $(shell find src -name "*.d") \
-	$(shell find libdparse/src -name "*.d")
-INCLUDE_PATHS := -Ilibdparse/src -Isrc
+	$(shell find libdparse/src -name "*.d") \
+	$(shell find stdx-allocator/source -name "*.d")
+INCLUDE_PATHS := -Ilibdparse/src -Istdx-allocator/source -Isrc
 DMD_COMMON_FLAGS := -dip25 -w $(INCLUDE_PATHS) -Jviews
 DMD_DEBUG_FLAGS := -debug -g $(DMD_COMMON_FLAGS)
 DMD_FLAGS := -O -inline $(DMD_COMMON_FLAGS)
