@@ -4,6 +4,6 @@
     "targetType": "autodetect",
     "license": "BSL-1.0",
     "dependencies": {
-      "libdparse": "~>0.8.0-alpha.4"
+      "libdparse": "~>0.8.0-alpha.5"
     }
 }
