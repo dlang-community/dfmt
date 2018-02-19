@@ -25,7 +25,7 @@ D source code formatter
 
 ARGS.extend(FUN.mapfiles(dfmt_bindir, '/usr/bin', 'dfmt'))
 ARGS.extend([
- 'bash-completion/completion/dfmt=/usr/share/bash-completion/completion/dfmt'
+ 'bash-completion/completions/dfmt=/usr/share/bash-completion/completions/dfmt'
 ])
 
 # vim: set ft=python tw=80 :
