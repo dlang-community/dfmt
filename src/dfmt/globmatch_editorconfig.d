@@ -2,8 +2,9 @@ module dfmt.globmatch_editorconfig;
 
 import std.path : CaseSensitive;
 import std.range : isForwardRange, ElementEncodingType;
-import std.string : isSomeChar, isSomeString, empty, save, front, popFront;
-import std.typecons : Unqual;
+import std.traits : isSomeChar, isSomeString;
+import std.range.primitives :  empty, save, front, popFront;
+import std.traits : Unqual;
 import std.conv : to;
 import std.path : filenameCharCmp, isDirSeparator;
 
