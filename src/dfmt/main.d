@@ -188,7 +188,7 @@ else
         Config explicitConfig;
         if (explicitConfigDir)
         {
-            import std.path : exists, isDir;
+            import std.file : exists, isDir;
 
             if (!exists(explicitConfigDir) || !isDir(explicitConfigDir))
             {
