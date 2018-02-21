@@ -41,6 +41,7 @@ found in .editorconfig files.
 * **--max_line_length**: See **max_line_length** below
 * **--soft_max_line_length**: See **dfmt_soft_max_line_length** below
 * **--outdent_attributes**: See **dfmt_outdent_attributes** below
+* **--single_template_constraint_indent**: See **dfmt_template_constraint_style** below
 * **--space_after_cast**: See **dfmt_space_after_cast** below
 * **--space_before_function_parameters**: See **dfmt_space_before_function_parameters** below
 * **--split_operator_at_line_end**: See **dfmt_split_operator_at_line_end** below
@@ -105,6 +106,7 @@ dfmt_space_before_function_parameters | `true`, `false` | `false` | Insert space
 dfmt_selective_import_space | `true`, `false` | `true` | Insert space after the module name and before the `:` for selective imports.
 dfmt_compact_labeled_statements | `true`, `false` | `true` | Place labels on the same line as the labeled `switch`, `for`, `foreach`, or `while` statement.
 dfmt_template_constraint_style | `conditional_newline_indent` `conditional_newline` `always_newline` `always_newline_indent` | `conditional_newline_indent` | Control the formatting of template constraints.
+dfmt_single_template_constraint_indent | `true`, `false` | `false` | Set if the constraints are indented by a single tab instead of two. Has only an effect for certain indentation styles.
 
 ## Terminology
 * Braces - `{` and `}`
