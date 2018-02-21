@@ -18,18 +18,18 @@ static immutable VERSION = () {
     {
         // takes the `git describe --tags` output and removes the leading
         // 'v' as well as any kind of newline
-	// if the tag is considered malformed it gets used verbatim
+        // if the tag is considered malformed it gets used verbatim
 
         enum gitDescribeOutput = import("VERSION");
 
-	string result;
+        string result;
 
         if (gitDescribeOutput[0] == 'v')
             result = gitDescribeOutput[1 .. $];
         else
             result = null;
 
-	uint minusCount;
+        uint minusCount;
 
         foreach (i, c; result)
         {
@@ -39,17 +39,17 @@ static immutable VERSION = () {
                 break;
             }
 
-	    if (c == '-')
-	    {
+            if (c == '-')
+            {
                 ++minusCount;
             }
         }
 
         if (minusCount > 1)
-		result = null;
+            result = null;
 
         return result ? result ~ DEBUG_SUFFIX
-                      : gitDescribeOutput ~ DEBUG_SUFFIX;
+            : gitDescribeOutput ~ DEBUG_SUFFIX;
 
     }
     else
@@ -103,7 +103,7 @@ else
                 break;
             case "space_before_function_parameters":
                 optConfig.dfmt_space_before_function_parameters = optVal;
-		break;
+                break;
             case "split_operator_at_line_end":
                 optConfig.dfmt_split_operator_at_line_end = optVal;
                 break;
