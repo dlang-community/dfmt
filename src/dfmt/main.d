@@ -289,20 +289,19 @@ private version (Windows)
     }
 }
 
-private string optionsToString(E)() if (is(E == enum))
+template optionsToString(E) if (is(E == enum))
 {
-    import std.traits : EnumMembers;
-    import std.conv : to;
+    enum optionsToString = () {
 
-    string result = "(";
-    foreach (i, option; EnumMembers!E)
-    {
-        immutable s = to!string(option);
-        if (s != "unspecified")
-            result ~= s ~ "|";
-    }
-    result = result[0 .. $ - 1] ~ ")";
-    return result;
+        string result = "(";
+        foreach (s; [__traits(allMembers, E)])
+        {
+            if (s != "unspecified")
+                result ~= s ~ "|";
+        }
+        result = result[0 .. $ - 1] ~ ")";
+        return result;
+    } ();
 }
 
 private void printHelp()
@@ -318,12 +317,12 @@ Options:
 
 Formatting Options:
     --align_switch_statements
-    --brace_style               `, optionsToString!(typeof(Config.dfmt_brace_style))(),
+    --brace_style               `, optionsToString!(typeof(Config.dfmt_brace_style)),
             `
-    --end_of_line               `, optionsToString!(typeof(Config.end_of_line))(), `
+    --end_of_line               `, optionsToString!(typeof(Config.end_of_line)), `
     --indent_size
     --indent_style, -t          `,
-            optionsToString!(typeof(Config.indent_style))(), `
+            optionsToString!(typeof(Config.indent_style)), `
     --soft_max_line_length
     --max_line_length
     --outdent_attributes
@@ -334,7 +333,7 @@ Formatting Options:
     --compact_labeled_statements
     --template_constraint_style
         `,
-            optionsToString!(typeof(Config.dfmt_template_constraint_style))());
+            optionsToString!(typeof(Config.dfmt_template_constraint_style)));
 }
 
 private string createFilePath(bool readFromStdin, string fileName)
