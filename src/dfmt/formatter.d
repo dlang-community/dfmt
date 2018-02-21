@@ -550,6 +550,10 @@ private:
             spaceAfterParens = true;
             parenDepth++;
         }
+
+        if( config.spaces_around_brackets == SpacesAroundBrackets.inside && !currentIs(tok!")") && !currentIs(tok!"]") )
+            write(" ");
+
         immutable bool arrayInitializerStart = p == tok!"[" && linebreakHints.length != 0
             && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
         if (arrayInitializerStart)
@@ -578,6 +582,9 @@ private:
     }
     body
     {
+        if( config.spaces_around_brackets == SpacesAroundBrackets.inside )
+            write(" ");
+
         parenDepth--;
         indents.popWrapIndents();
         while (indents.topIsOneOf(tok!"!", tok!")"))
@@ -1172,6 +1179,9 @@ private:
             formatColon();
             break;
         case tok!"]":
+            if( config.spaces_around_brackets == SpacesAroundBrackets.inside )
+                write(" ");
+
             indents.popWrapIndents();
             if (indents.topIs(tok!"]"))
                 newline();

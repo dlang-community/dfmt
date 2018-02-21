@@ -28,6 +28,13 @@ enum TemplateConstraintStyle
     always_newline_indent
 }
 
+enum SpacesAroundBrackets
+{
+    unspecified,
+    none,
+    inside
+}
+
 /// Configuration options for formatting
 struct Config
 {
@@ -53,6 +60,8 @@ struct Config
     OptionalBoolean dfmt_compact_labeled_statements;
     ///
     TemplateConstraintStyle dfmt_template_constraint_style;
+    ///
+    SpacesAroundBrackets spaces_around_brackets;
 
     mixin StandardEditorConfigFields;
 
@@ -79,6 +88,8 @@ struct Config
         dfmt_selective_import_space = OptionalBoolean.t;
         dfmt_compact_labeled_statements = OptionalBoolean.t;
         dfmt_template_constraint_style = TemplateConstraintStyle.conditional_newline_indent;
+
+        spaces_around_brackets = SpacesAroundBrackets.none;
     }
 
     /**
