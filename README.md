@@ -68,7 +68,7 @@ void main(string[] args)
     // argument list normally
 	getopt(args, "optionOne", &optionOne, "optionTwo", &optionTwo, "optionThree", &optionThree);
 
-	// dfmt off
+    // dfmt off
     getopt(args,
         "optionOne", &optionOne,
         "optionTwo", &optionTwo,
