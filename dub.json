@@ -5,5 +5,7 @@
     "license": "BSL-1.0",
     "dependencies": {
       "libdparse": "~>0.8.0-alpha.5"
-    }
+    },
+    "targetPath" : "bin/",
+    "targetName" : "dfmt",
 }
