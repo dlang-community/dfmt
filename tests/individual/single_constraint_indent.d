@@ -42,15 +42,14 @@ private void test(string input, string expected, string[] dfmt_args)
     pp.stdin.close;
     const r = wait(pp.pid);
     const e = pp.stderr.byLineCopy.array.join("\n");
-    assert(e.length == 0, "suspicious errors logged in stderr: \n" ~ e);
     if (r == 0)
     {
+        assert(e.length == 0, "unexpected stderr content: \n" ~ e);
         const auto formatted_output = "\n" ~ pp.stdout.byLineCopy.array.join("\n");
         assert(formatted_output == expected, formatted_output);
     }
-    else assert(false, "abnormal dfmt termnation : " ~ to!string(r) ~ "\n" ~ e);
+    else assert(false, "abnormal dfmt termination : " ~ to!string(r) ~ "\n" ~ e);
 }
-
 
 void main()
 {
