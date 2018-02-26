@@ -269,11 +269,15 @@ else
                 if (!config.isValid())
                     return 1;
                 File f = File(path);
-                buffer = new ubyte[](cast(size_t) f.size);
-                f.rawRead(buffer);
-                if (inplace)
-                    output = File(path, "wb");
-                format(path, buffer, output.lockingTextWriter(), &config);
+                // ignore empty files
+                if (f.size)
+                {
+                    buffer = new ubyte[](cast(size_t) f.size);
+                    f.rawRead(buffer);
+                    if (inplace)
+                        output = File(path, "wb");
+                    format(path, buffer, output.lockingTextWriter(), &config);
+                }
             }
         }
         return 0;
