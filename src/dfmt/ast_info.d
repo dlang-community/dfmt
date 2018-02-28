@@ -8,6 +8,12 @@ module dfmt.ast_info;
 import dparse.lexer;
 import dparse.ast;
 
+struct BraceIndentInfo
+{
+    size_t startLocation;
+    size_t endLocation;
+}
+
 /// AST information that is needed by the formatter.
 struct ASTInformation
 {
@@ -85,6 +91,8 @@ struct ASTInformation
 
     /// Locations of constructor/destructor "this" tokens ?
     size_t[] constructorDestructorLocations;
+
+    BraceIndentInfo[] sortedByStartLocation;
 }
 
 /// Collects information from the AST that is useful for the formatter
