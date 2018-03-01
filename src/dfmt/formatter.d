@@ -1849,9 +1849,28 @@ const pure @safe @nogc:
     }
 }
 
-bool canFindIndex(const size_t[] items, size_t index) pure @safe @nogc
+bool canFindIndex(const size_t[] items, size_t index, size_t* pos = null) pure @safe @nogc
 {
     import std.range : assumeSorted;
-
-    return !assumeSorted(items).equalRange(index).empty;
+    if (!pos)
+    {
+        return !assumeSorted(items).equalRange(index).empty;
+    }
+    else
+    {
+        auto trisection_result = assumeSorted(items).trisect(index);
+        if (trisection_result[1].length == 1)
+        {
+            *pos = trisection_result[0].length;
+            return true;
+        }
+        else if (trisection_result[1].length == 0)
+        {
+            return false;
+        }
+        else
+        {
+            assert(0, "the constraint of having unique locations has been violated");
+        }
+    }
 }
