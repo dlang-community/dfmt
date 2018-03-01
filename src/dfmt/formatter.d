@@ -737,7 +737,9 @@ private:
     {
         import std.algorithm : map, sum, canFind;
 
-        if (astInformation.structInitStartLocations.canFindIndex(tokens[index].index))
+        auto tIndex = tokens[index].index;
+
+        if (astInformation.structInitStartLocations.canFindIndex(tIndex))
         {
             sBraceDepth++;
             auto e = expressionEndIndex(index);
@@ -746,13 +748,21 @@ private:
             writeToken();
             if (l > config.dfmt_soft_max_line_length)
             {
+                import std.algorithm.searching : find;
+
+                auto indentInfo = astInformation.indentInfoSortedByEndLocation
+                    .find!((a,b) => a.startLocation == b)(tIndex);
+                assert(indentInfo.length > 0);
+                cast()indentInfo[0].flags |= BraceIndentInfoFlags.tempIndent;
+                cast()indentInfo[0].beginIndentLevel = indents.indentLevel;
+
                 indents.push(tok!"{");
                 newline();
             }
             else
                 niBraceDepth++;
         }
-        else if (astInformation.funLitStartLocations.canFindIndex(tokens[index].index))
+        else if (astInformation.funLitStartLocations.canFindIndex(tIndex))
         {
             sBraceDepth++;
             if (peekBackIs(tok!")"))
@@ -808,15 +818,34 @@ private:
 
     void formatRightBrace()
     {
-        if (astInformation.structInitEndLocations.canFindIndex(tokens[index].index))
+        void popToBeginIndent(BraceIndentInfo indentInfo)
+        {
+            foreach(i; indentInfo.beginIndentLevel .. indents.indentLevel)
+            {
+                indents.pop();
+            }
+
+            indentLevel = indentInfo.beginIndentLevel;
+        }
+
+        size_t pos;
+        if (astInformation.structInitEndLocations.canFindIndex(tokens[index].index, &pos))
         {
             if (sBraceDepth > 0)
                 sBraceDepth--;
             if (niBraceDepth > 0)
                 niBraceDepth--;
+
+            auto indentInfo = astInformation.indentInfoSortedByEndLocation[pos];
+            if (indentInfo.flags & BraceIndentInfoFlags.tempIndent)
+            {
+                popToBeginIndent(indentInfo);
+                simpleNewline();
+                indent();
+            }
             writeToken();
         }
-        else if (astInformation.funLitEndLocations.canFindIndex(tokens[index].index))
+        else if (astInformation.funLitEndLocations.canFindIndex(tokens[index].index, &pos))
         {
             if (niBraceDepth > 0)
             {
