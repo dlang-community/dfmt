@@ -8,10 +8,19 @@ module dfmt.ast_info;
 import dparse.lexer;
 import dparse.ast;
 
+enum BraceIndentInfoFlags
+{
+    tempIndent = 1 << 0,
+}
+
 struct BraceIndentInfo
 {
     size_t startLocation;
     size_t endLocation;
+
+    uint flags;
+
+    uint beginIndentLevel;
 }
 
 /// AST information that is needed by the formatter.
@@ -39,6 +48,9 @@ struct ASTInformation
         sort(constructorDestructorLocations);
         sort(staticConstructorDestructorLocations);
         sort(sharedStaticConstructorDestructorLocations);
+
+        sort!((a,b) => a.endLocation < b.endLocation)
+            (indentInfoSortedByEndLocation);
     }
 
     /// Locations of end braces for struct bodies
@@ -92,7 +104,7 @@ struct ASTInformation
     /// Locations of constructor/destructor "this" tokens ?
     size_t[] constructorDestructorLocations;
 
-    BraceIndentInfo[] sortedByStartLocation;
+    BraceIndentInfo[] indentInfoSortedByEndLocation;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -195,8 +207,12 @@ final class FormatVisitor : ASTVisitor
     {
         if (funcLit.functionBody !is null)
         {
-            astInformation.funLitStartLocations ~= funcLit.functionBody.blockStatement.startLocation;
-            astInformation.funLitEndLocations ~= funcLit.functionBody.blockStatement.endLocation;
+            const bs = funcLit.functionBody.blockStatement;
+
+            astInformation.funLitStartLocations ~= bs.startLocation;
+            astInformation.funLitEndLocations ~= bs.endLocation;
+            astInformation.indentInfoSortedByEndLocation ~=
+                BraceIndentInfo(bs.startLocation, bs.endLocation);
         }
         funcLit.accept(this);
     }
@@ -234,6 +250,9 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.structInitStartLocations ~= structInitializer.startLocation;
         astInformation.structInitEndLocations ~= structInitializer.endLocation;
+        astInformation.indentInfoSortedByEndLocation ~=
+            BraceIndentInfo(structInitializer.startLocation, structInitializer.endLocation);
+
         structInitializer.accept(this);
     }
 
