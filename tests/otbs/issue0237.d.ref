@@ -1,0 +1,36 @@
+void fn() {
+    {
+        {
+            {
+                auto file = {
+                    "integrationtest/feed/etc/config.iniaasdfaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        "etc/config.ini"
+                };
+                {
+                    int x;
+                }
+            }
+        }
+    }
+}
+
+struct A {
+    int x, y, z;
+}
+
+int main() {
+    int fun() {
+        import std.stdio : writeln;
+        import std.typecons : tuple;
+
+        A a = {
+            tuple(Variant(1))[0].get!int, tuple(Variant(2))[0].get!int,
+                tuple(Variant(3))[0].get!int
+        };
+        A b = {
+            tuple(Variant(1))[0].get!int, tuple(Variant(2))[0].get!int,
+                tuple(Variant(3))[0].get!int
+        };
+        writeln(a);
+    }
+}
