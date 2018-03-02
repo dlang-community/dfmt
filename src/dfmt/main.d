@@ -113,6 +113,9 @@ else
             case "compact_labeled_statements":
                 optConfig.dfmt_compact_labeled_statements = optVal;
                 break;
+            case "single_template_constraint_indent":
+                optConfig.dfmt_single_template_constraint_indent = optVal;
+                break;
             default:
                 assert(false, "Invalid command-line switch");
             }
@@ -139,6 +142,7 @@ else
                 "space_before_function_parameters", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
                 "compact_labeled_statements", &handleBooleans,
+                "single_template_constraint_indent", &handleBooleans,
                 "tab_width", &optConfig.tab_width,
                 "template_constraint_style", &optConfig.dfmt_template_constraint_style);
             // dfmt on
@@ -329,6 +333,7 @@ Formatting Options:
     --space_after_cast
     --space_before_function_parameters
     --selective_import_space
+    --single_template_constraint_indent
     --split_operator_at_line_end
     --compact_labeled_statements
     --template_constraint_style

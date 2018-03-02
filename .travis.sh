@@ -4,9 +4,6 @@ set -e
 
 if [[ $BUILD == dub ]]; then
     dub build --build=release
-
-    mkdir bin
-    mv dfmt ./bin
 elif [[ $DC == ldc2 ]]; then
     git submodule update --init --recursive
     make ldc -j2

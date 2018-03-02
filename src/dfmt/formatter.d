@@ -324,6 +324,7 @@ private:
 
     void formatConstraint()
     {
+        import dfmt.editorconfig : OB = OptionalBoolean;
         with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
         {
         case unspecified:
@@ -342,15 +343,19 @@ private:
             immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
             if (l > config.dfmt_soft_max_line_length)
             {
-                pushWrapIndent(tok!"!");
+                config.dfmt_single_template_constraint_indent == OB.t ?
+                    pushWrapIndent() : pushWrapIndent(tok!"!");
                 newline();
             }
             else if (peekBackIs(tok!")"))
                 write(" ");
             break;
         case always_newline_indent:
-            pushWrapIndent(tok!"!");
-            newline();
+            {
+                config.dfmt_single_template_constraint_indent == OB.t ?
+                    pushWrapIndent() : pushWrapIndent(tok!"!");
+                newline();
+            }
             break;
         }
         // if
