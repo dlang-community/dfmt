@@ -315,7 +315,7 @@ template optionsToString(E) if (is(E == enum))
 private void printHelp()
 {
     writeln(`dfmt `, VERSION, `
-https://github.com/Hackerpilot/dfmt
+https://github.com/dlang-community/dfmt
 
 Options:
     --help, -h          Print this help message
