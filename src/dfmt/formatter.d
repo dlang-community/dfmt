@@ -375,7 +375,12 @@ private:
         if (commentText[0 .. 2] == "//")
             commentText = commentText[2 .. $];
         else
-            commentText = commentText[2 .. $ - 2];
+        {
+            if (commentText.length > 3)
+                commentText = commentText[2 .. $ - 2];
+            else
+                commentText = commentText[2 .. $];
+        }
         return commentText.strip();
     }
 
@@ -1693,10 +1698,7 @@ const pure @safe @nogc:
 
     const(Token) peekBack(uint distance = 1) nothrow
     {
-        if (index < distance)
-	{
-		assert(0, "Trying to peek before the first token");
-	}
+        assert(index >= distance, "Trying to peek before the first token");
         return tokens[index - distance];
     }
 
