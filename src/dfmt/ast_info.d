@@ -29,7 +29,8 @@ struct ASTInformation
     /// Sorts the arrays so that binary search will work on them
     void cleanup()
     {
-        import std.algorithm : sort;
+        import std.algorithm : sort, uniq;
+        import std.array : array;
 
         sort(doubleNewlineLocations);
         sort(spaceAfterLocations);
@@ -48,9 +49,10 @@ struct ASTInformation
         sort(constructorDestructorLocations);
         sort(staticConstructorDestructorLocations);
         sort(sharedStaticConstructorDestructorLocations);
-
         sort!((a,b) => a.endLocation < b.endLocation)
             (indentInfoSortedByEndLocation);
+        sort(ufcsHintLocations);
+        ufcsHintLocations = ufcsHintLocations.uniq().array();
     }
 
     /// Locations of end braces for struct bodies
@@ -103,6 +105,9 @@ struct ASTInformation
 
     /// Locations of constructor/destructor "this" tokens ?
     size_t[] constructorDestructorLocations;
+
+    /// Locations of '.' characters that might be UFCS chains.
+    size_t[] ufcsHintLocations;
 
     BraceIndentInfo[] indentInfoSortedByEndLocation;
 }
@@ -295,6 +300,26 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const UnaryExpression unary)
     {
+        import std.typecons : rebindable;
+
+        int chainLength;
+        auto u = rebindable(unary);
+        while (u !is null)
+        {
+            if (u.identifierOrTemplateInstance !is null
+                    && u.identifierOrTemplateInstance.templateInstance !is null)
+                chainLength++;
+            u = u.unaryExpression;
+        }
+        if (chainLength > 1)
+        {
+            u = unary;
+            while (u.unaryExpression !is null)
+            {
+                astInformation.ufcsHintLocations ~= u.dotLocation;
+                u = u.unaryExpression;
+            }
+        }
         if (unary.prefix.type == tok!"~" || unary.prefix.type == tok!"&"
                 || unary.prefix.type == tok!"*"
                 || unary.prefix.type == tok!"+" || unary.prefix.type == tok!"-")

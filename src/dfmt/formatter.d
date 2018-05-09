@@ -1229,11 +1229,14 @@ private:
             break;
         case tok!".":
             regenLineBreakHintsIfNecessary(index);
-            if (linebreakHints.canFind(index) || (linebreakHints.length == 0
+            immutable bool ufcsWrap = astInformation.ufcsHintLocations.canFindIndex(current.index);
+            if (ufcsWrap || linebreakHints.canFind(index) || (linebreakHints.length == 0
                     && currentLineLength + nextTokenLength() > config.max_line_length))
             {
                 pushWrapIndent();
                 newline();
+                if (ufcsWrap)
+                    regenLineBreakHints(index);
             }
             writeToken();
             break;
@@ -1356,7 +1359,18 @@ private:
 
     void regenLineBreakHints(immutable size_t i)
     {
-        immutable size_t j = expressionEndIndex(i);
+        import std.range : assumeSorted;
+        import std.algorithm.comparison : min;
+        import std.algorithm.searching : countUntil;
+
+        // The end of the tokens considered by the line break algorithm is
+        // either the expression end index or the next mandatory line break,
+        // whichever is first.
+        auto r = assumeSorted(astInformation.ufcsHintLocations).upperBound(tokens[i].index);
+        immutable ufcsBreakLocation = r.empty
+            ? size_t.max
+            : tokens[i .. $].countUntil!(t => t.index == r.front) + i;
+        immutable size_t j = min(expressionEndIndex(i), ufcsBreakLocation);
         // Use magical negative value for array literals and wrap indents
         immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel
             : indentLevel;
