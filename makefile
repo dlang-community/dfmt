@@ -44,3 +44,6 @@ pkg: dmd
 
 clean:
 	$(RM) bin/dfmt
+
+release:
+	./release.sh
