@@ -283,6 +283,10 @@ private:
         {
             formatKeyword();
         }
+        else if (current.text == "body" && peekBackIsFunctionDeclarationEnding())
+        {
+            formatKeyword();
+        }
         else if (isBasicType(current.type))
         {
             writeToken();
@@ -596,8 +600,10 @@ private:
             indents.pop();
 
         if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in")
-                || peekIs(tok!"out") || peekIs(tok!"body")))
+            || peekIs(tok!"out") || peekIs(tok!"do") || peekIsBody))
+        {
             writeToken();
+        }
         else if (peekIsLiteralOrIdent() || peekIsBasicType())
         {
             writeToken();
@@ -952,9 +958,11 @@ private:
             if (!currentIs(tok!"{") && !currentIs(tok!";"))
                 write(" ");
         }
-        else if (!currentIs(tok!"{") && !currentIs(tok!";")
-                && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"body"))
+        else if (!currentIs(tok!"{") && !currentIs(tok!";") && !currentIs(tok!"in") &&
+            !currentIs(tok!"out") && !currentIs(tok!"do") && current.text != "body")
+        {
             newline();
+        }
         else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"if"))
         {
             // Hacks to format braced vs non-braced static if declarations.
@@ -1043,7 +1051,12 @@ private:
             if (!currentIs(tok!"{"))
                 newline();
             break;
-        case tok!"body":
+        case tok!"identifier":
+            if (current.text == "body")
+                goto case tok!"do";
+            else
+                goto default;
+        case tok!"do":
             if (!peekBackIs(tok!"}"))
                 newline();
             writeToken();
@@ -1841,6 +1854,18 @@ const pure @safe @nogc:
     bool peekIs(IdType tokenType, bool ignoreComments = true) nothrow
     {
         return peekImplementation(tokenType, 1, ignoreComments);
+    }
+
+    bool peekIsBody() nothrow
+    {
+        return index + 1 < tokens.length && tokens[index + 1].text == "body";
+    }
+
+    bool peekBackIsFunctionDeclarationEnding() nothrow
+    {
+        return peekBackIsOneOf(false, tok!")", tok!"const", tok!"immutable",
+            tok!"inout", tok!"shared", tok!"@", tok!"pure", tok!"nothrow",
+            tok!"return", tok!"scope");
     }
 
     bool peekBackIsSlashSlash() nothrow
