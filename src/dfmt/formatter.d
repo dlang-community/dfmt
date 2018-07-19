@@ -559,7 +559,7 @@ private:
         {
             // If the file starts with an open paren, just give up. This isn't
             // valid D code.
-            if (index <= 2)
+            if (index < 2)
                 return;
             if (isBlockHeaderToken(tokens[index - 2].type))
                 indents.push(tok!")");
@@ -569,7 +569,7 @@ private:
             parenDepth++;
         }
         // No heuristics apply if we can't look before the opening paren/bracket
-        if (index <= 1)
+        if (index < 1)
             return;
         immutable bool arrayInitializerStart = p == tok!"[" && linebreakHints.length != 0
             && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
