@@ -87,7 +87,7 @@ else
             import dfmt.editorconfig : OptionalBoolean;
             import std.exception : enforceEx;
 
-            enforceEx!GetOptException(value == "true" || value == "false", "Invalid argument");
+            enforce!GetOptException(value == "true" || value == "false", "Invalid argument");
             immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t
                 : OptionalBoolean.f;
             switch (option)
