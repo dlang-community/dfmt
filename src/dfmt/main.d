@@ -18,18 +18,18 @@ static immutable VERSION = () {
     {
         // takes the `git describe --tags` output and removes the leading
         // 'v' as well as any kind of newline
-	// if the tag is considered malformed it gets used verbatim
+        // if the tag is considered malformed it gets used verbatim
 
         enum gitDescribeOutput = import("VERSION");
 
-	string result;
+        string result;
 
         if (gitDescribeOutput[0] == 'v')
             result = gitDescribeOutput[1 .. $];
         else
             result = null;
 
-	uint minusCount;
+        uint minusCount;
 
         foreach (i, c; result)
         {
@@ -39,17 +39,17 @@ static immutable VERSION = () {
                 break;
             }
 
-	    if (c == '-')
-	    {
+            if (c == '-')
+            {
                 ++minusCount;
             }
         }
 
         if (minusCount > 1)
-		result = null;
+            result = null;
 
         return result ? result ~ DEBUG_SUFFIX
-                      : gitDescribeOutput ~ DEBUG_SUFFIX;
+            : gitDescribeOutput ~ DEBUG_SUFFIX;
 
     }
     else
@@ -85,9 +85,9 @@ else
         void handleBooleans(string option, string value)
         {
             import dfmt.editorconfig : OptionalBoolean;
-            import std.exception : enforceEx;
+            import std.exception : enforce;
 
-            enforceEx!GetOptException(value == "true" || value == "false", "Invalid argument");
+            enforce!GetOptException(value == "true" || value == "false", "Invalid argument");
             immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t
                 : OptionalBoolean.f;
             switch (option)
@@ -103,7 +103,7 @@ else
                 break;
             case "space_before_function_parameters":
                 optConfig.dfmt_space_before_function_parameters = optVal;
-		break;
+                break;
             case "split_operator_at_line_end":
                 optConfig.dfmt_split_operator_at_line_end = optVal;
                 break;
@@ -112,6 +112,9 @@ else
                 break;
             case "compact_labeled_statements":
                 optConfig.dfmt_compact_labeled_statements = optVal;
+                break;
+            case "single_template_constraint_indent":
+                optConfig.dfmt_single_template_constraint_indent = optVal;
                 break;
             default:
                 assert(false, "Invalid command-line switch");
@@ -139,6 +142,7 @@ else
                 "space_before_function_parameters", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
                 "compact_labeled_statements", &handleBooleans,
+                "single_template_constraint_indent", &handleBooleans,
                 "tab_width", &optConfig.tab_width,
                 "template_constraint_style", &optConfig.dfmt_template_constraint_style);
             // dfmt on
@@ -293,26 +297,25 @@ private version (Windows)
     }
 }
 
-private string optionsToString(E)() if (is(E == enum))
+template optionsToString(E) if (is(E == enum))
 {
-    import std.traits : EnumMembers;
-    import std.conv : to;
+    enum optionsToString = () {
 
-    string result = "(";
-    foreach (i, option; EnumMembers!E)
-    {
-        immutable s = to!string(option);
-        if (s != "unspecified")
-            result ~= s ~ "|";
-    }
-    result = result[0 .. $ - 1] ~ ")";
-    return result;
+        string result = "(";
+        foreach (s; [__traits(allMembers, E)])
+        {
+            if (s != "unspecified")
+                result ~= s ~ "|";
+        }
+        result = result[0 .. $ - 1] ~ ")";
+        return result;
+    } ();
 }
 
 private void printHelp()
 {
     writeln(`dfmt `, VERSION, `
-https://github.com/Hackerpilot/dfmt
+https://github.com/dlang-community/dfmt
 
 Options:
     --help, -h          Print this help message
@@ -322,23 +325,24 @@ Options:
 
 Formatting Options:
     --align_switch_statements
-    --brace_style               `, optionsToString!(typeof(Config.dfmt_brace_style))(),
+    --brace_style               `, optionsToString!(typeof(Config.dfmt_brace_style)),
             `
-    --end_of_line               `, optionsToString!(typeof(Config.end_of_line))(), `
+    --end_of_line               `, optionsToString!(typeof(Config.end_of_line)), `
     --indent_size
     --indent_style, -t          `,
-            optionsToString!(typeof(Config.indent_style))(), `
+            optionsToString!(typeof(Config.indent_style)), `
     --soft_max_line_length
     --max_line_length
     --outdent_attributes
     --space_after_cast
     --space_before_function_parameters
     --selective_import_space
+    --single_template_constraint_indent
     --split_operator_at_line_end
     --compact_labeled_statements
     --template_constraint_style
         `,
-            optionsToString!(typeof(Config.dfmt_template_constraint_style))());
+            optionsToString!(typeof(Config.dfmt_template_constraint_style)));
 }
 
 private string createFilePath(bool readFromStdin, string fileName)

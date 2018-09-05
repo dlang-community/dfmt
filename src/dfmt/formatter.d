@@ -283,6 +283,10 @@ private:
         {
             formatKeyword();
         }
+        else if (current.text == "body" && peekBackIsFunctionDeclarationEnding())
+        {
+            formatKeyword();
+        }
         else if (isBasicType(current.type))
         {
             writeToken();
@@ -324,6 +328,7 @@ private:
 
     void formatConstraint()
     {
+        import dfmt.editorconfig : OB = OptionalBoolean;
         with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
         {
         case unspecified:
@@ -342,15 +347,19 @@ private:
             immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
             if (l > config.dfmt_soft_max_line_length)
             {
-                pushWrapIndent(tok!"!");
+                config.dfmt_single_template_constraint_indent == OB.t ?
+                    pushWrapIndent() : pushWrapIndent(tok!"!");
                 newline();
             }
             else if (peekBackIs(tok!")"))
                 write(" ");
             break;
         case always_newline_indent:
-            pushWrapIndent(tok!"!");
-            newline();
+            {
+                config.dfmt_single_template_constraint_indent == OB.t ?
+                    pushWrapIndent() : pushWrapIndent(tok!"!");
+                newline();
+            }
             break;
         }
         // if
@@ -370,7 +379,12 @@ private:
         if (commentText[0 .. 2] == "//")
             commentText = commentText[2 .. $];
         else
-            commentText = commentText[2 .. $ - 2];
+        {
+            if (commentText.length > 3)
+                commentText = commentText[2 .. $ - 2];
+            else
+                commentText = commentText[2 .. $];
+        }
         return commentText.strip();
     }
 
@@ -586,8 +600,10 @@ private:
             indents.pop();
 
         if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in")
-                || peekIs(tok!"out") || peekIs(tok!"body")))
+            || peekIs(tok!"out") || peekIs(tok!"do") || peekIsBody))
+        {
             writeToken();
+        }
         else if (peekIsLiteralOrIdent() || peekIsBasicType())
         {
             writeToken();
@@ -732,7 +748,9 @@ private:
     {
         import std.algorithm : map, sum, canFind;
 
-        if (astInformation.structInitStartLocations.canFindIndex(tokens[index].index))
+        auto tIndex = tokens[index].index;
+
+        if (astInformation.structInitStartLocations.canFindIndex(tIndex))
         {
             sBraceDepth++;
             auto e = expressionEndIndex(index);
@@ -741,13 +759,21 @@ private:
             writeToken();
             if (l > config.dfmt_soft_max_line_length)
             {
+                import std.algorithm.searching : find;
+
+                auto indentInfo = astInformation.indentInfoSortedByEndLocation
+                    .find!((a,b) => a.startLocation == b)(tIndex);
+                assert(indentInfo.length > 0);
+                cast()indentInfo[0].flags |= BraceIndentInfoFlags.tempIndent;
+                cast()indentInfo[0].beginIndentLevel = indents.indentLevel;
+
                 indents.push(tok!"{");
                 newline();
             }
             else
                 niBraceDepth++;
         }
-        else if (astInformation.funLitStartLocations.canFindIndex(tokens[index].index))
+        else if (astInformation.funLitStartLocations.canFindIndex(tIndex))
         {
             sBraceDepth++;
             if (peekBackIs(tok!")"))
@@ -803,15 +829,34 @@ private:
 
     void formatRightBrace()
     {
-        if (astInformation.structInitEndLocations.canFindIndex(tokens[index].index))
+        void popToBeginIndent(BraceIndentInfo indentInfo)
+        {
+            foreach(i; indentInfo.beginIndentLevel .. indents.indentLevel)
+            {
+                indents.pop();
+            }
+
+            indentLevel = indentInfo.beginIndentLevel;
+        }
+
+        size_t pos;
+        if (astInformation.structInitEndLocations.canFindIndex(tokens[index].index, &pos))
         {
             if (sBraceDepth > 0)
                 sBraceDepth--;
             if (niBraceDepth > 0)
                 niBraceDepth--;
+
+            auto indentInfo = astInformation.indentInfoSortedByEndLocation[pos];
+            if (indentInfo.flags & BraceIndentInfoFlags.tempIndent)
+            {
+                popToBeginIndent(indentInfo);
+                simpleNewline();
+                indent();
+            }
             writeToken();
         }
-        else if (astInformation.funLitEndLocations.canFindIndex(tokens[index].index))
+        else if (astInformation.funLitEndLocations.canFindIndex(tokens[index].index, &pos))
         {
             if (niBraceDepth > 0)
             {
@@ -913,9 +958,11 @@ private:
             if (!currentIs(tok!"{") && !currentIs(tok!";"))
                 write(" ");
         }
-        else if (!currentIs(tok!"{") && !currentIs(tok!";")
-                && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"body"))
+        else if (!currentIs(tok!"{") && !currentIs(tok!";") && !currentIs(tok!"in") &&
+            !currentIs(tok!"out") && !currentIs(tok!"do") && current.text != "body")
+        {
             newline();
+        }
         else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"if"))
         {
             // Hacks to format braced vs non-braced static if declarations.
@@ -1004,7 +1051,12 @@ private:
             if (!currentIs(tok!"{"))
                 newline();
             break;
-        case tok!"body":
+        case tok!"identifier":
+            if (current.text == "body")
+                goto case tok!"do";
+            else
+                goto default;
+        case tok!"do":
             if (!peekBackIs(tok!"}"))
                 newline();
             writeToken();
@@ -1190,11 +1242,14 @@ private:
             break;
         case tok!".":
             regenLineBreakHintsIfNecessary(index);
-            if (linebreakHints.canFind(index) || (linebreakHints.length == 0
+            immutable bool ufcsWrap = astInformation.ufcsHintLocations.canFindIndex(current.index);
+            if (ufcsWrap || linebreakHints.canFind(index) || (linebreakHints.length == 0
                     && currentLineLength + nextTokenLength() > config.max_line_length))
             {
                 pushWrapIndent();
                 newline();
+                if (ufcsWrap)
+                    regenLineBreakHints(index);
             }
             writeToken();
             break;
@@ -1317,7 +1372,18 @@ private:
 
     void regenLineBreakHints(immutable size_t i)
     {
-        immutable size_t j = expressionEndIndex(i);
+        import std.range : assumeSorted;
+        import std.algorithm.comparison : min;
+        import std.algorithm.searching : countUntil;
+
+        // The end of the tokens considered by the line break algorithm is
+        // either the expression end index or the next mandatory line break,
+        // whichever is first.
+        auto r = assumeSorted(astInformation.ufcsHintLocations).upperBound(tokens[i].index);
+        immutable ufcsBreakLocation = r.empty
+            ? size_t.max
+            : tokens[i .. $].countUntil!(t => t.index == r.front) + i;
+        immutable size_t j = min(expressionEndIndex(i), ufcsBreakLocation);
         // Use magical negative value for array literals and wrap indents
         immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel
             : indentLevel;
@@ -1659,10 +1725,7 @@ const pure @safe @nogc:
 
     const(Token) peekBack(uint distance = 1) nothrow
     {
-        if (index < distance)
-	{
-		assert(0, "Trying to peek before the first token");
-	}
+        assert(index >= distance, "Trying to peek before the first token");
         return tokens[index - distance];
     }
 
@@ -1793,6 +1856,18 @@ const pure @safe @nogc:
         return peekImplementation(tokenType, 1, ignoreComments);
     }
 
+    bool peekIsBody() nothrow
+    {
+        return index + 1 < tokens.length && tokens[index + 1].text == "body";
+    }
+
+    bool peekBackIsFunctionDeclarationEnding() nothrow
+    {
+        return peekBackIsOneOf(false, tok!")", tok!"const", tok!"immutable",
+            tok!"inout", tok!"shared", tok!"@", tok!"pure", tok!"nothrow",
+            tok!"return", tok!"scope");
+    }
+
     bool peekBackIsSlashSlash() nothrow
     {
         return index > 0 && tokens[index - 1].type == tok!"comment"
@@ -1844,9 +1919,28 @@ const pure @safe @nogc:
     }
 }
 
-bool canFindIndex(const size_t[] items, size_t index) pure @safe @nogc
+bool canFindIndex(const size_t[] items, size_t index, size_t* pos = null) pure @safe @nogc
 {
     import std.range : assumeSorted;
-
-    return !assumeSorted(items).equalRange(index).empty;
+    if (!pos)
+    {
+        return !assumeSorted(items).equalRange(index).empty;
+    }
+    else
+    {
+        auto trisection_result = assumeSorted(items).trisect(index);
+        if (trisection_result[1].length == 1)
+        {
+            *pos = trisection_result[0].length;
+            return true;
+        }
+        else if (trisection_result[1].length == 0)
+        {
+            return false;
+        }
+        else
+        {
+            assert(0, "the constraint of having unique locations has been violated");
+        }
+    }
 }

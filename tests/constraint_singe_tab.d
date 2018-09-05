@@ -1,0 +1,4 @@
+void foo()() if (dogs && pigs && birds && ants && foxes && flies && cats && bugs && bees && cows && sheeps && monkeys && whales)
+{}
+
+void foo()() if (dogs && pigs && birds) {}

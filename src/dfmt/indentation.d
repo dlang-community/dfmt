@@ -68,7 +68,13 @@ struct IndentStack
     void push(IdType item) pure nothrow
     {
         arr[index] = item;
-        index = index + 1 == arr.length ? index : index + 1;
+        //FIXME this is actually a bad thing to do,
+        //we should not just override when the stack is
+        //at it's limit
+        if (index < arr.length)
+        {
+            index++;
+        }
     }
 
     /**
@@ -76,7 +82,8 @@ struct IndentStack
      */
     void pop() pure nothrow
     {
-        index = index == 0 ? index : index - 1;
+        if (index)
+            index--;
     }
 
     /**

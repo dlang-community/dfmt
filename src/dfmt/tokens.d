@@ -217,7 +217,7 @@ private string generateFixedLengthCases()
             a => format(`case tok!"%s": return %d + 1;`, a, a.length)).join("\n\t");
 
     string[] identifierTokens = [
-        "abstract", "alias", "align", "asm", "assert", "auto", "body", "bool",
+        "abstract", "alias", "align", "asm", "assert", "auto", "bool",
         "break", "byte", "case", "cast", "catch", "cdouble", "cent", "cfloat", "char", "class",
         "const", "continue", "creal", "dchar", "debug", "default", "delegate", "delete", "deprecated",
         "do", "double", "else", "enum", "export", "extern", "false", "final", "finally", "float",

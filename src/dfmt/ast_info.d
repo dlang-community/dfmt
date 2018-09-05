@@ -8,13 +8,29 @@ module dfmt.ast_info;
 import dparse.lexer;
 import dparse.ast;
 
+enum BraceIndentInfoFlags
+{
+    tempIndent = 1 << 0,
+}
+
+struct BraceIndentInfo
+{
+    size_t startLocation;
+    size_t endLocation;
+
+    uint flags;
+
+    uint beginIndentLevel;
+}
+
 /// AST information that is needed by the formatter.
 struct ASTInformation
 {
     /// Sorts the arrays so that binary search will work on them
     void cleanup()
     {
-        import std.algorithm : sort;
+        import std.algorithm : sort, uniq;
+        import std.array : array;
 
         sort(doubleNewlineLocations);
         sort(spaceAfterLocations);
@@ -33,6 +49,10 @@ struct ASTInformation
         sort(constructorDestructorLocations);
         sort(staticConstructorDestructorLocations);
         sort(sharedStaticConstructorDestructorLocations);
+        sort!((a,b) => a.endLocation < b.endLocation)
+            (indentInfoSortedByEndLocation);
+        sort(ufcsHintLocations);
+        ufcsHintLocations = ufcsHintLocations.uniq().array();
     }
 
     /// Locations of end braces for struct bodies
@@ -85,6 +105,11 @@ struct ASTInformation
 
     /// Locations of constructor/destructor "this" tokens ?
     size_t[] constructorDestructorLocations;
+
+    /// Locations of '.' characters that might be UFCS chains.
+    size_t[] ufcsHintLocations;
+
+    BraceIndentInfo[] indentInfoSortedByEndLocation;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -187,8 +212,12 @@ final class FormatVisitor : ASTVisitor
     {
         if (funcLit.functionBody !is null)
         {
-            astInformation.funLitStartLocations ~= funcLit.functionBody.blockStatement.startLocation;
-            astInformation.funLitEndLocations ~= funcLit.functionBody.blockStatement.endLocation;
+            const bs = funcLit.functionBody.blockStatement;
+
+            astInformation.funLitStartLocations ~= bs.startLocation;
+            astInformation.funLitEndLocations ~= bs.endLocation;
+            astInformation.indentInfoSortedByEndLocation ~=
+                BraceIndentInfo(bs.startLocation, bs.endLocation);
         }
         funcLit.accept(this);
     }
@@ -226,6 +255,9 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.structInitStartLocations ~= structInitializer.startLocation;
         astInformation.structInitEndLocations ~= structInitializer.endLocation;
+        astInformation.indentInfoSortedByEndLocation ~=
+            BraceIndentInfo(structInitializer.startLocation, structInitializer.endLocation);
+
         structInitializer.accept(this);
     }
 
@@ -268,6 +300,26 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const UnaryExpression unary)
     {
+        import std.typecons : rebindable;
+
+        int chainLength;
+        auto u = rebindable(unary);
+        while (u !is null)
+        {
+            if (u.identifierOrTemplateInstance !is null
+                    && u.identifierOrTemplateInstance.templateInstance !is null)
+                chainLength++;
+            u = u.unaryExpression;
+        }
+        if (chainLength > 1)
+        {
+            u = unary;
+            while (u.unaryExpression !is null)
+            {
+                astInformation.ufcsHintLocations ~= u.dotLocation;
+                u = u.unaryExpression;
+            }
+        }
         if (unary.prefix.type == tok!"~" || unary.prefix.type == tok!"&"
                 || unary.prefix.type == tok!"*"
                 || unary.prefix.type == tok!"+" || unary.prefix.type == tok!"-")
