@@ -1906,7 +1906,7 @@ const pure @safe @nogc:
     bool isBlockHeaderToken(IdType t)
     {
         return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
-            || t == tok!"while" || t == tok!"if" || t == tok!"out"
+            || t == tok!"while" || t == tok!"if" || t == tok!"in"|| t == tok!"out"
             || t == tok!"do" || t == tok!"catch" || t == tok!"with"
             || t == tok!"synchronized" || t == tok!"scope";
     }
@@ -1916,7 +1916,18 @@ const pure @safe @nogc:
         if (i + index < 0 || i + index >= tokens.length)
             return false;
         auto t = tokens[i + index].type;
-        return isBlockHeaderToken(t);
+        bool isExpressionContract;
+
+        if (i + index + 3 < tokens.length)
+        {
+            isExpressionContract = (t == tok!"in" && peekImplementation(tok!"(", i + 1, true))
+                || (t == tok!"out" && (peekImplementation(tok!"(", i + 1, true)
+                    && (peekImplementation(tok!";", i + 2, true)
+                        || (peekImplementation(tok!"identifier", i + 2, true)
+                            && peekImplementation(tok!";", i + 3, true)))));
+        }
+
+        return isBlockHeaderToken(t) && !isExpressionContract;
     }
 
     bool isSeparationToken(IdType t) nothrow
