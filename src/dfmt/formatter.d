@@ -1048,7 +1048,7 @@ private:
             else if (peekBackIsKeyword)
                 write(" ");
             writeToken();
-            if (!currentIs(tok!"(") && !currentIs(tok!"{"))
+            if (!currentIs(tok!"(") && !currentIs(tok!"{") && !currentIs(tok!"comment"))
                 write(" ");
             break;
         case tok!"try":
@@ -1090,7 +1090,7 @@ private:
                     tok!"}", tok!"=", tok!"&&", tok!"||") && !peekBackIsKeyword())
                 write(" ");
             writeToken();
-            if (!currentIs(tok!"(") && !currentIs(tok!"{"))
+            if (!currentIs(tok!"(") && !currentIs(tok!"{") && !currentIs(tok!"comment"))
                 write(" ");
             break;
         case tok!"case":
