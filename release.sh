@@ -19,5 +19,5 @@ esac
 archiveName="dfmt-$VERSION-$OS-$ARCH_SUFFIX.tar.gz"
 
 echo "Building $archiveName"
-${MAKE:-make} ldc LDC_FLAGS="${LDC_FLAGS[*]}"
+${MAKE:-make} ldc LDC_FLAGS="${LDC_FLAGS[*]} -Jbin"
 tar cvfz "bin/$archiveName" -C bin dfmt
