@@ -1,8 +1,8 @@
 SRC := $(shell find src -name "*.d") \
 	$(shell find libdparse/src -name "*.d") \
 	$(shell find stdx-allocator/source -name "*.d")
-INCLUDE_PATHS := -Ilibdparse/src -Istdx-allocator/source -Isrc
-DMD_COMMON_FLAGS := -dip25 -w $(INCLUDE_PATHS) -Jviews
+INCLUDE_PATHS := -Ilibdparse/src -Istdx-allocator/source -Isrc -Jbin
+DMD_COMMON_FLAGS := -dip25 -w $(INCLUDE_PATHS)
 DMD_DEBUG_FLAGS := -debug -g $(DMD_COMMON_FLAGS)
 DMD_FLAGS := -O -inline $(DMD_COMMON_FLAGS)
 DMD_TEST_FLAGS := -unittest -g $(DMD_COMMON_FLAGS)
@@ -16,27 +16,27 @@ GDC ?= gdc
 
 dmd: bin/dfmt
 
-views/VERSION : .git/refs/tags .git/HEAD
-	mkdir -p $(dir $@)
-	git describe --tags > $@
+githash:
+	mkdir -p bin
+	git describe --tags > bin/githash.txt
 
-ldc: $(SRC)
-	$(LDC) $(LDC_FLAGS) $^ -ofbin/dfmt
+ldc: githash
+	$(LDC) $(SRC) $(LDC_FLAGS) -ofbin/dfmt
 	-rm -f *.o
 
-gdc: $(SRC)
-	$(GDC) $(GDC_FLAGS) $^ -obin/dfmt
+gdc:githash
+	$(GDC) $(SRC) $(GDC_FLAGS) -obin/dfmt
 
 test: debug
 	cd tests && ./test.sh
 
-bin/dfmt-test: $(SRC)
+bin/dfmt-test: githash $(SRC)
 	$(DC) $(DMD_TEST_FLAGS) $^ -of$@
 
-bin/dfmt: views/VERSION $(SRC)
+bin/dfmt: githash $(SRC)
 	$(DC) $(DMD_FLAGS) $(filter %.d,$^) -of$@
 
-debug: views/VERSION $(SRC)
+debug: githash $(SRC)
 	$(DC) $(DMD_DEBUG_FLAGS) $(filter %.d,$^) -ofbin/dfmt
 
 pkg: dmd
@@ -47,3 +47,4 @@ clean:
 
 release:
 	./release.sh
+	githash
