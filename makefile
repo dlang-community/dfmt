@@ -20,12 +20,12 @@ githash:
 	mkdir -p bin
 	git describe --tags > bin/githash.txt
 
-ldc: $(SRC) githash
-	$(LDC) $(LDC_FLAGS) $^ -ofbin/dfmt
+ldc: githash
+	$(LDC) $(SRC) $(LDC_FLAGS) -ofbin/dfmt
 	-rm -f *.o
 
-gdc: $(SRC) githash
-	$(GDC) $(GDC_FLAGS) $^ -obin/dfmt
+gdc:githash
+	$(GDC) $(SRC) $(GDC_FLAGS) -obin/dfmt
 
 test: debug
 	cd tests && ./test.sh
@@ -47,3 +47,4 @@ clean:
 
 release:
 	./release.sh
+	githash

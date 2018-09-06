@@ -19,17 +19,17 @@ static immutable VERSION = () {
 
     version (built_with_dub)
     {
-    	enum DSCANNER_VERSION = import("dubhash.txt").strip;
+    	enum DFMT_VERSION = import("dubhash.txt").strip;
     }
     else
     {
     	/**
     	 * Current build's Git commit hash
     	 */
-    	enum DSCANNER_VERSION = import("githash.txt").strip;
+    	enum DFMT_VERSION = import("githash.txt").strip;
     }
 
-    return DSCANNER_VERSION ~ DEBUG_SUFFIX;
+    return DFMT_VERSION ~ DEBUG_SUFFIX;
 } ();
 
 
