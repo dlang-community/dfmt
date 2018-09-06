@@ -1,0 +1,4 @@
+void main()
+{
+    stuff[].map!(things => stuff.doThings).filter!(stuff).array();
+}

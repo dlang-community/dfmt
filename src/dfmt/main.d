@@ -4,6 +4,9 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 module dfmt.main;
+
+import std.string : strip;
+
 static immutable VERSION = () {
     debug
     {
@@ -14,49 +17,19 @@ static immutable VERSION = () {
         enum DEBUG_SUFFIX = "";
     }
 
-    static if (is(typeof(import("VERSION"))))
+    version (built_with_dub)
     {
-        // takes the `git describe --tags` output and removes the leading
-        // 'v' as well as any kind of newline
-        // if the tag is considered malformed it gets used verbatim
-
-        enum gitDescribeOutput = import("VERSION");
-
-        string result;
-
-        if (gitDescribeOutput[0] == 'v')
-            result = gitDescribeOutput[1 .. $];
-        else
-            result = null;
-
-        uint minusCount;
-
-        foreach (i, c; result)
-        {
-            if (c == '\n' || c == '\r')
-            {
-                result = result[0 .. i];
-                break;
-            }
-
-            if (c == '-')
-            {
-                ++minusCount;
-            }
-        }
-
-        if (minusCount > 1)
-            result = null;
-
-        return result ? result ~ DEBUG_SUFFIX
-            : gitDescribeOutput ~ DEBUG_SUFFIX;
-
+    	enum DSCANNER_VERSION = import("dubhash.txt").strip;
     }
     else
     {
-        return "unknown"  ~ DEBUG_SUFFIX ~ "-version";
+    	/**
+    	 * Current build's Git commit hash
+    	 */
+    	enum DSCANNER_VERSION = import("githash.txt").strip;
     }
 
+    return DSCANNER_VERSION ~ DEBUG_SUFFIX;
 } ();
 
 
@@ -85,9 +58,9 @@ else
         void handleBooleans(string option, string value)
         {
             import dfmt.editorconfig : OptionalBoolean;
-            import std.exception : enforceEx;
+            import std.exception : enforce;
 
-            enforceEx!GetOptException(value == "true" || value == "false", "Invalid argument");
+            enforce!GetOptException(value == "true" || value == "false", "Invalid argument");
             immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t
                 : OptionalBoolean.f;
             switch (option)
@@ -315,7 +288,7 @@ template optionsToString(E) if (is(E == enum))
 private void printHelp()
 {
     writeln(`dfmt `, VERSION, `
-https://github.com/Hackerpilot/dfmt
+https://github.com/dlang-community/dfmt
 
 Options:
     --help, -h          Print this help message

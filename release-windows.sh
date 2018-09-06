@@ -19,6 +19,7 @@ fi
 archiveName="dfmt-$VERSION-$OS-$ARCH_SUFFIX.zip"
 echo "Building $archiveName"
 mkdir -p bin
+git describe --tags > bin/githash.txt # no git installed under Wine
 DC="$DIR/dmd2/windows/bin/dmd.exe" wine cmd /C build.bat
 
 cd bin
