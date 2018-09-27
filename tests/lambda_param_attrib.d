@@ -1,0 +1,2 @@
+alias fun = (@(0)
+@(1) int p) => ((@Foo p){return 0;})(p);

@@ -629,6 +629,7 @@ private:
 
     void formatAt()
     {
+        immutable size_t atIndex = tokens[index].index;
         writeToken();
         if (currentIs(tok!"identifier"))
             writeToken();
@@ -637,7 +638,8 @@ private:
             writeParens(false);
             if (tokens[index].type == tok!"{")
                 return;
-            if (index < tokens.length && tokens[index - 1].line < tokens[index].line)
+            if (index < tokens.length && tokens[index - 1].line < tokens[index].line
+                    && astInformation.atAttributeStartLocations.canFindIndex(atIndex))
                 newline();
             else
                 write(" ");
