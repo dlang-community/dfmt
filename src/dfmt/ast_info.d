@@ -36,6 +36,7 @@ struct ASTInformation
         sort(spaceAfterLocations);
         sort(unaryLocations);
         sort(attributeDeclarationLines);
+        sort(atAttributeStartLocations);
         sort(caseEndLocations);
         sort(structInitStartLocations);
         sort(structInitEndLocations);
@@ -66,6 +67,9 @@ struct ASTInformation
 
     /// Lines containing attribute declarations
     size_t[] attributeDeclarationLines;
+
+    /// Lines containing attribute declarations that can be followed by a new line
+    size_t[] atAttributeStartLocations;
 
     /// Case statement colon locations
     size_t[] caseEndLocations;
@@ -333,6 +337,34 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.attributeDeclarationLines ~= attributeDeclaration.line;
         attributeDeclaration.accept(this);
+    }
+
+    override void visit(const FunctionAttribute functionAttribute)
+    {
+        if (functionAttribute.atAttribute !is null)
+            astInformation.atAttributeStartLocations ~= functionAttribute.atAttribute.startLocation;
+        functionAttribute.accept(this);
+    }
+
+    override void visit(const MemberFunctionAttribute memberFunctionAttribute)
+    {
+        if (memberFunctionAttribute.atAttribute !is null)
+            astInformation.atAttributeStartLocations ~= memberFunctionAttribute.atAttribute.startLocation;
+        memberFunctionAttribute.accept(this);
+    }
+
+    override void visit(const Attribute attribute)
+    {
+        if (attribute.atAttribute !is null)
+            astInformation.atAttributeStartLocations ~= attribute.atAttribute.startLocation;
+        attribute.accept(this);
+    }
+
+    override void visit(const StorageClass storageClass)
+    {
+        if (storageClass.atAttribute !is null)
+            astInformation.atAttributeStartLocations ~= storageClass.atAttribute.startLocation;
+        storageClass.accept(this);
     }
 
     override void visit(const InStatement inStatement)
