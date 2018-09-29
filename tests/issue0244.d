@@ -1,0 +1,1 @@
+enum Status : bool { abort = true, ignore = false }
