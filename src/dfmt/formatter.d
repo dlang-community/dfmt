@@ -1759,6 +1759,8 @@ const pure @safe @nogc:
         case tok!"stringLiteral":
         case tok!"wstringLiteral":
         case tok!"dstringLiteral":
+        case tok!"true":
+        case tok!"false":
             return true;
         default:
             return false;
