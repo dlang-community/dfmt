@@ -207,7 +207,7 @@ private:
         }
         else if (currentIs(tok!"with"))
         {
-            if (indents.length == 0 || indents.top != tok!"switch")
+            if (indents.length == 0 || (indents.top != tok!"switch" && indents.top != tok!"with"))
                 indents.push(tok!"with");
             writeToken();
             write(" ");
