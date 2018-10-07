@@ -730,6 +730,7 @@ private:
         else
         {
             writeToken();
+            indents.popWrapIndents();
             linebreakHints = [];
             while (indents.topIs(tok!"enum"))
                 indents.pop();
