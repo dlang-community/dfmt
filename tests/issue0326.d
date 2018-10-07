@@ -1,0 +1,1 @@
+void main(){()@trusted{stderr.writeln("\033[01;33m", url, "\033[0m");}();}

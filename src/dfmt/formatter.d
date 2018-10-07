@@ -786,7 +786,7 @@ private:
         else if (astInformation.funLitStartLocations.canFindIndex(tIndex))
         {
             sBraceDepth++;
-            if (peekBackIs(tok!")"))
+            if (peekBackIsOneOf(true, tok!")", tok!"identifier"))
                 write(" ");
             auto e = expressionEndIndex(index);
             immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a))
