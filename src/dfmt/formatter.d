@@ -1314,7 +1314,8 @@ private:
             {
                 if (isWrapToken)
                 {
-                    pushWrapIndent();
+                    if (!indents.topIs(tok!"enum"))
+                        pushWrapIndent();
                     write(" ");
                     writeToken();
                     newline();
@@ -1331,7 +1332,8 @@ private:
             {
                 if (isWrapToken)
                 {
-                    pushWrapIndent();
+                    if (!indents.topIs(tok!"enum"))
+                        pushWrapIndent();
                     newline();
                     writeToken();
                 }
