@@ -1,0 +1,22 @@
+void main(string[] args)
+{
+// Test with catch
+if (args.length > 1)
+try
+doSomeStuff();
+catch (Exception error)
+ohNoSomeErrorHappened();
+else
+thatsNotHowYouUseThisProgram();
+
+// Test with finally
+if (args.length > 2)
+try
+doOtherStuff();
+catch (Exception error)
+ohNoSomeErrorHappened();
+finally
+doSomeCleanup();
+else
+dontDoOtherStuff();
+}

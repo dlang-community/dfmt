@@ -732,7 +732,7 @@ private:
             writeToken();
             indents.popWrapIndents();
             linebreakHints = [];
-            while (indents.topIs(tok!"enum"))
+            while (indents.topIsOneOf(tok!"enum", tok!"try", tok!"catch", tok!"finally"))
                 indents.pop();
             if (indents.topAre(tok!"static", tok!"else"))
             {
@@ -1547,8 +1547,6 @@ private:
             }
             else if (currentIs(tok!"catch") || currentIs(tok!"finally"))
             {
-                while (indents.topIsOneOf(tok!"catch", tok!"try"))
-                    indents.pop();
                 indentLevel = indents.indentLevel;
             }
             else
