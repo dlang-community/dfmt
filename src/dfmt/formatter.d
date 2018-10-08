@@ -1444,7 +1444,6 @@ private:
                 && !assumeSorted(astInformation.funLitEndLocations).equalRange(
                     tokens[index].index).empty)
         {
-            write(" ");
             return;
         }
 
