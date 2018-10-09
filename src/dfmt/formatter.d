@@ -207,7 +207,7 @@ private:
         }
         else if (currentIs(tok!"with"))
         {
-            if (indents.length == 0 || (indents.top != tok!"switch" && indents.top != tok!"with"))
+            if (indents.length == 0 || !indents.topIsOneOf(tok!"switch", tok!"with"))
                 indents.push(tok!"with");
             writeToken();
             write(" ");
@@ -732,13 +732,14 @@ private:
             writeToken();
             indents.popWrapIndents();
             linebreakHints = [];
-            while (indents.topIsOneOf(tok!"enum", tok!"try", tok!"catch", tok!"finally"))
+            while (indents.topIsOneOf(tok!"enum", tok!"try", tok!"catch", tok!"finally", tok!"debug"))
                 indents.pop();
             if (indents.topAre(tok!"static", tok!"else"))
             {
                 indents.pop();
                 indents.pop();
             }
+            indentLevel = indents.indentLevel;
             if (config.dfmt_brace_style == BraceStyle.allman)
             {
                 if (!currentIs(tok!"{"))
@@ -1552,7 +1553,7 @@ private:
             else
             {
                 if (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}",
-                        tok!";") && indents.top != tok!";"))
+                        tok!";") && !indents.topIs(tok!";")))
                     indents.popTempIndents();
                 indentLevel = indents.indentLevel;
             }
