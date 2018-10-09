@@ -207,7 +207,7 @@ private:
         }
         else if (currentIs(tok!"with"))
         {
-            if (indents.length == 0 || (indents.top != tok!"switch" && indents.top != tok!"with"))
+            if (indents.length == 0 || !indents.topIsOneOf(tok!"switch", tok!"with"))
                 indents.push(tok!"with");
             writeToken();
             write(" ");
@@ -1552,7 +1552,7 @@ private:
             else
             {
                 if (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}",
-                        tok!";") && indents.top != tok!";"))
+                        tok!";") && !indents.topIs(tok!";")))
                     indents.popTempIndents();
                 indentLevel = indents.indentLevel;
             }
