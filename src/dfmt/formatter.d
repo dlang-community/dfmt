@@ -230,8 +230,8 @@ private:
             writeToken();
             write(" ");
         }
-        else if ((isBlockHeader() || currentIs(tok!"version")
-                || currentIs(tok!"debug")) && peekIs(tok!"(", false))
+        else if (((isBlockHeader() || currentIs(tok!"version")) && peekIs(tok!"("))
+                || (currentIs(tok!"debug") && peekIs(tok!"{")))
         {
             if (!assumeSorted(astInformation.constraintLocations).equalRange(current.index).empty)
                 formatConstraint();
@@ -1910,19 +1910,19 @@ const pure @safe @nogc:
         }
     }
 
-    bool isBlockHeaderToken(IdType t)
+    bool isBlockHeaderToken(const IdType t)
     {
         return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
             || t == tok!"while" || t == tok!"if" || t == tok!"in"|| t == tok!"out"
             || t == tok!"do" || t == tok!"catch" || t == tok!"with"
-            || t == tok!"synchronized" || t == tok!"scope";
+            || t == tok!"synchronized" || t == tok!"scope" || t == tok!"debug";
     }
 
     bool isBlockHeader(int i = 0) nothrow
     {
         if (i + index < 0 || i + index >= tokens.length)
             return false;
-        auto t = tokens[i + index].type;
+        const t = tokens[i + index].type;
         bool isExpressionContract;
 
         if (i + index + 3 < tokens.length)
