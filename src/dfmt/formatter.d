@@ -487,6 +487,8 @@ private:
         {
             if (currentIs(tok!";"))
             {
+                indents.popWrapIndents();
+                indentLevel = indents.indentLevel;
                 writeToken();
                 if (index >= tokens.length)
                 {
