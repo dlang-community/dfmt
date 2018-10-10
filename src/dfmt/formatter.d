@@ -308,7 +308,7 @@ private:
                             || peekBack2Is(tok!")")
                             || peekBack2Is(tok!"]") )
                         && currentIs(tok!("(") )
-                    || isBasicType(current.type) || currentIs(tok!"@") || currentIs(tok!"if")
+                    || isBasicType(current.type) || currentIs(tok!"@")
                     || isNumberLiteral(tokens[index].type)
                     || (inAsm  && peekBack2Is(tok!";") && currentIs(tok!"["))
             )))
@@ -337,7 +337,7 @@ private:
             immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
             if (l > config.dfmt_soft_max_line_length)
                 newline();
-            else if (peekBackIs(tok!")"))
+            else if (peekBackIs(tok!")") || peekBackIs(tok!"identifier"))
                 write(" ");
             break;
         case always_newline:
@@ -351,7 +351,7 @@ private:
                     pushWrapIndent() : pushWrapIndent(tok!"!");
                 newline();
             }
-            else if (peekBackIs(tok!")"))
+            else if (peekBackIs(tok!")") || peekBackIs(tok!"identifier"))
                 write(" ");
             break;
         case always_newline_indent:
@@ -646,7 +646,7 @@ private:
         }
         else if (index < tokens.length && (currentIs(tok!"@")
                 || isBasicType(tokens[index].type)
-                || currentIs(tok!"identifier") || currentIs(tok!"if"))
+                || currentIs(tok!"identifier"))
                 && !currentIsIndentedTemplateConstraint())
             write(" ");
     }
@@ -1161,6 +1161,7 @@ private:
         return index < tokens.length
             && astInformation.constraintLocations.canFindIndex(current.index)
             && (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline
+                || config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent
                 || currentLineLength >= config.dfmt_soft_max_line_length);
     }
 
