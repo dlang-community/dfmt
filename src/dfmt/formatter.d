@@ -174,6 +174,9 @@ private:
     /// True if the next "this" should have a space behind it
     bool thisSpace;
 
+    /// True if the next "else" should be formatted as a single line
+    bool inlineElse;
+
     void formatStep()
     {
         import std.range : assumeSorted;
@@ -281,6 +284,8 @@ private:
         }
         else if (isKeyword(current.type))
         {
+            if (currentIs(tok!"debug"))
+                inlineElse = true;
             formatKeyword();
         }
         else if (current.text == "body" && peekBackIsFunctionDeclarationEnding())
@@ -710,6 +715,9 @@ private:
 
     void formatSemicolon()
     {
+        if (inlineElse && !peekIs(tok!"else"))
+            inlineElse = false;
+
         if ((parenDepth > 0 && sBraceDepth == 0) || (sBraceDepth > 0 && niBraceDepth > 0))
         {
             if (currentLineLength > config.dfmt_soft_max_line_length)
@@ -1001,11 +1009,12 @@ private:
     void formatElse()
     {
         writeToken();
-        if (currentIs(tok!"if") || currentIs(tok!"version")
+        if (inlineElse || currentIs(tok!"if") || currentIs(tok!"version")
                 || (currentIs(tok!"static") && peekIs(tok!"if")))
         {
             if (indents.topIs(tok!"if") || indents.topIs(tok!"version"))
                 indents.pop();
+            inlineElse = false;
             write(" ");
         }
         else if (currentIs(tok!":"))
