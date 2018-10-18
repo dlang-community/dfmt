@@ -533,8 +533,7 @@ private:
                 {
                     if (tokens[i].type == tok!"," || tokens[i].type == tok!";")
                         break;
-                    immutable len = tokens[i].type == tok!"comment" ? tokens[i].text.length : tokenLength(tokens[i]);
-                    assert(len >= 0);
+                    immutable len = tokens[i].text.length;
                     lengthOfNextChunk += len;
                 }
                 assert(lengthOfNextChunk > 0);
