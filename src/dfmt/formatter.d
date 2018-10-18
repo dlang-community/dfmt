@@ -523,28 +523,20 @@ private:
                 if (config.dfmt_selective_import_space)
                     write(" ");
                 writeToken();
-                write(" ");
-            }
-            else if (currentIs(tok!","))
-            {
-                // compute length until next ',' or ';'
-                int lengthOfNextChunk;
-                for (size_t i = index + 1; i < tokens.length; i++)
-                {
-                    if (tokens[i].type == tok!"," || tokens[i].type == tok!";")
-                        break;
-                    immutable len = tokens[i].text.length;
-                    lengthOfNextChunk += len;
-                }
-                assert(lengthOfNextChunk > 0);
-                writeToken();
-                if (currentLineLength + 1 + lengthOfNextChunk >= config.dfmt_soft_max_line_length)
-                {
-                    pushWrapIndent(tok!",");
-                    newline();
-                }
-                else
+                if (!currentIs(tok!"comment"))
                     write(" ");
+                pushWrapIndent(tok!",");
+            }
+            else if (currentIs(tok!"comment"))
+            {
+                if (peekBack.line != current.line)
+                {
+                    // The comment appears on its own line, keep it there.
+                    if (!peekBackIs(tok!"comment"))
+                        // Comments are already properly separated.
+                        newline();
+                }
+                formatStep();
             }
             else
                 formatStep();
