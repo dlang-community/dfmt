@@ -11,6 +11,10 @@ os:
   - linux
 #  - osx # disabled until travis has more mac resources
 
+branches:
+  only:
+  - master
+
 env:
   - BUILD=
   - BUILD=dub
