@@ -214,9 +214,9 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const FunctionLiteralExpression funcLit)
     {
-        if (funcLit.functionBody !is null)
+        if (funcLit.specifiedFunctionBody !is null)
         {
-            const bs = funcLit.functionBody.blockStatement;
+            const bs = funcLit.specifiedFunctionBody.blockStatement;
 
             astInformation.funLitStartLocations ~= bs.startLocation;
             astInformation.funLitEndLocations ~= bs.endLocation;
@@ -244,15 +244,11 @@ final class FormatVisitor : ASTVisitor
         caseRangeStatement.accept(this);
     }
 
-    override void visit(const FunctionBody functionBody)
+    override void visit(const SpecifiedFunctionBody specifiedFunctionBody)
     {
-        if (functionBody.blockStatement !is null)
-            astInformation.doubleNewlineLocations ~= functionBody.blockStatement.endLocation;
-        if (functionBody.bodyStatement !is null && functionBody.bodyStatement
-                .blockStatement !is null)
-            astInformation.doubleNewlineLocations
-                ~= functionBody.bodyStatement.blockStatement.endLocation;
-        functionBody.accept(this);
+        if (specifiedFunctionBody.blockStatement !is null)
+            astInformation.doubleNewlineLocations ~= specifiedFunctionBody.blockStatement.endLocation;
+        specifiedFunctionBody.accept(this);
     }
 
     override void visit(const StructInitializer structInitializer)
@@ -367,10 +363,22 @@ final class FormatVisitor : ASTVisitor
         storageClass.accept(this);
     }
 
+    override void visit(const InContractExpression inContractExpression)
+    {
+        astInformation.contractLocations ~= inContractExpression.inTokenLocation;
+        inContractExpression.accept(this);
+    }
+
     override void visit(const InStatement inStatement)
     {
         astInformation.contractLocations ~= inStatement.inTokenLocation;
         inStatement.accept(this);
+    }
+
+    override void visit(const OutContractExpression outContractExpression)
+    {
+        astInformation.contractLocations ~= outContractExpression.outTokenLocation;
+        outContractExpression.accept(this);
     }
 
     override void visit(const OutStatement outStatement)
