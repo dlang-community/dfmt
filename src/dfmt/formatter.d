@@ -805,7 +805,8 @@ private:
             else
             {
                 niBraceDepth++;
-                write(" ");
+                if (!currentIs(tok!"}"))
+                    write(" ");
             }
         }
         else
@@ -872,7 +873,7 @@ private:
         {
             if (niBraceDepth > 0)
             {
-                if (!peekBackIsSlashSlash())
+                if (!peekBackIsSlashSlash() && !peekBackIs(tok!"{"))
                     write(" ");
                 niBraceDepth--;
             }

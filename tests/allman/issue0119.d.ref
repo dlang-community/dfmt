@@ -1,5 +1,5 @@
-auto fun = function() {  };
-auto fun = () {  };
+auto fun = function() {};
+auto fun = () {};
 auto fun = {};
 
 auto fun = { int i; };
