@@ -15,6 +15,6 @@
         "built_with_dub"
     ],
     "preGenerateCommands" : [
-      "rdmd dubhash.d"
+      "rdmd $PACKAGE_DIR/dubhash.d"
     ]
 }
