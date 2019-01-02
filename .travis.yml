@@ -1,15 +1,12 @@
 sudo: false
 language: d
 d:
-  #- dmd-nightly
-  - dmd-beta
   - dmd
-  - ldc-beta
   - ldc
 
 os:
   - linux
-#  - osx # disabled until travis has more mac resources
+  - osx
 
 branches:
   only:
@@ -24,30 +21,6 @@ script: ./.travis.sh
 
 jobs:
     include:
-        - stage: Build & Upload Package
-          if: tag IS present
-          # Which package to deploy
-          env:
-              - DMD=2.076.*
-              - DIST=xenial
-              - PATH="$(git config -f .gitmodules submodule.beaver.path)/bin:$PATH"
-          language: generic
-          sudo: required
-          services:
-              - docker
-          git:
-              submodules: false
-          before_install: git submodule update --init
-          install: beaver dlang install
-          script:
-              - beaver dlang make pkg
-          deploy:
-              provider: script
-              script: beaver bintray upload -d dlang-community/apt/dfmt build/last/pkg/*.deb
-              skip_cleanup: true
-              on:
-                  tags: true # must be a git tag
-                  repo: dlang-community/dfmt # must be a tag on dlang-community
         - stage: GitHub Release
           #if: tag IS present
           d: ldc-1.8.0
