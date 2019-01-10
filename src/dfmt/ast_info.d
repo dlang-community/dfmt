@@ -45,6 +45,7 @@ struct ASTInformation
         sort(conditionalWithElseLocations);
         sort(conditionalStatementLocations);
         sort(arrayStartLocations);
+        sort(assocArrayStartLocations);
         sort(contractLocations);
         sort(constraintLocations);
         sort(constructorDestructorLocations);
@@ -95,6 +96,9 @@ struct ASTInformation
     /// Locations of start locations of array initializers
     size_t[] arrayStartLocations;
 
+    /// Locations of start locations of associative array initializers
+    size_t[] assocArrayStartLocations;
+
     /// Locations of "in" and "out" tokens that begin contracts
     size_t[] contractLocations;
 
@@ -134,6 +138,19 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.arrayStartLocations ~= arrayInitializer.startLocation;
         arrayInitializer.accept(this);
+    }
+
+    override void visit(const ArrayLiteral arrayLiteral)
+    {
+        astInformation.arrayStartLocations ~= arrayLiteral.tokens[0].index;
+        arrayLiteral.accept(this);
+    }
+
+    override void visit(const AssocArrayLiteral assocArrayLiteral)
+    {
+        astInformation.arrayStartLocations ~= assocArrayLiteral.tokens[0].index;
+        astInformation.assocArrayStartLocations ~= assocArrayLiteral.tokens[0].index;
+        assocArrayLiteral.accept(this);
     }
 
     override void visit (const SharedStaticConstructor sharedStaticConstructor)
