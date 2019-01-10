@@ -1240,8 +1240,13 @@ private:
             break;
         case tok!"]":
             indents.popWrapIndents();
-            if (indents.topIs(tok!"]"))
-                newline();
+            if (indents.topIsTemp(tok!"]"))
+            {
+                if (!indents.topDetails.mini)
+                    newline();
+                else
+                    indents.pop();
+            }
             writeToken();
             if (currentIs(tok!"identifier"))
                 write(" ");
@@ -1402,7 +1407,7 @@ private:
             : tokens[i .. $].countUntil!(t => t.index == r.front) + i;
         immutable size_t j = min(expressionEndIndex(i), ufcsBreakLocation);
         // Use magical negative value for array literals and wrap indents
-        immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel
+        immutable inLvl = (indents.topIsWrap() || indents.topIsTemp(tok!"]")) ? -indentLevel
             : indentLevel;
         linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], depths[i .. j],
                 config, currentLineLength, inLvl);
@@ -1528,7 +1533,7 @@ private:
             else if (currentIs(tok!"]"))
             {
                 indents.popWrapIndents();
-                if (indents.topIs(tok!"]"))
+                if (indents.topIsTemp(tok!"]"))
                 {
                     indents.pop();
                     indentLevel = indents.indentLevel;
@@ -1671,13 +1676,21 @@ private:
     void pushWrapIndent(IdType type = tok!"")
     {
         immutable t = type == tok!"" ? tokens[index].type : type;
+        IndentStack.Details detail;
+        detail.wrap = isWrapIndent(t);
+        detail.temp = isTempIndent(t);
+        pushWrapIndent(t, detail);
+    }
+
+    void pushWrapIndent(IdType type, IndentStack.Details detail)
+    {
         if (parenDepth == 0)
         {
             if (indents.wrapIndents == 0)
-                indents.push(t);
+                indents.push(type, detail);
         }
         else if (indents.wrapIndents < 1)
-            indents.push(t);
+            indents.push(type, detail);
     }
 
 const pure @safe @nogc:
