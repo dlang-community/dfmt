@@ -569,9 +569,9 @@ private:
         // No heuristics apply if we can't look before the opening paren/bracket
         if (index < 1)
             return;
-        immutable bool arrayInitializerStart = p == tok!"[" && linebreakHints.length != 0
+        immutable bool arrayInitializerStart = p == tok!"["
             && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
-        if (arrayInitializerStart)
+        if (arrayInitializerStart && isMultilineAt(index))
         {
             // Use the close bracket as the indent token to distinguish
             // the array initialiazer from an array index in the newline
@@ -790,12 +790,7 @@ private:
             sBraceDepth++;
             if (peekBackIsOneOf(true, tok!")", tok!"identifier"))
                 write(" ");
-            auto e = expressionEndIndex(index);
-            immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a))
-                .sum();
-            immutable bool multiline = l > config.dfmt_soft_max_line_length
-                || tokens[index .. e].canFind!(a => a.type == tok!"comment"
-                    || isBlockHeaderToken(a.type))();
+            immutable bool multiline = isMultilineAt(index);
             writeToken();
             if (multiline)
             {
@@ -1698,6 +1693,7 @@ const pure @safe @nogc:
     size_t expressionEndIndex(size_t i) nothrow
     {
         immutable bool braces = i < tokens.length && tokens[i].type == tok!"{";
+        immutable bool brackets = i < tokens.length && tokens[i].type == tok!"[";
         immutable d = depths[i];
         while (true)
         {
@@ -1705,11 +1701,21 @@ const pure @safe @nogc:
                 break;
             if (depths[i] < d)
                 break;
-            if (!braces && (tokens[i].type == tok!";" || tokens[i].type == tok!"{"))
+            if (!braces && !brackets && (tokens[i].type == tok!";" || tokens[i].type == tok!"{"))
                 break;
             i++;
         }
         return i;
+    }
+
+    bool isMultilineAt(size_t i)
+    {
+        import std.algorithm : map, sum, canFind;
+
+        auto e = expressionEndIndex(i);
+        immutable int l = currentLineLength + tokens[i .. e].map!(a => tokenLength(a)).sum();
+        return l > config.dfmt_soft_max_line_length
+            || tokens[i .. e].canFind!(a => a.type == tok!"comment" || isBlockHeaderToken(a.type))();
     }
 
     bool peekIsKeyword() nothrow
