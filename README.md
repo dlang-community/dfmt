@@ -49,6 +49,7 @@ found in .editorconfig files.
 * **--selective_import_space**: See **dfmt_selective_import_space** below
 * **--compact_labeled_statements**: See **dfmt_compact_labeled_statements** below
 * **--template_constraint_style**: See **dfmt_template_constraint_style** below
+* **--space_before_aa_colon**: See **dfmt_space_before_aa_colon** below
 
 ### Example
 ```
@@ -107,6 +108,7 @@ dfmt_selective_import_space | `true`, `false` | `true` | Insert space after the 
 dfmt_compact_labeled_statements | `true`, `false` | `true` | Place labels on the same line as the labeled `switch`, `for`, `foreach`, or `while` statement.
 dfmt_template_constraint_style | `conditional_newline_indent` `conditional_newline` `always_newline` `always_newline_indent` | `conditional_newline_indent` | Control the formatting of template constraints.
 dfmt_single_template_constraint_indent | `true`, `false` | `false` | Set if the constraints are indented by a single tab instead of two. Has only an effect for if indentation style if set to `always_newline_indent` or `conditional_newline_indent`.
+dfmt_space_before_aa_colon | `true`, `false` | `false` | Adds a space after an associative array key before the `:` like in older dfmt versions.
 
 ## Terminology
 * Braces - `{` and `}`

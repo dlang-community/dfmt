@@ -576,11 +576,27 @@ private:
             // Use the close bracket as the indent token to distinguish
             // the array initialiazer from an array index in the newline
             // handling code
-            pushWrapIndent(tok!"]");
+            IndentStack.Details detail;
+            detail.wrap = false;
+            detail.temp = true;
+            detail.isAA = astInformation.assocArrayStartLocations.canFindIndex(tokens[index - 1].index);
+            pushWrapIndent(tok!"]", detail);
+
             newline();
             immutable size_t j = expressionEndIndex(index);
             linebreakHints = chooseLineBreakTokens(index, tokens[index .. j],
                     depths[index .. j], config, currentLineLength, indentLevel);
+        }
+        else if (arrayInitializerStart)
+        {
+            // This is a short (non-breaking) AA value
+            IndentStack.Details detail;
+            detail.wrap = false;
+            detail.temp = true;
+            detail.isAA = true;
+            detail.mini = true;
+
+            pushWrapIndent(tok!"]", detail);
         }
         else if (!currentIs(tok!")") && !currentIs(tok!"]")
                 && (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
@@ -700,7 +716,12 @@ private:
             }
             else
             {
-                write(" : ");
+                const inAA = indents.topIs(tok!"]") && indents.topDetails.isAA;
+
+                if (inAA && !config.dfmt_space_before_aa_colon)
+                    write(": ");
+                else
+                    write(" : ");
                 index++;
             }
         }
@@ -1364,6 +1385,11 @@ private:
         regenLineBreakHintsIfNecessary(index);
         if (indents.indentToMostRecent(tok!"enum") != -1
                 && !peekIs(tok!"}") && indents.topIs(tok!"{") && parenDepth == 0)
+        {
+            writeToken();
+            newline();
+        }
+        else if (indents.topIsTemp(tok!"]") && indents.topDetails.isAA && !indents.topDetails.mini)
         {
             writeToken();
             newline();
