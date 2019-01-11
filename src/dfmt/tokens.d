@@ -184,6 +184,8 @@ int breakCost(IdType p, IdType c) pure nothrow @safe @nogc
     case tok!"+=":
         return 200;
     case tok!":":
+        // colon could be after a label or an import, where it should normally wrap like before
+        // for everything else (associative arrays) try not breaking around colons
         return p == tok!"identifier" ? 0 : 300;
     case tok!".":
         return p == tok!")" ? 0 : 300;

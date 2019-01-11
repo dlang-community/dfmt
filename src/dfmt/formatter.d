@@ -579,6 +579,9 @@ private:
             IndentStack.Details detail;
             detail.wrap = false;
             detail.temp = true;
+            // wrap and temp are set manually to the values it would actually
+            // receive here because we want to set isAA for the ] token to know if
+            // we should definitely always new-line after every comma for a big AA
             detail.isAA = astInformation.assocArrayStartLocations.canFindIndex(tokens[index - 1].index);
             pushWrapIndent(tok!"]", detail);
 
@@ -1256,7 +1259,7 @@ private:
             break;
         case tok!"]":
             indents.popWrapIndents();
-            if (indents.topIsTemp(tok!"]"))
+            if (indents.topIs(tok!"]"))
             {
                 if (!indents.topDetails.mini)
                     newline();
@@ -1389,7 +1392,7 @@ private:
             writeToken();
             newline();
         }
-        else if (indents.topIsTemp(tok!"]") && indents.topDetails.isAA && !indents.topDetails.mini)
+        else if (indents.topIs(tok!"]") && indents.topDetails.isAA && !indents.topDetails.mini)
         {
             writeToken();
             newline();
@@ -1428,7 +1431,7 @@ private:
             : tokens[i .. $].countUntil!(t => t.index == r.front) + i;
         immutable size_t j = min(expressionEndIndex(i), ufcsBreakLocation);
         // Use magical negative value for array literals and wrap indents
-        immutable inLvl = (indents.topIsWrap() || indents.topIsTemp(tok!"]")) ? -indentLevel
+        immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel
             : indentLevel;
         linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], depths[i .. j],
                 config, currentLineLength, inLvl);
@@ -1554,7 +1557,7 @@ private:
             else if (currentIs(tok!"]"))
             {
                 indents.popWrapIndents();
-                if (indents.topIsTemp(tok!"]"))
+                if (indents.topIs(tok!"]"))
                 {
                     indents.pop();
                     indentLevel = indents.indentLevel;
@@ -1734,6 +1737,8 @@ const pure @safe @nogc:
         return i;
     }
 
+    /// Returns: true when the expression starting at index goes over the line length limit.
+    /// Uses matching `{}` or `[]` or otherwise takes everything up until a semicolon or opening brace using expressionEndIndex.
     bool isMultilineAt(size_t i)
     {
         import std.algorithm : map, sum, canFind;
