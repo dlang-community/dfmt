@@ -218,13 +218,16 @@ struct IndentStack
     /**
      * Dumps the current state of the indentation stack to `stderr`. Used for debugging.
      */
-    void dump(string file = __FILE__, uint line = __LINE__)
+    void dump(size_t pos = size_t.max, string file = __FILE__, uint line = __LINE__)
     {
         import dparse.lexer : str;
         import std.algorithm.iteration : map;
         import std.stdio : stderr;
 
-        stderr.writefln("\033[31m%s:%d %(%s %)\033[0m", file, line, arr[0 .. index].map!(a => str(a)));
+        if (pos == size_t.max)
+            stderr.writefln("\033[31m%s:%d %(%s %)\033[0m", file, line, arr[0 .. index].map!(a => str(a)));
+        else
+            stderr.writefln("\033[31m%s:%d at %d %(%s %)\033[0m", file, line, pos, arr[0 .. index].map!(a => str(a)));
     }
 
 private:
