@@ -569,18 +569,37 @@ private:
         // No heuristics apply if we can't look before the opening paren/bracket
         if (index < 1)
             return;
-        immutable bool arrayInitializerStart = p == tok!"[" && linebreakHints.length != 0
+        immutable bool arrayInitializerStart = p == tok!"["
             && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
-        if (arrayInitializerStart)
+        if (arrayInitializerStart && isMultilineAt(index - 1))
         {
             // Use the close bracket as the indent token to distinguish
             // the array initialiazer from an array index in the newline
             // handling code
-            pushWrapIndent(tok!"]");
+            IndentStack.Details detail;
+            detail.wrap = false;
+            detail.temp = true;
+            // wrap and temp are set manually to the values it would actually
+            // receive here because we want to set isAA for the ] token to know if
+            // we should definitely always new-line after every comma for a big AA
+            detail.isAA = astInformation.assocArrayStartLocations.canFindIndex(tokens[index - 1].index);
+            pushWrapIndent(tok!"]", detail);
+
             newline();
             immutable size_t j = expressionEndIndex(index);
             linebreakHints = chooseLineBreakTokens(index, tokens[index .. j],
                     depths[index .. j], config, currentLineLength, indentLevel);
+        }
+        else if (arrayInitializerStart)
+        {
+            // This is a short (non-breaking) AA value
+            IndentStack.Details detail;
+            detail.wrap = false;
+            detail.temp = true;
+            detail.isAA = true;
+            detail.mini = true;
+
+            pushWrapIndent(tok!"]", detail);
         }
         else if (!currentIs(tok!")") && !currentIs(tok!"]")
                 && (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
@@ -623,6 +642,26 @@ private:
         }
         else
             writeToken();
+    }
+
+    void formatRightBracket()
+    in
+    {
+        assert(currentIs(tok!"]"));
+    }
+    body
+    {
+        indents.popWrapIndents();
+        if (indents.topIs(tok!"]"))
+        {
+            if (!indents.topDetails.mini)
+                newline();
+            else
+                indents.pop();
+        }
+        writeToken();
+        if (currentIs(tok!"identifier"))
+            write(" ");
     }
 
     void formatAt()
@@ -700,7 +739,12 @@ private:
             }
             else
             {
-                write(" : ");
+                const inAA = indents.topIs(tok!"]") && indents.topDetails.isAA;
+
+                if (inAA && !config.dfmt_space_before_aa_colon)
+                    write(": ");
+                else
+                    write(" : ");
                 index++;
             }
         }
@@ -790,12 +834,7 @@ private:
             sBraceDepth++;
             if (peekBackIsOneOf(true, tok!")", tok!"identifier"))
                 write(" ");
-            auto e = expressionEndIndex(index);
-            immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a))
-                .sum();
-            immutable bool multiline = l > config.dfmt_soft_max_line_length
-                || tokens[index .. e].canFind!(a => a.type == tok!"comment"
-                    || isBlockHeaderToken(a.type))();
+            immutable bool multiline = isMultilineAt(index);
             writeToken();
             if (multiline)
             {
@@ -1239,12 +1278,7 @@ private:
             formatColon();
             break;
         case tok!"]":
-            indents.popWrapIndents();
-            if (indents.topIs(tok!"]"))
-                newline();
-            writeToken();
-            if (currentIs(tok!"identifier"))
-                write(" ");
+            formatRightBracket();
             break;
         case tok!";":
             formatSemicolon();
@@ -1364,6 +1398,11 @@ private:
         regenLineBreakHintsIfNecessary(index);
         if (indents.indentToMostRecent(tok!"enum") != -1
                 && !peekIs(tok!"}") && indents.topIs(tok!"{") && parenDepth == 0)
+        {
+            writeToken();
+            newline();
+        }
+        else if (indents.topIs(tok!"]") && indents.topDetails.isAA && !indents.topDetails.mini)
         {
             writeToken();
             newline();
@@ -1671,13 +1710,21 @@ private:
     void pushWrapIndent(IdType type = tok!"")
     {
         immutable t = type == tok!"" ? tokens[index].type : type;
+        IndentStack.Details detail;
+        detail.wrap = isWrapIndent(t);
+        detail.temp = isTempIndent(t);
+        pushWrapIndent(t, detail);
+    }
+
+    void pushWrapIndent(IdType type, IndentStack.Details detail)
+    {
         if (parenDepth == 0)
         {
             if (indents.wrapIndents == 0)
-                indents.push(t);
+                indents.push(type, detail);
         }
         else if (indents.wrapIndents < 1)
-            indents.push(t);
+            indents.push(type, detail);
     }
 
 const pure @safe @nogc:
@@ -1685,6 +1732,7 @@ const pure @safe @nogc:
     size_t expressionEndIndex(size_t i) nothrow
     {
         immutable bool braces = i < tokens.length && tokens[i].type == tok!"{";
+        immutable bool brackets = i < tokens.length && tokens[i].type == tok!"[";
         immutable d = depths[i];
         while (true)
         {
@@ -1692,11 +1740,23 @@ const pure @safe @nogc:
                 break;
             if (depths[i] < d)
                 break;
-            if (!braces && (tokens[i].type == tok!";" || tokens[i].type == tok!"{"))
+            if (!braces && !brackets && (tokens[i].type == tok!";" || tokens[i].type == tok!"{"))
                 break;
             i++;
         }
         return i;
+    }
+
+    /// Returns: true when the expression starting at index goes over the line length limit.
+    /// Uses matching `{}` or `[]` or otherwise takes everything up until a semicolon or opening brace using expressionEndIndex.
+    bool isMultilineAt(size_t i)
+    {
+        import std.algorithm : map, sum, canFind;
+
+        auto e = expressionEndIndex(i);
+        immutable int l = currentLineLength + tokens[i .. e].map!(a => tokenLength(a)).sum();
+        return l > config.dfmt_soft_max_line_length
+            || tokens[i .. e].canFind!(a => a.type == tok!"comment" || isBlockHeaderToken(a.type))();
     }
 
     bool peekIsKeyword() nothrow

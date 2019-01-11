@@ -89,6 +89,9 @@ else
             case "single_template_constraint_indent":
                 optConfig.dfmt_single_template_constraint_indent = optVal;
                 break;
+            case "space_before_aa_colon":
+                optConfig.dfmt_space_before_aa_colon = optVal;
+                break;
             default:
                 assert(false, "Invalid command-line switch");
             }
@@ -116,6 +119,7 @@ else
                 "split_operator_at_line_end", &handleBooleans,
                 "compact_labeled_statements", &handleBooleans,
                 "single_template_constraint_indent", &handleBooleans,
+                "space_before_aa_colon", &handleBooleans,
                 "tab_width", &optConfig.tab_width,
                 "template_constraint_style", &optConfig.dfmt_template_constraint_style);
             // dfmt on
@@ -314,6 +318,7 @@ Formatting Options:
     --split_operator_at_line_end
     --compact_labeled_statements
     --template_constraint_style
+    --space_before_aa_colon
         `,
             optionsToString!(typeof(Config.dfmt_template_constraint_style)));
 }
