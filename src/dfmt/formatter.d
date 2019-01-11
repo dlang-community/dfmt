@@ -578,13 +578,16 @@ private:
             // handling code
             IndentStack.Details detail;
             detail.wrap = false;
-            detail.temp = true;
-            // wrap and temp are set manually to the values it would actually
-            // receive here because we want to set isAA for the ] token to know if
-            // we should definitely always new-line after every comma for a big AA
-            detail.isAA = astInformation.assocArrayStartLocations.canFindIndex(tokens[index - 1].index);
-            pushWrapIndent(tok!"]", detail);
+            detail.temp = false;
 
+            // wrap and temp are set manually to the values it would actually
+            // receive here because we want to set breakEveryItem for the ] token to know if
+            // we should definitely always new-line after every comma for a big AA
+            detail.breakEveryItem = astInformation.assocArrayStartLocations.canFindIndex(
+                    tokens[index - 1].index);
+            detail.preferLongBreaking = true;
+
+            indents.push(tok!"]", detail);
             newline();
             immutable size_t j = expressionEndIndex(index);
             linebreakHints = chooseLineBreakTokens(index, tokens[index .. j],
@@ -592,14 +595,21 @@ private:
         }
         else if (arrayInitializerStart)
         {
-            // This is a short (non-breaking) AA value
+            // This is a short (non-breaking) array/AA value
             IndentStack.Details detail;
             detail.wrap = false;
-            detail.temp = true;
-            detail.isAA = true;
+            detail.temp = false;
+
+            detail.breakEveryItem = astInformation.assocArrayStartLocations.canFindIndex(tokens[index - 1].index);
+            // array of (possibly associative) array, let's put each item on its own line
+            if (!detail.breakEveryItem && index < tokens.length && current == tok!"[")
+                detail.breakEveryItem = true;
+
+            // the '[' is immediately followed by an item instead of a newline here so
+            // we set mini, that the ']' also follows an item immediately without newline.
             detail.mini = true;
 
-            pushWrapIndent(tok!"]", detail);
+            indents.push(tok!"]", detail);
         }
         else if (!currentIs(tok!")") && !currentIs(tok!"]")
                 && (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
@@ -739,7 +749,7 @@ private:
             }
             else
             {
-                const inAA = indents.topIs(tok!"]") && indents.topDetails.isAA;
+                const inAA = indents.topIs(tok!"]") && indents.topDetails.breakEveryItem;
 
                 if (inAA && !config.dfmt_space_before_aa_colon)
                     write(": ");
@@ -1400,10 +1410,21 @@ private:
             writeToken();
             newline();
         }
-        else if (indents.topIs(tok!"]") && indents.topDetails.isAA && !indents.topDetails.mini)
+        else if (indents.topIs(tok!"]") && indents.topDetails.breakEveryItem
+                && !indents.topDetails.mini)
         {
             writeToken();
             newline();
+            regenLineBreakHints(index - 1);
+        }
+        else if (indents.topIs(tok!"]") && indents.topDetails.preferLongBreaking
+                && !currentIs(tok!")") && !currentIs(tok!"]") && !currentIs(tok!"}")
+                && !currentIs(tok!"comment") && index + 1 < tokens.length
+                && isMultilineAt(index + 1, true))
+        {
+            writeToken();
+            newline();
+            regenLineBreakHints(index - 1);
         }
         else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
                 || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
@@ -1535,7 +1556,7 @@ private:
             else if (currentIs(tok!"{"))
             {
                 indents.popWrapIndents();
-                if (peekBackIsSlashSlash() && peekBack2Is(tok!";"))
+                if ((peekBackIsSlashSlash() && peekBack2Is(tok!";")) || indents.topIs(tok!"]"))
                 {
                     indents.popTempIndents();
                     indentLevel = indents.indentLevel;

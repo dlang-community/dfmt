@@ -41,8 +41,11 @@ struct IndentStack
             bool, "temp", 1,
             // emit minimal newlines
             bool, "mini", 1,
-            bool, "isAA", 1,
-            uint, "",     28));
+            // for associative arrays or arrays containing them, break after every item
+            bool, "breakEveryItem", 1,
+            // when an item inside an array would break mid-item, definitely break at the comma first
+            bool, "preferLongBreaking", 1,
+            uint, "",     27));
     }
 
     /**
@@ -254,10 +257,9 @@ private:
                 parenCount = pc;
                 continue;
             }
+
             if (i + 1 < index)
             {
-                if (arr[i] == tok!"]" && details[i].temp)
-                    continue;
                 immutable currentIsNonWrapTemp = !details[i].wrap
                     && details[i].temp && arr[i] != tok!")" && arr[i] != tok!"!";
                 if (arr[i] == tok!"static"
@@ -276,8 +278,10 @@ private:
             }
             else if (parenCount == 0 && arr[i] == tok!"(")
                 size++;
+
             if (arr[i] == tok!"!")
                 size++;
+
             parenCount = pc;
             size++;
         }

@@ -1,0 +1,21 @@
+unittest {
+    targets = [
+        [
+            RectangleShape.create(tex, vec2(-8 * scale, -32 * scale),
+                    vec2(16 * scale, 48 * scale), vec4(14 / 16.0, 0, 16 / 16.0, 3 / 16.0)),
+            RectangleShape.create(tex, vec2(-8 * scale, -32 * scale),
+                    vec2(16 * scale, 32 * scale), vec4(14 / 16.0, 3 / 16.0, 16 / 16.0, 5 / 16.0))
+        ],
+        [
+            RectangleShape.create(tex, vec2(-8 * scale, -8 * scale),
+                    vec2(16 * scale, 16 * scale), vec4(14 / 16.0, 5 / 16.0, 15 / 16.0, 6 / 16.0)),
+            RectangleShape.create(tex, vec2(-8 * scale, -8 * scale),
+                    vec2(16 * scale, 16 * scale), vec4(15 / 16.0, 5 / 16.0, 16 / 16.0, 6 / 16.0))
+        ]
+    ];
+}
+
+string[][] globalArray = [
+    ["123456789012345678901234567890", "123456789012345678901234567890"],
+    ["123456789012345678901234567890", "123456789012345678901234567890"]
+];
