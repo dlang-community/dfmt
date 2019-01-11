@@ -809,11 +809,9 @@ private:
         if (astInformation.structInitStartLocations.canFindIndex(tIndex))
         {
             sBraceDepth++;
-            auto e = expressionEndIndex(index);
-            immutable int l = currentLineLength + tokens[index .. e].map!(a => tokenLength(a))
-                .sum();
+            immutable bool multiline = isMultilineAt(index);
             writeToken();
-            if (l > config.dfmt_soft_max_line_length)
+            if (multiline)
             {
                 import std.algorithm.searching : find;
 
@@ -1729,7 +1727,7 @@ private:
 
 const pure @safe @nogc:
 
-    size_t expressionEndIndex(size_t i) nothrow
+    size_t expressionEndIndex(size_t i, bool matchComma = false) nothrow
     {
         immutable bool braces = i < tokens.length && tokens[i].type == tok!"{";
         immutable bool brackets = i < tokens.length && tokens[i].type == tok!"[";
@@ -1740,6 +1738,8 @@ const pure @safe @nogc:
                 break;
             if (depths[i] < d)
                 break;
+            if (!braces && !brackets && matchComma && depths[i] == d && tokens[i].type == tok!",")
+                break;
             if (!braces && !brackets && (tokens[i].type == tok!";" || tokens[i].type == tok!"{"))
                 break;
             i++;
@@ -1749,14 +1749,14 @@ const pure @safe @nogc:
 
     /// Returns: true when the expression starting at index goes over the line length limit.
     /// Uses matching `{}` or `[]` or otherwise takes everything up until a semicolon or opening brace using expressionEndIndex.
-    bool isMultilineAt(size_t i)
+    bool isMultilineAt(size_t i, bool matchComma = false)
     {
         import std.algorithm : map, sum, canFind;
 
-        auto e = expressionEndIndex(i);
+        auto e = expressionEndIndex(i, matchComma);
         immutable int l = currentLineLength + tokens[i .. e].map!(a => tokenLength(a)).sum();
-        return l > config.dfmt_soft_max_line_length
-            || tokens[i .. e].canFind!(a => a.type == tok!"comment" || isBlockHeaderToken(a.type))();
+        return l > config.dfmt_soft_max_line_length || tokens[i .. e].canFind!(
+                a => a.type == tok!"comment" || isBlockHeaderToken(a.type))();
     }
 
     bool peekIsKeyword() nothrow
