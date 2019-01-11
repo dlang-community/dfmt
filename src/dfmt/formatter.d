@@ -571,7 +571,7 @@ private:
             return;
         immutable bool arrayInitializerStart = p == tok!"["
             && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
-        if (arrayInitializerStart && isMultilineAt(index))
+        if (arrayInitializerStart && isMultilineAt(index - 1))
         {
             // Use the close bracket as the indent token to distinguish
             // the array initialiazer from an array index in the newline
@@ -642,6 +642,26 @@ private:
         }
         else
             writeToken();
+    }
+
+    void formatRightBracket()
+    in
+    {
+        assert(currentIs(tok!"]"));
+    }
+    body
+    {
+        indents.popWrapIndents();
+        if (indents.topIs(tok!"]"))
+        {
+            if (!indents.topDetails.mini)
+                newline();
+            else
+                indents.pop();
+        }
+        writeToken();
+        if (currentIs(tok!"identifier"))
+            write(" ");
     }
 
     void formatAt()
@@ -1258,17 +1278,7 @@ private:
             formatColon();
             break;
         case tok!"]":
-            indents.popWrapIndents();
-            if (indents.topIs(tok!"]"))
-            {
-                if (!indents.topDetails.mini)
-                    newline();
-                else
-                    indents.pop();
-            }
-            writeToken();
-            if (currentIs(tok!"identifier"))
-                write(" ");
+            formatRightBracket();
             break;
         case tok!";":
             formatSemicolon();
