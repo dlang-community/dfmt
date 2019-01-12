@@ -611,6 +611,15 @@ private:
 
             indents.push(tok!"]", detail);
         }
+        else if (p == tok!"[")
+        {
+            // array item access
+            IndentStack.Details detail;
+            detail.wrap = false;
+            detail.temp = true;
+            detail.mini = true;
+            indents.push(tok!"]", detail);
+        }
         else if (!currentIs(tok!")") && !currentIs(tok!"]")
                 && (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
                     && currentLineLength > config.max_line_length)))
@@ -664,7 +673,7 @@ private:
         indents.popWrapIndents();
         if (indents.topIs(tok!"]"))
         {
-            if (!indents.topDetails.mini)
+            if (!indents.topDetails.mini && !indents.topDetails.temp)
                 newline();
             else
                 indents.pop();
@@ -839,6 +848,8 @@ private:
         }
         else if (astInformation.funLitStartLocations.canFindIndex(tIndex))
         {
+            indents.popWrapIndents();
+
             sBraceDepth++;
             if (peekBackIsOneOf(true, tok!")", tok!"identifier"))
                 write(" ");
