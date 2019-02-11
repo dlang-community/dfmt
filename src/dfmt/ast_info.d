@@ -292,7 +292,9 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const Invariant invariant_)
     {
-        astInformation.doubleNewlineLocations ~= invariant_.blockStatement.endLocation;
+        if (invariant_.blockStatement !is null)
+            astInformation.doubleNewlineLocations ~= invariant_.blockStatement.endLocation;
+        
         invariant_.accept(this);
     }
 
