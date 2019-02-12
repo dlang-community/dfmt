@@ -230,7 +230,7 @@ private string generateFixedLengthCases()
         "package", "pragma", "private", "protected", "public", "pure", "real", "ref", "return", "scope",
         "shared", "short", "static", "struct", "super", "switch", "synchronized", "template", "this",
         "throw", "true", "try", "typedef", "typeid", "typeof", "ubyte", "ucent", "uint", "ulong",
-        "union", "unittest", "ushort", "version", "void", "volatile", "wchar",
+        "union", "unittest", "ushort", "version", "void", "wchar",
         "while", "with", "__DATE__", "__EOF__", "__FILE__",
         "__FUNCTION__", "__gshared", "__LINE__", "__MODULE__", "__parameters",
         "__PRETTY_FUNCTION__", "__TIME__", "__TIMESTAMP__",
