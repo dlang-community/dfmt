@@ -232,6 +232,18 @@ private:
         {
             writeToken();
             write(" ");
+            while (index < tokens.length)
+            {
+                if (currentIs(tok!"("))
+                    formatLeftParenOrBracket();
+                else if (currentIs(tok!")"))
+                {
+                    formatRightParen();
+                    break;
+                }
+                else
+                    writeToken();
+            }
         }
         else if (((isBlockHeader() || currentIs(tok!"version")) && peekIs(tok!"("))
                 || (currentIs(tok!"debug") && peekIs(tok!"{")))
