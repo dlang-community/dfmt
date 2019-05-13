@@ -716,6 +716,7 @@ private:
         }
         else if (index < tokens.length && (currentIs(tok!"@")
                 || isBasicType(tokens[index].type)
+                || currentIs(tok!"extern")
                 || currentIs(tok!"identifier"))
                 && !currentIsIndentedTemplateConstraint())
             write(" ");
