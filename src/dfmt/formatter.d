@@ -473,7 +473,7 @@ private:
                 else if (!currentIs(tok!"{"))
                     write(" ");
             }
-            else if (!currentIs(tok!"{"))
+            else if (!currentIs(tok!"{") && !currentIs(tok!"in") && !currentIs(tok!"out"))
             {
                 if (currentIs(tok!")") && indents.topIs(tok!","))
                     indents.pop();
