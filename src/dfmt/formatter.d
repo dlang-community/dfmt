@@ -448,6 +448,8 @@ private:
                 write(" ");
             else if (prevTokenEndLine == currTokenLine || (t == tok!")" && peekIs(tok!"{")))
                 write(" ");
+            else if (t == tok!"else")
+                write(" ");
             else if (canAddNewline || (peekIs(tok!"{") && t == tok!"}"))
                 newline();
         }
