@@ -1,0 +1,15 @@
+void foo() /**/
+in
+{
+}
+body
+{
+}
+
+void bar() /**/
+out
+{
+}
+body
+{
+}
