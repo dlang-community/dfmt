@@ -725,10 +725,14 @@ private:
     void formatColon()
     {
         import dfmt.editorconfig : OptionalBoolean;
+        import std.algorithm : canFind;
 
         immutable bool isCase = astInformation.caseEndLocations.canFindIndex(current.index);
         immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(
                 current.line);
+        immutable bool isStructInitializer = astInformation.structInfoSortedByEndLocation
+            .canFind!(st => st.startLocation < current.index && current.index < st.endLocation);
+
         if (isCase || isAttribute)
         {
             writeToken();
@@ -748,7 +752,9 @@ private:
                 || peekBack2Is(tok!":", true)) && !(isBlockHeader(1) && !peekIs(tok!"if")))
         {
             writeToken();
-            if (!currentIs(tok!"{"))
+            if (isStructInitializer)
+                write(" ");
+            else if (!currentIs(tok!"{"))
                 newline();
         }
         else

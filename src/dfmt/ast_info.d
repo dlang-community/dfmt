@@ -23,6 +23,12 @@ struct BraceIndentInfo
     uint beginIndentLevel;
 }
 
+struct StructInitializerInfo
+{
+    size_t startLocation;
+    size_t endLocation;
+}
+
 /// AST information that is needed by the formatter.
 struct ASTInformation
 {
@@ -53,6 +59,8 @@ struct ASTInformation
         sort(sharedStaticConstructorDestructorLocations);
         sort!((a,b) => a.endLocation < b.endLocation)
             (indentInfoSortedByEndLocation);
+        sort!((a,b) => a.endLocation < b.endLocation)
+            (structInfoSortedByEndLocation);
         sort(ufcsHintLocations);
         ufcsHintLocations = ufcsHintLocations.uniq().array();
     }
@@ -118,6 +126,9 @@ struct ASTInformation
     size_t[] ufcsHintLocations;
 
     BraceIndentInfo[] indentInfoSortedByEndLocation;
+
+    /// Opening & closing braces of struct initializers
+    StructInitializerInfo[] structInfoSortedByEndLocation;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -272,6 +283,8 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.structInitStartLocations ~= structInitializer.startLocation;
         astInformation.structInitEndLocations ~= structInitializer.endLocation;
+        astInformation.structInfoSortedByEndLocation ~=
+            StructInitializerInfo(structInitializer.startLocation, structInitializer.endLocation);
         astInformation.indentInfoSortedByEndLocation ~=
             BraceIndentInfo(structInitializer.startLocation, structInitializer.endLocation);
 
