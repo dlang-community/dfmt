@@ -749,7 +749,8 @@ private:
         }
         else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!"{", true)
                 || peekBack2Is(tok!"}", true) || peekBack2Is(tok!";", true)
-                || peekBack2Is(tok!":", true)) && !(isBlockHeader(1) && !peekIs(tok!"if")))
+                || peekBack2Is(tok!":", true) || peekBack2Is(tok!",", true))
+                && !(isBlockHeader(1) && !peekIs(tok!"if")))
         {
             writeToken();
             if (isStructInitializer)
