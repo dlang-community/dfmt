@@ -1515,7 +1515,7 @@ private:
     void newline()
     {
         import std.range : assumeSorted;
-        import std.algorithm : max;
+        import std.algorithm : max, canFind;
         import dfmt.editorconfig : OptionalBoolean;
 
         if (currentIs(tok!"comment") && index > 0 && current.line == tokenEndLine(tokens[index - 1]))
@@ -1558,6 +1558,12 @@ private:
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1 && config.dfmt_align_switch_statements == OptionalBoolean.t)
                     indentLevel = l;
+                else if (astInformation.structInfoSortedByEndLocation
+                    .canFind!(st => st.startLocation < current.index && current.index < st.endLocation)) {
+                    immutable l2 = indents.indentToMostRecent(tok!"{");
+                    assert(l2 != -1);
+                    indentLevel = l2 + 1;
+                }
                 else if (config.dfmt_compact_labeled_statements == OptionalBoolean.f
                         || !isBlockHeader(2) || peek2Is(tok!"if"))
                 {
