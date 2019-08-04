@@ -1561,7 +1561,7 @@ private:
                 else if (astInformation.structInfoSortedByEndLocation
                     .canFind!(st => st.startLocation < current.index && current.index < st.endLocation)) {
                     immutable l2 = indents.indentToMostRecent(tok!"{");
-                    assert(l2 != -1);
+                    assert(l2 != -1, "Recent '{' is not found despite being in struct initializer");
                     indentLevel = l2 + 1;
                 }
                 else if (config.dfmt_compact_labeled_statements == OptionalBoolean.f
