@@ -725,7 +725,7 @@ private:
     void formatColon()
     {
         import dfmt.editorconfig : OptionalBoolean;
-        import std.algorithm : canFind;
+        import std.algorithm : canFind, any;
 
         immutable bool isCase = astInformation.caseEndLocations.canFindIndex(current.index);
         immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(
@@ -747,10 +747,10 @@ private:
                 newline();
             }
         }
-        else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!"{", true)
-                || peekBack2Is(tok!"}", true) || peekBack2Is(tok!";", true)
-                || peekBack2Is(tok!":", true) || peekBack2Is(tok!",", true))
-                && !(isBlockHeader(1) && !peekIs(tok!"if")))
+        else if (peekBackIs(tok!"identifier")
+                && [tok!"{", tok!"}", tok!";", tok!":", tok!","]
+                .any!((ptrdiff_t token) => peekBack2Is(cast(IdType)token, true))
+                && (!isBlockHeader(1) || peekIs(tok!"if")))
         {
             writeToken();
             if (isStructInitializer)
