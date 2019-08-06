@@ -725,10 +725,14 @@ private:
     void formatColon()
     {
         import dfmt.editorconfig : OptionalBoolean;
+        import std.algorithm : canFind, any;
 
         immutable bool isCase = astInformation.caseEndLocations.canFindIndex(current.index);
         immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(
                 current.line);
+        immutable bool isStructInitializer = astInformation.structInfoSortedByEndLocation
+            .canFind!(st => st.startLocation < current.index && current.index < st.endLocation);
+
         if (isCase || isAttribute)
         {
             writeToken();
@@ -743,12 +747,15 @@ private:
                 newline();
             }
         }
-        else if (peekBackIs(tok!"identifier") && (peekBack2Is(tok!"{", true)
-                || peekBack2Is(tok!"}", true) || peekBack2Is(tok!";", true)
-                || peekBack2Is(tok!":", true)) && !(isBlockHeader(1) && !peekIs(tok!"if")))
+        else if (peekBackIs(tok!"identifier")
+                && [tok!"{", tok!"}", tok!";", tok!":", tok!","]
+                .any!((ptrdiff_t token) => peekBack2Is(cast(IdType)token, true))
+                && (!isBlockHeader(1) || peekIs(tok!"if")))
         {
             writeToken();
-            if (!currentIs(tok!"{"))
+            if (isStructInitializer)
+                write(" ");
+            else if (!currentIs(tok!"{"))
                 newline();
         }
         else
@@ -1508,7 +1515,7 @@ private:
     void newline()
     {
         import std.range : assumeSorted;
-        import std.algorithm : max;
+        import std.algorithm : max, canFind;
         import dfmt.editorconfig : OptionalBoolean;
 
         if (currentIs(tok!"comment") && index > 0 && current.line == tokenEndLine(tokens[index - 1]))
@@ -1551,6 +1558,12 @@ private:
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1 && config.dfmt_align_switch_statements == OptionalBoolean.t)
                     indentLevel = l;
+                else if (astInformation.structInfoSortedByEndLocation
+                    .canFind!(st => st.startLocation < current.index && current.index < st.endLocation)) {
+                    immutable l2 = indents.indentToMostRecent(tok!"{");
+                    assert(l2 != -1, "Recent '{' is not found despite being in struct initializer");
+                    indentLevel = l2 + 1;
+                }
                 else if (config.dfmt_compact_labeled_statements == OptionalBoolean.f
                         || !isBlockHeader(2) || peek2Is(tok!"if"))
                 {
