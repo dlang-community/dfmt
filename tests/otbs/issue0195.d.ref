@@ -1,0 +1,14 @@
+void main() {
+    auto myTid = runTask({
+        auto conn = connectTCP("localhost", 4222);
+
+        auto l = Lexer(conn);
+        foreach (t; l) {
+
+        }
+        conn.close();
+    });
+
+    // foo
+    runEventLoop();
+}
