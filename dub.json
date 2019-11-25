@@ -4,7 +4,7 @@
     "targetType": "autodetect",
     "license": "BSL-1.0",
     "dependencies": {
-      "libdparse": "~>0.11.4"
+      "libdparse": "~>0.13.0"
     },
     "targetPath" : "bin/",
     "targetName" : "dfmt",
