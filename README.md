@@ -5,18 +5,23 @@
 **dfmt** is beta quality. Make backups of your files or use source control
 when using the **--inplace** option.
 
-## Building
-### Using Make
-* Clone the repository
-* Run ```git submodule update --init --recursive``` in the dfmt directory
-* To compile with DMD, run ```make``` in the dfmt directory. To compile with
-  LDC, run ```make ldc``` instead. The generated binary will be placed in ```dfmt/bin/```.
+## Installation
 
 ### Installing with DUB
 
 ```sh
 > dub fetch --version='~master' dfmt && dub run dfmt -- -h
 ```
+
+### Building from source using Make
+* Clone the repository
+* Run ```git submodule update --init --recursive``` in the dfmt directory
+* To compile with DMD, run ```make``` in the dfmt directory. To compile with
+  LDC, run ```make ldc``` instead. The generated binary will be placed in ```dfmt/bin/```.
+
+### Building from source using dub
+* Clone the repository
+* run `dub build --build=release`, optionally with `--compiler=ldc2`
 
 ## Using
 By default, dfmt reads its input from **stdin** and writes to **stdout**.
