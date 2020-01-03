@@ -448,7 +448,7 @@ private:
                 write(" ");
             else if (prevTokenEndLine == currTokenLine || (t == tok!")" && peekIs(tok!"{")))
                 write(" ");
-            else if (t == tok!"else")
+            else if (peekBackIsOneOf(false, tok!"else", tok!"identifier"))
                 write(" ");
             else if (canAddNewline || (peekIs(tok!"{") && t == tok!"}"))
                 newline();
