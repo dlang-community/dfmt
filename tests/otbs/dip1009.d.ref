@@ -10,8 +10,8 @@ do {
 }
 
 int bar(int arg)
-in(arg > 0)
-out(; true)
+in (arg > 0)
+out (; true)
 out /*Major*/ ( /*Tom*/ result /*To ground control*/ ; result == 0) {
     return 0;
 }

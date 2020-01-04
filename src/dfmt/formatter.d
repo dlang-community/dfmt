@@ -1135,7 +1135,7 @@ private:
             else if (peekBackIsKeyword)
                 write(" ");
             writeToken();
-            if (!currentIs(tok!"(") && !currentIs(tok!"{") && !currentIs(tok!"comment"))
+            if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
                 write(" ");
             break;
         case tok!"try":
@@ -1169,7 +1169,7 @@ private:
                     current.index);
             if (isFunctionLit && config.dfmt_brace_style == BraceStyle.allman)
                 newline();
-            else if (!isContract)
+            else if (!isContract || currentIs(tok!"("))
                 write(" ");
             break;
         case tok!"is":
@@ -1218,6 +1218,11 @@ private:
                 }
             }
             goto default;
+        case tok!"invariant":
+            writeToken();
+            if (currentIs(tok!"("))
+                write(" ");
+            break;
         default:
             if (peekBackIs(tok!"identifier"))
                 write(" ");
