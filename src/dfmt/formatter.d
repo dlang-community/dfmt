@@ -452,6 +452,9 @@ private:
                 write(" ");
             else if (canAddNewline || (peekIs(tok!"{") && t == tok!"}"))
                 newline();
+
+            if (peekIs(tok!"(") && (peekBackIs(tok!")") || peekBack2Is(tok!"!")))
+                pushWrapIndent(tok!"(");
         }
         writeToken();
         immutable j = justAddedExtraNewline;
