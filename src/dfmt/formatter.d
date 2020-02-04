@@ -565,7 +565,7 @@ private:
     {
         assert(currentIs(tok!"(") || currentIs(tok!"["));
     }
-    body
+    do
     {
         immutable p = current.type;
         regenLineBreakHintsIfNecessary(index);
@@ -650,7 +650,7 @@ private:
     {
         assert(currentIs(tok!")"));
     }
-    body
+    do
     {
         parenDepth--;
         indents.popWrapIndents();
@@ -685,7 +685,7 @@ private:
     {
         assert(currentIs(tok!"]"));
     }
-    body
+    do
     {
         indents.popWrapIndents();
         if (indents.topIs(tok!"]"))
@@ -1715,7 +1715,7 @@ private:
     {
         assert(currentIs(tok!"("), str(current.type));
     }
-    body
+    do
     {
         immutable int depth = parenDepth;
         immutable int startingNiBraceDepth = niBraceDepth;
@@ -1860,7 +1860,7 @@ const pure @safe @nogc:
     {
         assert(index < tokens.length);
     }
-    body
+    do
     {
         return tokens[index];
     }

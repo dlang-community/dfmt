@@ -23,7 +23,7 @@ in
     assert(balancedParens(pattern, '[', ']', 0));
     assert(balancedParens(pattern, '{', '}', 0));
 }
-body
+do
 {
     alias RC = Unqual!(ElementEncodingType!Range);
 

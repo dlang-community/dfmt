@@ -15,7 +15,7 @@ in
 {
     assert(tokens[0].type == tok!"(");
 }
-body
+do
 {
     uint length = 0;
     size_t i = 1;
