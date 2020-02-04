@@ -12,7 +12,7 @@ import std.path : filenameCharCmp, isDirSeparator;
 // * changes meaning to match all characters except '/'
 // ** added to take over the old meaning of *
 bool globMatchEditorConfig(CaseSensitive cs = CaseSensitive.osDefault, C, Range)(
-        Range path, const(C)[] pattern) @safe pure nothrow 
+        Range path, const(C)[] pattern) @safe pure nothrow
         if (isForwardRange!Range && isSomeChar!(ElementEncodingType!Range)
             && isSomeChar!C && is(Unqual!C == Unqual!(ElementEncodingType!Range)))
 in
@@ -23,7 +23,7 @@ in
     assert(balancedParens(pattern, '[', ']', 0));
     assert(balancedParens(pattern, '{', '}', 0));
 }
-body
+do
 {
     alias RC = Unqual!(ElementEncodingType!Range);
 
