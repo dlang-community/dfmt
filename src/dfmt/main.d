@@ -92,6 +92,9 @@ else
             case "space_before_aa_colon":
                 optConfig.dfmt_space_before_aa_colon = optVal;
                 break;
+            case "keep_line_breaks":
+                optConfig.dfmt_keep_line_breaks = optVal;
+                break;
             default:
                 assert(false, "Invalid command-line switch");
             }
@@ -121,7 +124,8 @@ else
                 "single_template_constraint_indent", &handleBooleans,
                 "space_before_aa_colon", &handleBooleans,
                 "tab_width", &optConfig.tab_width,
-                "template_constraint_style", &optConfig.dfmt_template_constraint_style);
+                "template_constraint_style", &optConfig.dfmt_template_constraint_style,
+                "keep_line_breaks", &handleBooleans);
             // dfmt on
         }
         catch (GetOptException e)
@@ -308,6 +312,7 @@ Formatting Options:
     --indent_size
     --indent_style, -t          `,
             optionsToString!(typeof(Config.indent_style)), `
+    --keep_line_breaks
     --soft_max_line_length
     --max_line_length
     --outdent_attributes

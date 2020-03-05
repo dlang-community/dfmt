@@ -567,6 +567,8 @@ private:
     }
     do
     {
+        import dfmt.editorconfig : OptionalBoolean;
+
         immutable p = current.type;
         regenLineBreakHintsIfNecessary(index);
         writeToken();
@@ -588,7 +590,23 @@ private:
             return;
         immutable bool arrayInitializerStart = p == tok!"["
             && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
-        if (arrayInitializerStart && isMultilineAt(index - 1))
+
+        if (p == tok!"[" && config.dfmt_keep_line_breaks == OptionalBoolean.t)
+        {
+            IndentStack.Details detail;
+
+            detail.wrap = false;
+            detail.temp = false;
+            detail.breakEveryItem = false;
+            detail.mini = tokens[index].line == tokens[index - 1].line;
+
+            indents.push(tok!"]", detail);
+            if (!detail.mini)
+            {
+                newline();
+            }
+        }
+        else if (arrayInitializerStart && isMultilineAt(index - 1))
         {
             // Use the close bracket as the indent token to distinguish
             // the array initialiazer from an array index in the newline
@@ -643,6 +661,10 @@ private:
         {
             newline();
         }
+        else if (onNextLine)
+        {
+            newline();
+        }
     }
 
     void formatRightParen()
@@ -659,6 +681,10 @@ private:
         if (indents.topIs(tok!"("))
             indents.pop();
 
+        if (onNextLine)
+        {
+            newline();
+        }
         if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in")
             || peekIs(tok!"out") || peekIs(tok!"do") || peekIsBody))
         {
@@ -711,6 +737,7 @@ private:
             writeParens(false);
             if (tokens[index].type == tok!"{")
                 return;
+
             if (index < tokens.length && tokens[index - 1].line < tokens[index].line
                     && astInformation.atAttributeStartLocations.canFindIndex(atIndex))
                 newline();
@@ -722,7 +749,16 @@ private:
                 || currentIs(tok!"extern")
                 || currentIs(tok!"identifier"))
                 && !currentIsIndentedTemplateConstraint())
-            write(" ");
+        {
+            if (onNextLine)
+            {
+                newline();
+            }
+            else
+            {
+                write(" ");
+            }
+        }
     }
 
     void formatColon()
@@ -1228,17 +1264,37 @@ private:
             break;
         default:
             if (peekBackIs(tok!"identifier"))
-                write(" ");
+            {
+                if (onNextLine)
+                {
+                    newline();
+                }
+                else
+                {
+                    write(" ");
+                }
+            }
             if (index + 1 < tokens.length)
             {
                 if (!peekIs(tok!"@") && (peekIsOperator()
                         || peekIs(tok!"out") || peekIs(tok!"in")))
+                {
                     writeToken();
+                }
                 else
                 {
                     writeToken();
                     if (!currentIsIndentedTemplateConstraint())
-                        write(" ");
+                    {
+                        if (onNextLine)
+                        {
+                            newline();
+                        }
+                        else
+                        {
+                            write(" ");
+                        }
+                    }
                 }
             }
             else
@@ -1258,6 +1314,7 @@ private:
 
     void formatOperator()
     {
+        import dfmt.editorconfig : OptionalBoolean;
         import std.algorithm : canFind;
 
         switch (current.type)
@@ -1341,8 +1398,8 @@ private:
         case tok!".":
             regenLineBreakHintsIfNecessary(index);
             immutable bool ufcsWrap = astInformation.ufcsHintLocations.canFindIndex(current.index);
-            if (ufcsWrap || linebreakHints.canFind(index) || (linebreakHints.length == 0
-                    && currentLineLength + nextTokenLength() > config.max_line_length))
+            if (ufcsWrap || linebreakHints.canFind(index) || onNextLine
+                    || (linebreakHints.length == 0 && currentLineLength + nextTokenLength() > config.max_line_length))
             {
                 pushWrapIndent();
                 newline();
@@ -1398,7 +1455,38 @@ private:
         case tok!"%":
         binary:
             immutable bool isWrapToken = linebreakHints.canFind(index);
-            if (config.dfmt_split_operator_at_line_end)
+            if (config.dfmt_keep_line_breaks == OptionalBoolean.t && index > 0)
+            {
+                const operatorLine = tokens[index].line;
+                const rightOperandLine = tokens[index + 1].line;
+
+                if (tokens[index - 1].line < operatorLine)
+                {
+                    if (!indents.topIs(tok!"enum"))
+                        pushWrapIndent();
+                    newline();
+                }
+                else
+                {
+                    write(" ");
+                }
+                if (rightOperandLine > operatorLine
+                        && !indents.topIs(tok!"enum"))
+                {
+                    pushWrapIndent();
+                }
+                writeToken();
+
+                if (rightOperandLine > operatorLine)
+                {
+                    newline();
+                }
+                else
+                {
+                    write(" ");
+                }
+            }
+            else if (config.dfmt_split_operator_at_line_end)
             {
                 if (isWrapToken)
                 {
@@ -1442,9 +1530,11 @@ private:
 
     void formatComma()
     {
+        import dfmt.editorconfig : OptionalBoolean;
         import std.algorithm : canFind;
 
-        regenLineBreakHintsIfNecessary(index);
+        if (config.dfmt_keep_line_breaks == OptionalBoolean.f)
+            regenLineBreakHintsIfNecessary(index);
         if (indents.indentToMostRecent(tok!"enum") != -1
                 && !peekIs(tok!"}") && indents.topIs(tok!"{") && parenDepth == 0)
         {
@@ -1473,6 +1563,24 @@ private:
             pushWrapIndent();
             writeToken();
             newline();
+        }
+        else if (config.dfmt_keep_line_breaks == OptionalBoolean.t)
+        {
+            const commaLine = tokens[index].line;
+
+            writeToken();
+            if (!currentIs(tok!")") && !currentIs(tok!"]")
+                    && !currentIs(tok!"}") && !currentIs(tok!"comment"))
+            {
+                if (tokens[index].line == commaLine)
+                {
+                    write(" ");
+                }
+                else
+                {
+                    newline();
+                }
+            }
         }
         else
         {
@@ -2021,6 +2129,15 @@ const pure @safe @nogc:
     bool currentIs(IdType tokenType) nothrow
     {
         return index < tokens.length && tokens[index].type == tokenType;
+    }
+
+    bool onNextLine() @nogc nothrow pure @safe
+    {
+        import dfmt.editorconfig : OptionalBoolean;
+
+        return config.dfmt_keep_line_breaks == OptionalBoolean.t
+            && index > 0
+            && tokens[index - 1].line < tokens[index].line;
     }
 
     /// Bugs: not unicode correct

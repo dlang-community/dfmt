@@ -55,6 +55,7 @@ found there.
 * `--split_operator_at_line_end`: *see dfmt_split_operator_at_line_end [below](#dfmt-specific-properties)*
 * `--tab_width`: *see tab_width [below](#standard-editorconfig-properties)*
 * `--template_constraint_style`: *see dfmt_template_constraint_style [below](#dfmt-specific-properties)*
+* `--keep_line_breaks`: *see dfmt_keep_line_breaks [below](#dfmt-specific-properties)*
 
 ### Example
 ```
@@ -114,6 +115,7 @@ dfmt_compact_labeled_statements | **`true`**, `false` | Place labels on the same
 dfmt_template_constraint_style | **`conditional_newline_indent`** `conditional_newline` `always_newline` `always_newline_indent` | Control the formatting of template constraints.
 dfmt_single_template_constraint_indent | `true`, **`false`** | Set if the constraints are indented by a single tab instead of two. Has only an effect if the style set to `always_newline_indent` or `conditional_newline_indent`.
 dfmt_space_before_aa_colon | `true`, **`false`** | Adds a space after an associative array key before the `:` like in older dfmt versions.
+dfmt_keep_line_breaks | `true`, **`false`** | Keep existing line breaks if these don't violate other formatting rules.
 
 ## Terminology
 * Braces - `{` and `}`
