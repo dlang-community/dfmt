@@ -19,14 +19,14 @@ static immutable VERSION = () {
 
     version (built_with_dub)
     {
-    	enum DFMT_VERSION = import("dubhash.txt").strip;
+        enum DFMT_VERSION = import("dubhash.txt").strip;
     }
     else
     {
-    	/**
-    	 * Current build's Git commit hash
-    	 */
-    	enum DFMT_VERSION = import("githash.txt").strip;
+        /**
+         * Current build's Git commit hash
+         */
+        enum DFMT_VERSION = import("githash.txt").strip;
     }
 
     return DFMT_VERSION ~ DEBUG_SUFFIX;
@@ -211,7 +211,7 @@ else
                 else
                     break;
             }
-            format("stdin", buffer, output.lockingTextWriter(), &config);
+            return format("stdin", buffer, output.lockingTextWriter(), &config);
         }
         else
         {
@@ -219,6 +219,7 @@ else
 
             if (args.length >= 2)
                 inplace = true;
+            int retVal;
             while (args.length > 0)
             {
                 const path = args.front;
@@ -253,11 +254,13 @@ else
                     f.rawRead(buffer);
                     if (inplace)
                         output = File(path, "wb");
-                    format(path, buffer, output.lockingTextWriter(), &config);
+                    bool formatResult = format(path, buffer, output.lockingTextWriter(), &config);
+                    if (!formatResult)
+                        retVal = 1;
                 }
             }
+            return retVal;
         }
-        return 0;
     }
 }
 
