@@ -211,7 +211,9 @@ else
                 else
                     break;
             }
-            return format("stdin", buffer, output.lockingTextWriter(), &config);
+            immutable bool formatSuccess = format("stdin", buffer,
+                output.lockingTextWriter(), &config);
+            return formatSuccess ? 0 : 1;
         }
         else
         {
@@ -254,8 +256,8 @@ else
                     f.rawRead(buffer);
                     if (inplace)
                         output = File(path, "wb");
-                    bool formatResult = format(path, buffer, output.lockingTextWriter(), &config);
-                    if (!formatResult)
+                    immutable bool formatSuccess = format(path, buffer, output.lockingTextWriter(), &config);
+                    if (!formatSuccess)
                         retVal = 1;
                 }
             }
