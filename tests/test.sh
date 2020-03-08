@@ -22,6 +22,7 @@ set +e
 for source in expected_failures/*.d
 do
 	if ../bin/dfmt "${source}" > /dev/null; then
+		echo "Expected failure on test ${source} but passed"
 		exit 1
 	fi
 done
