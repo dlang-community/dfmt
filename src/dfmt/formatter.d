@@ -16,7 +16,17 @@ import dfmt.tokens;
 import dfmt.wrapping;
 import std.array;
 
-void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
+/**
+ * Formats the code contained in `buffer` into `output`.
+ * Params:
+ *     source_desc = A description of where `buffer` came from. Usually a file name.
+ *     buffer = The raw source code.
+ *     output = The output range that will have the formatted code written to it.
+ *     formatterConfig = Formatter configuration.
+ * Returns: `true` if the formatting succeeded, `false` of a lexing error. This
+ *     function can return `true` if parsing failed.
+ */
+bool format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
         Config* formatterConfig)
 {
     LexerConfig config;
@@ -33,11 +43,18 @@ void format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
     auto visitor = new FormatVisitor(&astInformation);
     visitor.visit(mod);
     astInformation.cleanup();
-    auto tokens = byToken(buffer, config, &cache).array();
+    auto tokenRange = byToken(buffer, config, &cache);
+    auto app = appender!(Token[])();
+    for (; !tokenRange.empty(); tokenRange.popFront())
+        app.put(tokenRange.front());
+    auto tokens = app.data;
+    if (!tokenRange.messages.empty)
+        return false;
     auto depths = generateDepthInfo(tokens);
     auto tokenFormatter = TokenFormatter!OutputRange(buffer, tokens, depths,
             output, &astInformation, formatterConfig);
     tokenFormatter.format();
+    return true;
 }
 
 immutable(short[]) generateDepthInfo(const Token[] tokens) pure nothrow @trusted
