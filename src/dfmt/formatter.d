@@ -1574,13 +1574,6 @@ private:
             newline();
             regenLineBreakHints(index - 1);
         }
-        else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
-                || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
-        {
-            pushWrapIndent();
-            writeToken();
-            newline();
-        }
         else if (config.dfmt_keep_line_breaks == OptionalBoolean.t)
         {
             const commaLine = tokens[index].line;
@@ -1598,6 +1591,13 @@ private:
                     newline();
                 }
             }
+        }
+        else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
+                || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
+        {
+            pushWrapIndent();
+            writeToken();
+            newline();
         }
         else
         {

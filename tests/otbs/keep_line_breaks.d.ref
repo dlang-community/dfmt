@@ -17,6 +17,10 @@ int[] func(int argument_1_1, int argument_1_2,
         .func(argument_2_1)
         .func(argument_2_2);
 
+    auto x = func(argument_1_1, argument_1_2,
+            this.argument_2_1, this.argument_2_2,
+            argument_3_1, argument_3_2);
+
     return [
         3, 5,
         5, 7,
