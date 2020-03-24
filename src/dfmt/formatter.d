@@ -1574,13 +1574,6 @@ private:
             newline();
             regenLineBreakHints(index - 1);
         }
-        else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
-                || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
-        {
-            pushWrapIndent();
-            writeToken();
-            newline();
-        }
         else if (config.dfmt_keep_line_breaks == OptionalBoolean.t)
         {
             const commaLine = tokens[index].line;
@@ -1598,6 +1591,13 @@ private:
                     newline();
                 }
             }
+        }
+        else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
+                || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
+        {
+            pushWrapIndent();
+            writeToken();
+            newline();
         }
         else
         {
@@ -2151,10 +2151,22 @@ const pure @safe @nogc:
     bool onNextLine() @nogc nothrow pure @safe
     {
         import dfmt.editorconfig : OptionalBoolean;
+        import std.algorithm.searching : count;
+        import std.string : representation;
 
-        return config.dfmt_keep_line_breaks == OptionalBoolean.t
-            && index > 0
-            && tokens[index - 1].line < tokens[index].line;
+        if (config.dfmt_keep_line_breaks == OptionalBoolean.f || index <= 0)
+        {
+            return false;
+        }
+        // To compare whether 2 tokens are on same line, we need the end line
+        // of the first token (tokens[index - 1]) and the start line of the
+        // second one (tokens[index]). If a token takes multiple lines (e.g. a
+        // multi-line string), we can sum the number of the newlines in the
+        // token and tokens[index - 1].line, the start line.
+        const previousTokenEndLineNo = tokens[index - 1].line
+                + tokens[index - 1].text.representation.count('\n');
+
+        return previousTokenEndLineNo < tokens[index].line;
     }
 
     /// Bugs: not unicode correct
