@@ -1093,46 +1093,51 @@ private:
             indents.push(current.type);
         }
         writeToken();
+
         if (currentIs(tok!"("))
         {
             write(" ");
             writeParens(false);
         }
-        if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch")))
-            write(" ");
-        else if (currentIs(tok!"comment"))
-            formatStep();
-        else if (!shouldPushIndent)
+
+        if (hasCurrent)
         {
-            if (!currentIs(tok!"{") && !currentIs(tok!";"))
+            if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch")))
                 write(" ");
-        }
-        else if (!currentIs(tok!"{") && !currentIs(tok!";") && !currentIs(tok!"in") &&
-            !currentIs(tok!"out") && !currentIs(tok!"do") && current.text != "body")
-        {
-            newline();
-        }
-        else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"if"))
-        {
-            // Hacks to format braced vs non-braced static if declarations.
-            indents.pop();
-            indents.pop();
-            indents.push(tok!"if");
-            formatLeftBrace();
-        }
-        else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"foreach"))
-        {
-            indents.pop();
-            indents.pop();
-            indents.push(tok!"foreach");
-            formatLeftBrace();
-        }
-        else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"foreach_reverse"))
-        {
-            indents.pop();
-            indents.pop();
-            indents.push(tok!"foreach_reverse");
-            formatLeftBrace();
+            else if (currentIs(tok!"comment"))
+                formatStep();
+            else if (!shouldPushIndent)
+            {
+                if (!currentIs(tok!"{") && !currentIs(tok!";"))
+                    write(" ");
+            }
+            else if (hasCurrent && !currentIs(tok!"{") && !currentIs(tok!";") && !currentIs(tok!"in") &&
+                !currentIs(tok!"out") && !currentIs(tok!"do") && current.text != "body")
+            {
+                newline();
+            }
+            else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"if"))
+            {
+                // Hacks to format braced vs non-braced static if declarations.
+                indents.pop();
+                indents.pop();
+                indents.push(tok!"if");
+                formatLeftBrace();
+            }
+            else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"foreach"))
+            {
+                indents.pop();
+                indents.pop();
+                indents.push(tok!"foreach");
+                formatLeftBrace();
+            }
+            else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"foreach_reverse"))
+            {
+                indents.pop();
+                indents.pop();
+                indents.push(tok!"foreach_reverse");
+                formatLeftBrace();
+            }
         }
     }
 
