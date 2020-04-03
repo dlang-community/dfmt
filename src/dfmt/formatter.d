@@ -1851,6 +1851,7 @@ private:
         immutable int startingNiBraceDepth = niBraceDepth;
         immutable int startingSBraceDepth = sBraceDepth;
         parenDepth = 0;
+
         do
         {
             spaceAfterParens = spaceAfter;
@@ -1873,8 +1874,8 @@ private:
             else
                 formatStep();
         }
-        // TODO: obviously getting stuck here?
         while (hasCurrent && parenDepth > 0);
+
         if (indents.topIs(tok!"!"))
             indents.pop();
         parenDepth = depth;
