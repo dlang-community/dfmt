@@ -15,7 +15,8 @@ branches:
 
 env:
   - BUILD=
-  - BUILD=dub
+  - BUILD=dub LIBDPARSE_VERSION=min
+  - BUILD=dub LIBDPARSE_VERSION=max
 
 script: ./.travis.sh
 
