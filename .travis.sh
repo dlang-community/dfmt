@@ -3,7 +3,7 @@
 set -e
 
 if [[ $BUILD == dub ]]; then
-    dub build --build=release
+    rdmd ./d-test-utils/test_with_package.d $LIBDPARSE_VERSION libdparse -- dub build --build=release
 elif [[ $DC == ldc2 ]]; then
     git submodule update --init --recursive
     make ldc -j2
