@@ -4,3 +4,10 @@ void foo()
         .asdf // blah
         .flub;
 }
+
+void foo() // hello
+{ // world
+    // ok
+    writeln("hi"); // hi!
+} // done
+//finish
