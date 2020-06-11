@@ -480,6 +480,8 @@ private:
         {
             if (config.dfmt_keep_line_breaks != OptionalBoolean.t)
                 newline();
+            else if (!currentIs(tok!"."))
+                newline();
             justAddedExtraNewline = j;
         }
         else if (hasCurrent)
