@@ -1715,7 +1715,14 @@ private:
             }
             else if (currentIs(tok!"case") || currentIs(tok!"default"))
             {
-                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
+
+                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true)
+                    /**
+                     * The following code is valid and should be indented flatly
+                     * case A:
+                     * case B:
+                     */
+                    || peekBackIs(tok!":", true))
                 {
                     indents.popTempIndents();
                     if (indents.topIs(tok!"case"))
