@@ -211,7 +211,9 @@ private:
             {
                 immutable t = tokens[index].type;
                 if (t == tok!"identifier" || isStringLiteral(t)
-                        || isNumberLiteral(t) || t == tok!"characterLiteral")
+                        || isNumberLiteral(t) || t == tok!"characterLiteral"
+                        // a!"b" function()
+                        || t == tok!"function" || t == tok!"delegate")
                     write(" ");
             }
         }
