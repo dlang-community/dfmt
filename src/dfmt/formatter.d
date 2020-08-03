@@ -1622,16 +1622,21 @@ private:
     {
         import std.range : assumeSorted;
         import std.algorithm.comparison : min;
-        import std.algorithm.searching : countUntil;
+        import std.algorithm.searching : canFind, countUntil;
 
         // The end of the tokens considered by the line break algorithm is
-        // either the expression end index or the next mandatory line break,
-        // whichever is first.
+        // either the expression end index or the next mandatory line break
+        // or a newline inside a string literal, whichever is first.
         auto r = assumeSorted(astInformation.ufcsHintLocations).upperBound(tokens[i].index);
         immutable ufcsBreakLocation = r.empty
             ? size_t.max
             : tokens[i .. $].countUntil!(t => t.index == r.front) + i;
-        immutable size_t j = min(expressionEndIndex(i), ufcsBreakLocation);
+        immutable multilineStringLocation = tokens[i .. $]
+            .countUntil!(t => t.text.canFind('\n'));
+        immutable size_t j = min(
+                expressionEndIndex(i),
+                ufcsBreakLocation,
+                multilineStringLocation == -1 ? size_t.max : multilineStringLocation + i + 1);
         // Use magical negative value for array literals and wrap indents
         immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel
             : indentLevel;
@@ -1839,7 +1844,11 @@ private:
             case tok!"wstringLiteral":
             case tok!"dstringLiteral":
                 immutable o = current.text.retro().countUntil('\n');
-                currentLineLength += o == -1 ? current.text.length : o;
+                if (o == -1) {
+                    currentLineLength += current.text.length;
+                } else {
+                    currentLineLength = cast(uint) o;
+                }
                 break;
             default:
                 currentLineLength += current.text.length;
