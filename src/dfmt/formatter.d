@@ -212,7 +212,9 @@ private:
             {
                 immutable t = tokens[index].type;
                 if (t == tok!"identifier" || isStringLiteral(t)
-                        || isNumberLiteral(t) || t == tok!"characterLiteral")
+                        || isNumberLiteral(t) || t == tok!"characterLiteral"
+                        // a!"b" function()
+                        || t == tok!"function" || t == tok!"delegate")
                     write(" ");
             }
         }
@@ -1620,16 +1622,21 @@ private:
     {
         import std.range : assumeSorted;
         import std.algorithm.comparison : min;
-        import std.algorithm.searching : countUntil;
+        import std.algorithm.searching : canFind, countUntil;
 
         // The end of the tokens considered by the line break algorithm is
-        // either the expression end index or the next mandatory line break,
-        // whichever is first.
+        // either the expression end index or the next mandatory line break
+        // or a newline inside a string literal, whichever is first.
         auto r = assumeSorted(astInformation.ufcsHintLocations).upperBound(tokens[i].index);
         immutable ufcsBreakLocation = r.empty
             ? size_t.max
             : tokens[i .. $].countUntil!(t => t.index == r.front) + i;
-        immutable size_t j = min(expressionEndIndex(i), ufcsBreakLocation);
+        immutable multilineStringLocation = tokens[i .. $]
+            .countUntil!(t => t.text.canFind('\n'));
+        immutable size_t j = min(
+                expressionEndIndex(i),
+                ufcsBreakLocation,
+                multilineStringLocation == -1 ? size_t.max : multilineStringLocation + i + 1);
         // Use magical negative value for array literals and wrap indents
         immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel
             : indentLevel;
@@ -1713,7 +1720,14 @@ private:
             }
             else if (currentIs(tok!"case") || currentIs(tok!"default"))
             {
-                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
+
+                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true)
+                    /**
+                     * The following code is valid and should be indented flatly
+                     * case A:
+                     * case B:
+                     */
+                    || peekBackIs(tok!":", true))
                 {
                     indents.popTempIndents();
                     if (indents.topIs(tok!"case"))
@@ -1830,7 +1844,11 @@ private:
             case tok!"wstringLiteral":
             case tok!"dstringLiteral":
                 immutable o = current.text.retro().countUntil('\n');
-                currentLineLength += o == -1 ? current.text.length : o;
+                if (o == -1) {
+                    currentLineLength += current.text.length;
+                } else {
+                    currentLineLength = cast(uint) o;
+                }
                 break;
             default:
                 currentLineLength += current.text.length;
