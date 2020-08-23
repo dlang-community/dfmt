@@ -805,6 +805,11 @@ private:
                 newline();
             }
         }
+        else if (indents.topIs(tok!"]")) // Associative array
+        {
+            write(config.dfmt_space_before_aa_colon ? " : " : ": ");
+            ++index;
+        }
         else if (peekBackIs(tok!"identifier")
                 && [tok!"{", tok!"}", tok!";", tok!":", tok!","]
                 .any!((ptrdiff_t token) => peekBack2Is(cast(IdType)token, true))
@@ -838,12 +843,7 @@ private:
             }
             else
             {
-                const inAA = indents.topIs(tok!"]") && indents.topDetails.breakEveryItem;
-
-                if (inAA && !config.dfmt_space_before_aa_colon)
-                    write(": ");
-                else
-                    write(" : ");
+                write(" : ");
                 index++;
             }
         }
