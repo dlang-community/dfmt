@@ -713,13 +713,13 @@ private:
         {
             writeToken();
             if (spaceAfterParens || parenDepth > 0)
-                write(" ");
+                writeSpace();
         }
         else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens
                 && !peekIs(tok!"in") && !peekIs(tok!"is") && !peekIs(tok!"if"))
         {
             writeToken();
-            write(" ");
+            writeSpace();
         }
         else
             writeToken();
@@ -769,14 +769,7 @@ private:
                 || currentIs(tok!"identifier"))
                 && !currentIsIndentedTemplateConstraint())
         {
-            if (onNextLine)
-            {
-                newline();
-            }
-            else
-            {
-                write(" ");
-            }
+            writeSpace();
         }
     }
 
@@ -1289,14 +1282,7 @@ private:
         default:
             if (peekBackIs(tok!"identifier"))
             {
-                if (onNextLine)
-                {
-                    newline();
-                }
-                else
-                {
-                    write(" ");
-                }
+                writeSpace();
             }
             if (index + 1 < tokens.length)
             {
@@ -1310,14 +1296,7 @@ private:
                     writeToken();
                     if (!currentIsIndentedTemplateConstraint())
                     {
-                        if (onNextLine)
-                        {
-                            newline();
-                        }
-                        else
-                        {
-                            write(" ");
-                        }
+                        writeSpace();
                     }
                 }
             }
@@ -1941,6 +1920,18 @@ private:
         }
         else if (indents.wrapIndents < 1)
             indents.push(type, detail);
+    }
+
+    void writeSpace()
+    {
+        if (onNextLine)
+        {
+            newline();
+        }
+        else
+        {
+            write(" ");
+        }
     }
 
 const pure @safe @nogc:
