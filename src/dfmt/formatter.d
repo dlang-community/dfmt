@@ -1406,7 +1406,7 @@ private:
             {
                 pushWrapIndent();
                 newline();
-                if (ufcsWrap)
+                if (ufcsWrap || onNextLine)
                     regenLineBreakHints(index);
             }
             writeToken();
