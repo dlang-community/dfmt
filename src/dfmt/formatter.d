@@ -11,7 +11,6 @@ import dparse.parser;
 import dparse.rollback_allocator;
 import dfmt.ast_info;
 import dfmt.config;
-import dfmt.editorconfig : OptionalBoolean;
 import dfmt.indentation;
 import dfmt.tokens;
 import dfmt.wrapping;
@@ -480,8 +479,7 @@ private:
         immutable j = justAddedExtraNewline;
         if (currIsSlashSlash)
         {
-            if (config.dfmt_keep_line_breaks != OptionalBoolean.t)
-                newline();
+            newline();
             justAddedExtraNewline = j;
         }
         else if (hasCurrent)
@@ -588,6 +586,8 @@ private:
     }
     do
     {
+        import dfmt.editorconfig : OptionalBoolean;
+
         immutable p = current.type;
         regenLineBreakHintsIfNecessary(index);
         writeToken();
@@ -765,6 +765,7 @@ private:
         }
         else if (hasCurrent && (currentIs(tok!"@")
                 || isBasicType(tokens[index].type)
+                || currentIs(tok!"invariant")
                 || currentIs(tok!"extern")
                 || currentIs(tok!"identifier"))
                 && !currentIsIndentedTemplateConstraint())
