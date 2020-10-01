@@ -713,13 +713,13 @@ private:
         {
             writeToken();
             if (spaceAfterParens || parenDepth > 0)
-                write(" ");
+                writeSpace();
         }
         else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens
                 && !peekIs(tok!"in") && !peekIs(tok!"is") && !peekIs(tok!"if"))
         {
             writeToken();
-            write(" ");
+            writeSpace();
         }
         else
             writeToken();
@@ -769,14 +769,7 @@ private:
                 || currentIs(tok!"identifier"))
                 && !currentIsIndentedTemplateConstraint())
         {
-            if (onNextLine)
-            {
-                newline();
-            }
-            else
-            {
-                write(" ");
-            }
+            writeSpace();
         }
     }
 
@@ -804,6 +797,11 @@ private:
                     indents.push(tok!"@");
                 newline();
             }
+        }
+        else if (indents.topIs(tok!"]")) // Associative array
+        {
+            write(config.dfmt_space_before_aa_colon ? " : " : ": ");
+            ++index;
         }
         else if (peekBackIs(tok!"identifier")
                 && [tok!"{", tok!"}", tok!";", tok!":", tok!","]
@@ -838,12 +836,7 @@ private:
             }
             else
             {
-                const inAA = indents.topIs(tok!"]") && indents.topDetails.breakEveryItem;
-
-                if (inAA && !config.dfmt_space_before_aa_colon)
-                    write(": ");
-                else
-                    write(" : ");
+                write(" : ");
                 index++;
             }
         }
@@ -1289,14 +1282,7 @@ private:
         default:
             if (peekBackIs(tok!"identifier"))
             {
-                if (onNextLine)
-                {
-                    newline();
-                }
-                else
-                {
-                    write(" ");
-                }
+                writeSpace();
             }
             if (index + 1 < tokens.length)
             {
@@ -1310,14 +1296,7 @@ private:
                     writeToken();
                     if (!currentIsIndentedTemplateConstraint())
                     {
-                        if (onNextLine)
-                        {
-                            newline();
-                        }
-                        else
-                        {
-                            write(" ");
-                        }
+                        writeSpace();
                     }
                 }
             }
@@ -1427,7 +1406,7 @@ private:
             {
                 pushWrapIndent();
                 newline();
-                if (ufcsWrap)
+                if (ufcsWrap || onNextLine)
                     regenLineBreakHints(index);
             }
             writeToken();
@@ -1941,6 +1920,18 @@ private:
         }
         else if (indents.wrapIndents < 1)
             indents.push(type, detail);
+    }
+
+    void writeSpace()
+    {
+        if (onNextLine)
+        {
+            newline();
+        }
+        else
+        {
+            write(" ");
+        }
     }
 
 const pure @safe @nogc:
