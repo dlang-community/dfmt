@@ -9,8 +9,8 @@ module dfmt.formatter;
 import dparse.lexer;
 import dparse.parser;
 import dparse.rollback_allocator;
-import dfmt.config;
 import dfmt.ast_info;
+import dfmt.config;
 import dfmt.indentation;
 import dfmt.tokens;
 import dfmt.wrapping;
@@ -765,6 +765,7 @@ private:
         }
         else if (hasCurrent && (currentIs(tok!"@")
                 || isBasicType(tokens[index].type)
+                || currentIs(tok!"invariant")
                 || currentIs(tok!"extern")
                 || currentIs(tok!"identifier"))
                 && !currentIsIndentedTemplateConstraint())
