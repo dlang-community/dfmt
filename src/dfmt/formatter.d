@@ -1406,7 +1406,8 @@ private:
                     || (linebreakHints.length == 0 && currentLineLength + nextTokenLength() > config.max_line_length))
             {
                 pushWrapIndent();
-                newline();
+                if (!peekBackIs(tok!"comment"))
+                    newline();
                 if (ufcsWrap || onNextLine)
                     regenLineBreakHints(index);
             }
@@ -1468,7 +1469,8 @@ private:
                 {
                     if (!indents.topIs(tok!"enum"))
                         pushWrapIndent();
-                    newline();
+                    if (!peekBackIs(tok!"comment"))
+                        newline();
                 }
                 else
                 {
@@ -1483,7 +1485,8 @@ private:
 
                 if (rightOperandLine > operatorLine)
                 {
-                    newline();
+                    if (!peekBackIs(tok!"comment"))
+                        newline();
                 }
                 else
                 {
