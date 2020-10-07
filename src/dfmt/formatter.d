@@ -224,7 +224,7 @@ private:
         else if (currentIs(tok!"return"))
         {
             writeToken();
-            if (!currentIs(tok!";") && !currentIs(tok!")"))
+            if (!currentIs(tok!";") && !currentIs(tok!")") && !currentIs(tok!"{"))
                 write(" ");
         }
         else if (currentIs(tok!"with"))
