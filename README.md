@@ -24,9 +24,12 @@ when using the **--inplace** option.
 * run `dub build --build=release`, optionally with `--compiler=ldc2`
 
 ## Using
-By default, dfmt reads its input from **stdin** and writes to **stdout**.
+By default, **dfmt** reads its input from **stdin** and writes to **stdout**.
 If a file name is specified on the command line, input will be read from the
 file instead, and output will be written to **stdout**.
+
+Several editor and IDE plug-ins exist with support for **dfmt**. Visual Studio
+can be configured to use **dfmt** as [an external tool](#visual-studio-integration).
 
 **dfmt** uses [EditorConfig](http://editorconfig.org/) files for configuration. If you run **dfmt** on a
 source file it will look for *.editorconfig* files that apply to that source file.
@@ -121,3 +124,15 @@ dfmt_keep_line_breaks | `true`, **`false`** | Keep existing line breaks if these
 * Braces - `{` and `}`
 * Brackets - `[` and `]`
 * Parenthesis / Parens  - `(` and `)`
+
+## Visual Studio integration
+**dfmt** can be configured as an external tool in Visual Studio (2017 and 2019). Choose [Tools]->[External Tools...], click [Add] and fill in the following fields:
+
+|                   |                                     |
+|-------------------|-------------------------------------|
+|Title:             | `d&fmt`                             |
+|Command:           | `C:\D\dmd2\windows\bin\dub.exe`     |
+|Arguments:         | `run dfmt -- --inplace $(ItemPath)` |
+|Initial Directory: | `$(ItemDir)`                        |
+
+Now Alt+T Alt+F will reformat the current file on disk. If you forgot to save the file first, VS will warn that the file changed on disk and ask if you want to discard unsaved changes; Reply No, save and try again.
