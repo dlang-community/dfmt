@@ -224,7 +224,9 @@ private:
         else if (currentIs(tok!"return"))
         {
             writeToken();
-            if (!currentIs(tok!";") && !currentIs(tok!")") && !currentIs(tok!"{"))
+            if (!currentIs(tok!";") && !currentIs(tok!")") && !currentIs(tok!"{")
+                    && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"do")
+                    && (hasCurrent && tokens[index].text != "body"))
                 write(" ");
         }
         else if (currentIs(tok!"with"))
