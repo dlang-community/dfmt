@@ -10,7 +10,7 @@ when using the **--inplace** option.
 ### Installing with DUB
 
 ```sh
-> dub fetch --version='~master' dfmt && dub run dfmt -- -h
+> dub fetch dfmt@"~master" && dub run dfmt -- -h
 ```
 
 ### Building from source using Make
