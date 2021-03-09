@@ -1,0 +1,8 @@
+void main()
+{
+    string key;
+
+    int[string] var = [
+        key: 5
+    ];
+}

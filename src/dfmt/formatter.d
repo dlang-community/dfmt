@@ -1692,8 +1692,8 @@ private:
                     assert(l2 != -1, "Recent '{' is not found despite being in struct initializer");
                     indentLevel = l2 + 1;
                 }
-                else if (config.dfmt_compact_labeled_statements == OptionalBoolean.f
-                        || !isBlockHeader(2) || peek2Is(tok!"if"))
+                else if ((config.dfmt_compact_labeled_statements == OptionalBoolean.f
+                        || !isBlockHeader(2) || peek2Is(tok!"if")) && !indents.topIs(tok!"]"))
                 {
                     immutable l2 = indents.indentToMostRecent(tok!"{");
                     indentLevel = l2 != -1 ? l2 : indents.indentLevel - 1;
