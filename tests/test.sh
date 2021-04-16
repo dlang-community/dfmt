@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-for braceStyle in allman otbs
+for braceStyle in allman otbs knr
 do
 	for source in *.d
 	do
