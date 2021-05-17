@@ -5,6 +5,8 @@
 
 module dfmt.indentation;
 
+import dfmt.config;
+import dfmt.editorconfig;
 import dparse.lexer;
 
 import std.bitmanip : bitfields;
@@ -31,6 +33,14 @@ bool isTempIndent(IdType type) pure nothrow @nogc @safe
  */
 struct IndentStack
 {
+    /// Configuration
+    private const Config* config;
+
+    this(const Config* config)
+    {
+        this.config = config;
+    }
+
     static struct Details
     {
         mixin(bitfields!(
@@ -221,7 +231,7 @@ struct IndentStack
     /**
      * Dumps the current state of the indentation stack to `stderr`. Used for debugging.
      */
-    void dump(size_t pos = size_t.max, string file = __FILE__, uint line = __LINE__)
+    void dump(size_t pos = size_t.max, string file = __FILE__, uint line = __LINE__) const
     {
         import dparse.lexer : str;
         import std.algorithm.iteration : map;
@@ -260,6 +270,12 @@ private:
 
             if (i + 1 < index)
             {
+                if (config.dfmt_single_indent == OptionalBoolean.t && skipDoubleIndent(i, parenCount))
+                {
+                    parenCount = pc;
+                    continue;
+                }
+
                 immutable currentIsNonWrapTemp = !details[i].wrap
                     && details[i].temp && arr[i] != tok!")" && arr[i] != tok!"!";
                 if (arr[i] == tok!"static"
@@ -276,7 +292,7 @@ private:
                     continue;
                 }
             }
-            else if (parenCount == 0 && arr[i] == tok!"(")
+            else if (parenCount == 0 && arr[i] == tok!"(" && config.dfmt_single_indent == OptionalBoolean.f)
                 size++;
 
             if (arr[i] == tok!"!")
@@ -286,6 +302,12 @@ private:
             size++;
         }
         return size;
+    }
+
+    bool skipDoubleIndent(size_t i, int parenCount) const pure nothrow @safe @nogc
+    {
+        return (details[i + 1].wrap && arr[i] == tok!")")
+            || (parenCount == 0 && arr[i + 1] == tok!"," && arr[i] == tok!"(");
     }
 }
 

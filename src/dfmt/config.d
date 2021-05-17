@@ -59,6 +59,8 @@ struct Config
     OptionalBoolean dfmt_space_before_aa_colon;
     ///
     OptionalBoolean dfmt_keep_line_breaks;
+    ///
+    OptionalBoolean dfmt_single_indent;
 
     mixin StandardEditorConfigFields;
 
@@ -88,6 +90,7 @@ struct Config
         dfmt_single_template_constraint_indent = OptionalBoolean.f;
         dfmt_space_before_aa_colon = OptionalBoolean.f;
         dfmt_keep_line_breaks = OptionalBoolean.f;
+        dfmt_single_indent = OptionalBoolean.f;
     }
 
     /**

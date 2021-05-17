@@ -110,6 +110,7 @@ struct TokenFormatter(OutputRange)
         this.output = output;
         this.astInformation = astInformation;
         this.config = config;
+        this.indents = IndentStack(config);
 
         {
             auto eol = config.end_of_line;
