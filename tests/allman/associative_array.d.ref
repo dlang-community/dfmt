@@ -1,24 +1,24 @@
 unittest
 {
     Bson base = Bson([
-            "maps": Bson([
-                    Bson(["id": Bson(4), "comment": Bson("hello")]),
-                    Bson(["id": Bson(49), "comment": Bson(null)])
-                ]),
-            "short": Bson(["a": "b", "c": "d"]),
-            "numbers": Bson([
-                    1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0
-                ]),
-            "shuffleOnReset": serializeToBson([
-                    "all": false,
-                    "selected": true,
-                    "maybe": false
-                ]),
-            "resetOnEmpty": Bson(false),
-            "applyMods": Bson(true),
-            "sendComments": Bson(true)
-            ]);
+        "maps": Bson([
+            Bson(["id": Bson(4), "comment": Bson("hello")]),
+            Bson(["id": Bson(49), "comment": Bson(null)])
+        ]),
+        "short": Bson(["a": "b", "c": "d"]),
+        "numbers": Bson([
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2,
+            3, 4, 5, 6, 7, 8, 9, 0
+        ]),
+        "shuffleOnReset": serializeToBson([
+            "all": false,
+            "selected": true,
+            "maybe": false
+        ]),
+        "resetOnEmpty": Bson(false),
+        "applyMods": Bson(true),
+        "sendComments": Bson(true)
+    ]);
     int[] x = [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3,
         4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0

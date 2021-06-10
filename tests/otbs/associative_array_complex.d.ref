@@ -1,24 +1,24 @@
 auto find() {
     return Map.findRange([
-            "$and": [
-                ["deleted": Bson(false)],
-                [
-                    "$or": Bson([
-                            serializeToBson(["forceUpdate": Bson(true)]),
-                            serializeToBson([
-                                "info.approved": ["$eq": Bson(1)],
-                                "fetchDate": [
-                                    "$lte": Bson(BsonDate(currentTime - 60.days))
-                                ]
-                            ]),
-                            serializeToBson([
-                                "info.approved": ["$ne": Bson(1)],
-                                "fetchDate": [
-                                    "$lte": Bson(BsonDate(currentTime - 14.days))
-                                ]
-                            ])
-                        ])
-                ]
+        "$and": [
+            ["deleted": Bson(false)],
+            [
+                "$or": Bson([
+                    serializeToBson(["forceUpdate": Bson(true)]),
+                    serializeToBson([
+                        "info.approved": ["$eq": Bson(1)],
+                        "fetchDate": [
+                            "$lte": Bson(BsonDate(currentTime - 60.days))
+                        ]
+                    ]),
+                    serializeToBson([
+                        "info.approved": ["$ne": Bson(1)],
+                        "fetchDate": [
+                            "$lte": Bson(BsonDate(currentTime - 14.days))
+                        ]
+                    ])
+                ])
             ]
-            ]);
+        ]
+    ]);
 }
