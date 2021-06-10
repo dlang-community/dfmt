@@ -629,6 +629,10 @@ private:
         }
         else if (arrayInitializerStart && isMultilineAt(index - 1))
         {
+            if (peekBack2Is(tok!"(")) {
+                indents.pop();
+            }
+
             // Use the close bracket as the indent token to distinguish
             // the array initialiazer from an array index in the newline
             // handling code
