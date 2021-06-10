@@ -1,0 +1,7 @@
+unittest
+{
+    functionLengthDoesMatter([
+            firstFunctionInChain("A").seconFunctionInChain("B").value,
+            firstFunctionInChain("A").seconFunctionInChain("B").value
+            ]);
+}
