@@ -274,6 +274,10 @@ private:
             else
                 formatBlockHeader();
         }
+        else if ((current.text == "body" || current == tok!"do") && peekBackIsFunctionDeclarationEnding())
+        {
+            formatKeyword();
+        }
         else if (currentIs(tok!"do"))
         {
             formatBlockHeader();
@@ -319,10 +323,6 @@ private:
         {
             if (currentIs(tok!"debug"))
                 inlineElse = true;
-            formatKeyword();
-        }
-        else if (current.text == "body" && peekBackIsFunctionDeclarationEnding())
-        {
             formatKeyword();
         }
         else if (isBasicType(current.type))
