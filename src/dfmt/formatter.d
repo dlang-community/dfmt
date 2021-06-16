@@ -612,22 +612,7 @@ private:
         immutable bool arrayInitializerStart = p == tok!"["
             && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
 
-        if (p == tok!"[" && config.dfmt_keep_line_breaks == OptionalBoolean.t)
-        {
-            IndentStack.Details detail;
-
-            detail.wrap = false;
-            detail.temp = false;
-            detail.breakEveryItem = false;
-            detail.mini = tokens[index].line == tokens[index - 1].line;
-
-            indents.push(tok!"]", detail);
-            if (!detail.mini)
-            {
-                newline();
-            }
-        }
-        else if (arrayInitializerStart && isMultilineAt(index - 1))
+        if (arrayInitializerStart && isMultilineAt(index - 1))
         {
             if (peekBack2Is(tok!"(")) {
                 indents.pop();
@@ -652,6 +637,21 @@ private:
             immutable size_t j = expressionEndIndex(index);
             linebreakHints = chooseLineBreakTokens(index, tokens[index .. j],
                     depths[index .. j], config, currentLineLength, indentLevel);
+        }
+        else if (p == tok!"[" && config.dfmt_keep_line_breaks == OptionalBoolean.t)
+        {
+            IndentStack.Details detail;
+
+            detail.wrap = false;
+            detail.temp = false;
+            detail.breakEveryItem = false;
+            detail.mini = tokens[index].line == tokens[index - 1].line;
+
+            indents.push(tok!"]", detail);
+            if (!detail.mini)
+            {
+                newline();
+            }
         }
         else if (arrayInitializerStart)
         {
