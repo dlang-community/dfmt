@@ -177,7 +177,7 @@ else
 
             if (!exists(explicitConfigDir) || !isDir(explicitConfigDir))
             {
-                stderr.writeln("--config_dir|c must specify existing directory path");
+                stderr.writeln("--config|c must specify existing directory path");
                 return 1;
             }
             explicitConfig = getConfigFor!Config(explicitConfigDir);
@@ -306,7 +306,7 @@ https://github.com/dlang-community/dfmt
 Options:
     --help, -h          Print this help message
     --inplace, -i       Edit files in place
-    --config_dir, -c    Path to directory to load .editorconfig file from.
+    --config, -c    Path to directory to load .editorconfig file from.
     --version           Print the version number and then exit
 
 Formatting Options:
