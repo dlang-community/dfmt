@@ -210,7 +210,10 @@ final class FormatVisitor : ASTVisitor
     {
         if (auto bd = functionBody.specifiedFunctionBody)
         {
-            astInformation.funBodyLocations ~= bd.blockStatement.startLocation;
+            if (bd.blockStatement)
+            {
+                astInformation.funBodyLocations ~= bd.blockStatement.startLocation;
+            }
         }
         functionBody.accept(this);
     }
