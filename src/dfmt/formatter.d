@@ -1192,11 +1192,13 @@ private:
                 writeParens(config.dfmt_space_after_cast == OptionalBoolean.t);
             break;
         case tok!"out":
-            if (!peekBackIs(tok!"}")
-                    && astInformation.contractLocations.canFindIndex(current.index))
-                newline();
-            else if (peekBackIsKeyword)
-                write(" ");
+            if (!peekBackIsSlashSlash) {
+                if (!peekBackIs(tok!"}")
+                        && astInformation.contractLocations.canFindIndex(current.index))
+                    newline();
+                else if (peekBackIsKeyword)
+                    write(" ");
+            }
             writeToken();
             if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
                 write(" ");
@@ -1220,13 +1222,15 @@ private:
             break;
         case tok!"in":
             immutable isContract = astInformation.contractLocations.canFindIndex(current.index);
-            if (isContract)
-            {
-                indents.popTempIndents();
-                newline();
+            if (!peekBackIsSlashSlash) {
+                if (isContract)
+                {
+                    indents.popTempIndents();
+                    newline();
+                }
+                else if (!peekBackIsOneOf(false, tok!"(", tok!",", tok!"!"))
+                    write(" ");
             }
-            else if (!peekBackIsOneOf(false, tok!"(", tok!",", tok!"!"))
-                write(" ");
             writeToken();
             immutable isFunctionLit = astInformation.funLitStartLocations.canFindIndex(
                     current.index);
