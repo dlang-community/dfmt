@@ -16,7 +16,9 @@ enum BraceStyle
     /// $(LINK https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS)
     otbs,
     /// $(LINK https://en.wikipedia.org/wiki/Indent_style#Variant:_Stroustrup)
-    stroustrup
+    stroustrup,
+    /// $(LINK https://en.wikipedia.org/wiki/Indentation_style#K&R_style)
+    knr,
 }
 
 enum TemplateConstraintStyle

@@ -95,6 +95,12 @@ struct ASTInformation
     /// Closing braces of function literals
     size_t[] funLitEndLocations;
 
+    /// Locations of aggregate bodies (struct, class, union)
+    size_t[] aggregateBodyLocations;
+
+    /// Locations of function bodies
+    size_t[] funBodyLocations;
+
     /// Conditional statements that have matching "else" statements
     size_t[] conditionalWithElseLocations;
 
@@ -198,6 +204,18 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.constructorDestructorLocations ~= destructor.index;
         destructor.accept(this);
+    }
+
+    override void visit (const FunctionBody functionBody)
+    {
+        if (auto bd = functionBody.specifiedFunctionBody)
+        {
+            if (bd.blockStatement)
+            {
+                astInformation.funBodyLocations ~= bd.blockStatement.startLocation;
+            }
+        }
+        functionBody.accept(this);
     }
 
     override void visit(const ConditionalDeclaration dec)
@@ -313,6 +331,7 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const StructBody structBody)
     {
+        astInformation.aggregateBodyLocations ~= structBody.startLocation;
         astInformation.doubleNewlineLocations ~= structBody.endLocation;
         structBody.accept(this);
     }

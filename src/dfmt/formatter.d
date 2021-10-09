@@ -15,6 +15,7 @@ import dfmt.indentation;
 import dfmt.tokens;
 import dfmt.wrapping;
 import std.array;
+import std.algorithm.comparison : among;
 
 /**
  * Formats the code contained in `buffer` into `output`.
@@ -967,6 +968,10 @@ private:
                 if (config.dfmt_brace_style == BraceStyle.allman
                         || peekBackIsOneOf(true, tok!"{", tok!"}"))
                     newline();
+                else if (config.dfmt_brace_style == BraceStyle.knr
+                        && astInformation.funBodyLocations.canFindIndex(tIndex)
+                        && (peekBackIs(tok!")") || (!peekBackIs(tok!"do") && peekBack().text != "body")))
+                    newline();
                 else if (!peekBackIsOneOf(true, tok!"{", tok!"}", tok!";"))
                     write(" ");
                 writeToken();
@@ -1035,7 +1040,7 @@ private:
                 currentLineLength = 0;
                 justAddedExtraNewline = true;
             }
-            if (config.dfmt_brace_style == BraceStyle.otbs
+            if (config.dfmt_brace_style.among(BraceStyle.otbs, BraceStyle.knr)
                     && ((peekIs(tok!"else")
                             && !indents.topAre(tok!"static", tok!"if")
                             && !indents.topIs(tok!"foreach") && !indents.topIs(tok!"for")
