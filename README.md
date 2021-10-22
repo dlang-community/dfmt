@@ -116,6 +116,7 @@ dfmt_template_constraint_style | **`conditional_newline_indent`** `conditional_n
 dfmt_single_template_constraint_indent | `true`, **`false`** | Set if the constraints are indented by a single tab instead of two. Has only an effect if the style set to `always_newline_indent` or `conditional_newline_indent`.
 dfmt_space_before_aa_colon | `true`, **`false`** | Adds a space after an associative array key before the `:` like in older dfmt versions.
 dfmt_keep_line_breaks | `true`, **`false`** | Keep existing line breaks if these don't violate other formatting rules.
+dfmt_single_indent | `true`, **`false`** | Set if the code in parens is indented by a single tab instead of two.
 
 ## Terminology
 * Braces - `{` and `}`
