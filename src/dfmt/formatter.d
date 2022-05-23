@@ -642,6 +642,9 @@ private:
         }
         else if (p == tok!"[" && config.dfmt_keep_line_breaks == OptionalBoolean.t)
         {
+            if (peekBack2Is(tok!"(")) {
+                indents.pop();
+            }
             IndentStack.Details detail;
 
             detail.wrap = false;
