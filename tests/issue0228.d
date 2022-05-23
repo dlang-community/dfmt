@@ -1,0 +1,8 @@
+/* This test relies on ../.gitattributes to contain these lines:
+
+tests/issue0228.d               text eol=lf
+tests/allman/issue0228.d.ref    text eol=crlf
+tests/knr/issue0228.d.ref       text eol=crlf
+tests/otbs/issue0228.d.ref      text eol=crlf
+
+*/

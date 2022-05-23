@@ -1825,6 +1825,8 @@ private:
     {
         import std.range:retro;
         import std.algorithm.searching:countUntil;
+        import std.algorithm.iteration:joiner;
+        import std.string:lineSplitter;
 
         if (current.text is null)
         {
@@ -1834,12 +1836,7 @@ private:
         }
         else
         {
-            // You know what's awesome? Windows can't handle its own line
-            // endings correctly.
-            version (Windows)
-                output.put(current.text.replace("\r", ""));
-            else
-                output.put(current.text);
+            output.put(current.text.lineSplitter.joiner(eolString));
             switch (current.type)
             {
             case tok!"stringLiteral":
