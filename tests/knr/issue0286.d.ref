@@ -1,0 +1,14 @@
+void foo()
+{
+    if (true)
+        enum vectorizeable = aLongExpressionThatCausesWrapping()
+            && aLongExpressionThatCausesWrapping();
+    else
+        enum vectorizeable = false;
+
+    if (true) {
+        enum vectorizeable = aLongExpressionThatCausesWrapping()
+            && aLongExpressionThatCausesWrapping();
+    } else
+        enum vectorizeable = false;
+}

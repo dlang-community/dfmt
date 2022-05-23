@@ -1,12 +1,9 @@
 [submodule "libdparse"]
 	path = libdparse
 	url = https://github.com/dlang-community/libdparse.git
-[submodule "makd"]
-	path = makd
-	url = https://github.com/sociomantic-tsunami/makd
-[submodule "beaver"]
-	path = beaver
-	url = https://github.com/sociomantic-tsunami/beaver.git
 [submodule "stdx-allocator"]
 	path = stdx-allocator
 	url = https://github.com/dlang-community/stdx-allocator
+[submodule "d-test-utils"]
+	path = d-test-utils
+	url = https://github.com/dlang-community/d-test-utils.git

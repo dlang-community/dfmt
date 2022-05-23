@@ -4,7 +4,7 @@
     "targetType": "autodetect",
     "license": "BSL-1.0",
     "dependencies": {
-      "libdparse": "~>0.9.10"
+      "libdparse": ">=0.14.0 <1.0.0"
     },
     "targetPath" : "bin/",
     "targetName" : "dfmt",
@@ -15,6 +15,6 @@
         "built_with_dub"
     ],
     "preGenerateCommands" : [
-      "rdmd --eval=\"auto dir=environment.get(\\\"DUB_PACKAGE_DIR\\\"); dir.buildPath(\\\"bin\\\").mkdirRecurse; auto gitVer = (\\\"git -C \\\"~dir~\\\" describe --tags\\\").executeShell; (gitVer.status == 0 ? gitVer.output.strip : \\\"v\\\" ~ dir.dirName.baseName.findSplitAfter(environment.get(\\\"DUB_ROOT_PACKAGE\\\")~\\\"-\\\")[1]).ifThrown(\\\"0.0.0\\\").chain(newline).to!string.toFile(dir.buildPath(\\\"bin\\\", \\\"dubhash.txt\\\"));\""
+      "rdmd \"$PACKAGE_DIR/dubhash.d\""
     ]
 }

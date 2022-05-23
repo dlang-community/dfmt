@@ -23,6 +23,12 @@ struct BraceIndentInfo
     uint beginIndentLevel;
 }
 
+struct StructInitializerInfo
+{
+    size_t startLocation;
+    size_t endLocation;
+}
+
 /// AST information that is needed by the formatter.
 struct ASTInformation
 {
@@ -45,6 +51,7 @@ struct ASTInformation
         sort(conditionalWithElseLocations);
         sort(conditionalStatementLocations);
         sort(arrayStartLocations);
+        sort(assocArrayStartLocations);
         sort(contractLocations);
         sort(constraintLocations);
         sort(constructorDestructorLocations);
@@ -52,6 +59,8 @@ struct ASTInformation
         sort(sharedStaticConstructorDestructorLocations);
         sort!((a,b) => a.endLocation < b.endLocation)
             (indentInfoSortedByEndLocation);
+        sort!((a,b) => a.endLocation < b.endLocation)
+            (structInfoSortedByEndLocation);
         sort(ufcsHintLocations);
         ufcsHintLocations = ufcsHintLocations.uniq().array();
     }
@@ -86,6 +95,12 @@ struct ASTInformation
     /// Closing braces of function literals
     size_t[] funLitEndLocations;
 
+    /// Locations of aggregate bodies (struct, class, union)
+    size_t[] aggregateBodyLocations;
+
+    /// Locations of function bodies
+    size_t[] funBodyLocations;
+
     /// Conditional statements that have matching "else" statements
     size_t[] conditionalWithElseLocations;
 
@@ -94,6 +109,9 @@ struct ASTInformation
 
     /// Locations of start locations of array initializers
     size_t[] arrayStartLocations;
+
+    /// Locations of start locations of associative array initializers
+    size_t[] assocArrayStartLocations;
 
     /// Locations of "in" and "out" tokens that begin contracts
     size_t[] contractLocations;
@@ -114,6 +132,9 @@ struct ASTInformation
     size_t[] ufcsHintLocations;
 
     BraceIndentInfo[] indentInfoSortedByEndLocation;
+
+    /// Opening & closing braces of struct initializers
+    StructInitializerInfo[] structInfoSortedByEndLocation;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -134,6 +155,19 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.arrayStartLocations ~= arrayInitializer.startLocation;
         arrayInitializer.accept(this);
+    }
+
+    override void visit(const ArrayLiteral arrayLiteral)
+    {
+        astInformation.arrayStartLocations ~= arrayLiteral.tokens[0].index;
+        arrayLiteral.accept(this);
+    }
+
+    override void visit(const AssocArrayLiteral assocArrayLiteral)
+    {
+        astInformation.arrayStartLocations ~= assocArrayLiteral.tokens[0].index;
+        astInformation.assocArrayStartLocations ~= assocArrayLiteral.tokens[0].index;
+        assocArrayLiteral.accept(this);
     }
 
     override void visit (const SharedStaticConstructor sharedStaticConstructor)
@@ -170,6 +204,18 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.constructorDestructorLocations ~= destructor.index;
         destructor.accept(this);
+    }
+
+    override void visit (const FunctionBody functionBody)
+    {
+        if (auto bd = functionBody.specifiedFunctionBody)
+        {
+            if (bd.blockStatement)
+            {
+                astInformation.funBodyLocations ~= bd.blockStatement.startLocation;
+            }
+        }
+        functionBody.accept(this);
     }
 
     override void visit(const ConditionalDeclaration dec)
@@ -214,9 +260,9 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const FunctionLiteralExpression funcLit)
     {
-        if (funcLit.functionBody !is null)
+        if (funcLit.specifiedFunctionBody !is null)
         {
-            const bs = funcLit.functionBody.blockStatement;
+            const bs = funcLit.specifiedFunctionBody.blockStatement;
 
             astInformation.funLitStartLocations ~= bs.startLocation;
             astInformation.funLitEndLocations ~= bs.endLocation;
@@ -244,21 +290,19 @@ final class FormatVisitor : ASTVisitor
         caseRangeStatement.accept(this);
     }
 
-    override void visit(const FunctionBody functionBody)
+    override void visit(const SpecifiedFunctionBody specifiedFunctionBody)
     {
-        if (functionBody.blockStatement !is null)
-            astInformation.doubleNewlineLocations ~= functionBody.blockStatement.endLocation;
-        if (functionBody.bodyStatement !is null && functionBody.bodyStatement
-                .blockStatement !is null)
-            astInformation.doubleNewlineLocations
-                ~= functionBody.bodyStatement.blockStatement.endLocation;
-        functionBody.accept(this);
+        if (specifiedFunctionBody.blockStatement !is null)
+            astInformation.doubleNewlineLocations ~= specifiedFunctionBody.blockStatement.endLocation;
+        specifiedFunctionBody.accept(this);
     }
 
     override void visit(const StructInitializer structInitializer)
     {
         astInformation.structInitStartLocations ~= structInitializer.startLocation;
         astInformation.structInitEndLocations ~= structInitializer.endLocation;
+        astInformation.structInfoSortedByEndLocation ~=
+            StructInitializerInfo(structInitializer.startLocation, structInitializer.endLocation);
         astInformation.indentInfoSortedByEndLocation ~=
             BraceIndentInfo(structInitializer.startLocation, structInitializer.endLocation);
 
@@ -279,12 +323,15 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const Invariant invariant_)
     {
-        astInformation.doubleNewlineLocations ~= invariant_.blockStatement.endLocation;
+        if (invariant_.blockStatement !is null)
+            astInformation.doubleNewlineLocations ~= invariant_.blockStatement.endLocation;
+        
         invariant_.accept(this);
     }
 
     override void visit(const StructBody structBody)
     {
+        astInformation.aggregateBodyLocations ~= structBody.startLocation;
         astInformation.doubleNewlineLocations ~= structBody.endLocation;
         structBody.accept(this);
     }
@@ -367,10 +414,22 @@ final class FormatVisitor : ASTVisitor
         storageClass.accept(this);
     }
 
+    override void visit(const InContractExpression inContractExpression)
+    {
+        astInformation.contractLocations ~= inContractExpression.inTokenLocation;
+        inContractExpression.accept(this);
+    }
+
     override void visit(const InStatement inStatement)
     {
         astInformation.contractLocations ~= inStatement.inTokenLocation;
         inStatement.accept(this);
+    }
+
+    override void visit(const OutContractExpression outContractExpression)
+    {
+        astInformation.contractLocations ~= outContractExpression.outTokenLocation;
+        outContractExpression.accept(this);
     }
 
     override void visit(const OutStatement outStatement)

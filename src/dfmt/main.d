@@ -19,14 +19,14 @@ static immutable VERSION = () {
 
     version (built_with_dub)
     {
-    	enum DFMT_VERSION = import("dubhash.txt").strip;
+        enum DFMT_VERSION = import("dubhash.txt").strip;
     }
     else
     {
-    	/**
-    	 * Current build's Git commit hash
-    	 */
-    	enum DFMT_VERSION = import("githash.txt").strip;
+        /**
+         * Current build's Git commit hash
+         */
+        enum DFMT_VERSION = import("githash.txt").strip;
     }
 
     return DFMT_VERSION ~ DEBUG_SUFFIX;
@@ -89,6 +89,15 @@ else
             case "single_template_constraint_indent":
                 optConfig.dfmt_single_template_constraint_indent = optVal;
                 break;
+            case "space_before_aa_colon":
+                optConfig.dfmt_space_before_aa_colon = optVal;
+                break;
+            case "keep_line_breaks":
+                optConfig.dfmt_keep_line_breaks = optVal;
+                break;
+            case "single_indent":
+                optConfig.dfmt_single_indent = optVal;
+                break;
             default:
                 assert(false, "Invalid command-line switch");
             }
@@ -116,8 +125,11 @@ else
                 "split_operator_at_line_end", &handleBooleans,
                 "compact_labeled_statements", &handleBooleans,
                 "single_template_constraint_indent", &handleBooleans,
+                "space_before_aa_colon", &handleBooleans,
                 "tab_width", &optConfig.tab_width,
-                "template_constraint_style", &optConfig.dfmt_template_constraint_style);
+                "template_constraint_style", &optConfig.dfmt_template_constraint_style,
+                "keep_line_breaks", &handleBooleans,
+                "single_indent", &handleBooleans);
             // dfmt on
         }
         catch (GetOptException e)
@@ -169,7 +181,7 @@ else
 
             if (!exists(explicitConfigDir) || !isDir(explicitConfigDir))
             {
-                stderr.writeln("--config_dir|c must specify existing directory path");
+                stderr.writeln("--config|c must specify existing directory path");
                 return 1;
             }
             explicitConfig = getConfigFor!Config(explicitConfigDir);
@@ -207,7 +219,9 @@ else
                 else
                     break;
             }
-            format("stdin", buffer, output.lockingTextWriter(), &config);
+            immutable bool formatSuccess = format("stdin", buffer,
+                output.lockingTextWriter(), &config);
+            return formatSuccess ? 0 : 1;
         }
         else
         {
@@ -215,6 +229,7 @@ else
 
             if (args.length >= 2)
                 inplace = true;
+            int retVal;
             while (args.length > 0)
             {
                 const path = args.front;
@@ -249,11 +264,13 @@ else
                     f.rawRead(buffer);
                     if (inplace)
                         output = File(path, "wb");
-                    format(path, buffer, output.lockingTextWriter(), &config);
+                    immutable bool formatSuccess = format(path, buffer, output.lockingTextWriter(), &config);
+                    if (!formatSuccess)
+                        retVal = 1;
                 }
             }
+            return retVal;
         }
-        return 0;
     }
 }
 
@@ -293,7 +310,7 @@ https://github.com/dlang-community/dfmt
 Options:
     --help, -h          Print this help message
     --inplace, -i       Edit files in place
-    --config_dir, -c    Path to directory to load .editorconfig file from.
+    --config, -c    Path to directory to load .editorconfig file from.
     --version           Print the version number and then exit
 
 Formatting Options:
@@ -304,6 +321,7 @@ Formatting Options:
     --indent_size
     --indent_style, -t          `,
             optionsToString!(typeof(Config.indent_style)), `
+    --keep_line_breaks
     --soft_max_line_length
     --max_line_length
     --outdent_attributes
@@ -314,6 +332,8 @@ Formatting Options:
     --split_operator_at_line_end
     --compact_labeled_statements
     --template_constraint_style
+    --space_before_aa_colon
+    --single_indent
         `,
             optionsToString!(typeof(Config.dfmt_template_constraint_style)));
 }

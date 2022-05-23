@@ -1,0 +1,5 @@
+void main()
+{
+    int a;
+    int[int] hashmap = [a : a, a : a, a : a];
+}

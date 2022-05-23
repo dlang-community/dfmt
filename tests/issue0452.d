@@ -1,0 +1,3 @@
+@nogc
+//
+void foo();

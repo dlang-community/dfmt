@@ -15,7 +15,7 @@ in
 {
     assert(tokens[0].type == tok!"(");
 }
-body
+do
 {
     uint length = 0;
     size_t i = 1;
@@ -134,7 +134,6 @@ int breakCost(IdType p, IdType c) pure nothrow @safe @nogc
     case tok!"||":
     case tok!"&&":
     case tok!",":
-    case tok!":":
     case tok!"?":
         return 0;
     case tok!"(":
@@ -184,6 +183,10 @@ int breakCost(IdType p, IdType c) pure nothrow @safe @nogc
     case tok!"~":
     case tok!"+=":
         return 200;
+    case tok!":":
+        // colon could be after a label or an import, where it should normally wrap like before
+        // for everything else (associative arrays) try not breaking around colons
+        return p == tok!"identifier" ? 0 : 300;
     case tok!".":
         return p == tok!")" ? 0 : 300;
     default:
@@ -227,7 +230,7 @@ private string generateFixedLengthCases()
         "package", "pragma", "private", "protected", "public", "pure", "real", "ref", "return", "scope",
         "shared", "short", "static", "struct", "super", "switch", "synchronized", "template", "this",
         "throw", "true", "try", "typedef", "typeid", "typeof", "ubyte", "ucent", "uint", "ulong",
-        "union", "unittest", "ushort", "version", "void", "volatile", "wchar",
+        "union", "unittest", "ushort", "version", "void", "wchar",
         "while", "with", "__DATE__", "__EOF__", "__FILE__",
         "__FUNCTION__", "__gshared", "__LINE__", "__MODULE__", "__parameters",
         "__PRETTY_FUNCTION__", "__TIME__", "__TIMESTAMP__",

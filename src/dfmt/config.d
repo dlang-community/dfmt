@@ -16,7 +16,9 @@ enum BraceStyle
     /// $(LINK https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS)
     otbs,
     /// $(LINK https://en.wikipedia.org/wiki/Indent_style#Variant:_Stroustrup)
-    stroustrup
+    stroustrup,
+    /// $(LINK https://en.wikipedia.org/wiki/Indentation_style#K&R_style)
+    knr,
 }
 
 enum TemplateConstraintStyle
@@ -55,6 +57,12 @@ struct Config
     TemplateConstraintStyle dfmt_template_constraint_style;
     ///
     OptionalBoolean dfmt_single_template_constraint_indent;
+    ///
+    OptionalBoolean dfmt_space_before_aa_colon;
+    ///
+    OptionalBoolean dfmt_keep_line_breaks;
+    ///
+    OptionalBoolean dfmt_single_indent;
 
     mixin StandardEditorConfigFields;
 
@@ -82,6 +90,9 @@ struct Config
         dfmt_compact_labeled_statements = OptionalBoolean.t;
         dfmt_template_constraint_style = TemplateConstraintStyle.conditional_newline_indent;
         dfmt_single_template_constraint_indent = OptionalBoolean.f;
+        dfmt_space_before_aa_colon = OptionalBoolean.f;
+        dfmt_keep_line_breaks = OptionalBoolean.f;
+        dfmt_single_indent = OptionalBoolean.f;
     }
 
     /**

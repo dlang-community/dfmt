@@ -1,0 +1,4 @@
+void f(bool body) {
+	if (body) {
+	}
+}
