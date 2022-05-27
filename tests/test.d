@@ -15,8 +15,7 @@ else
 int main()
 {
     foreach (braceStyle; ["allman", "otbs", "knr"])
-        foreach (entry; dirEntries(".", "*.d", SpanMode.shallow).
-                            filter!(e => e.baseName(".d") != thisExePath.baseName(".exe")))
+        foreach (entry; dirEntries(".", "*.d", SpanMode.shallow).filter!(e => e.baseName(".d") != "test"))
         {
             const source = entry.baseName;
             const outFileName = buildPath(braceStyle, source ~ ".out");
@@ -24,7 +23,7 @@ int main()
             const argsFile = source.stripExtension ~ ".args";
             const dfmtCommand = 
                 [dfmt, "--brace_style=" ~ braceStyle] ~ 
-                (argsFile.exists ? readText(argsFile).splitter!isWhite.filter!(a => a.length).array : []) ~
+                (argsFile.exists ? readText(argsFile).split : []) ~
                 [source];
             writeln(dfmtCommand.join(" "));
             if (const result = spawnProcess(dfmtCommand, stdin, File(outFileName, "w")).wait)
