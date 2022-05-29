@@ -1,0 +1,4 @@
+/// Testing LF line endings.
+void main()
+{
+}

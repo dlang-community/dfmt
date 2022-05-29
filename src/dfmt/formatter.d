@@ -105,6 +105,8 @@ struct TokenFormatter(OutputRange)
     this(const ubyte[] rawSource, const(Token)[] tokens, immutable short[] depths,
             OutputRange output, ASTInformation* astInformation, Config* config)
     {
+        import std.algorithm.searching : countUntil;
+
         this.rawSource = rawSource;
         this.tokens = tokens;
         this.depths = depths;
@@ -121,8 +123,23 @@ struct TokenFormatter(OutputRange)
                 this.eolString = "\n";
             else if (eol == eol.crlf)
                 this.eolString = "\r\n";
-            else if (eol == eol.unspecified)
+            else if (eol == eol._unspecified)
                 assert(false, "config.end_of_line was unspecified");
+            else
+            {
+                assert (eol == eol._default); // Same as input.
+                // Intentional wraparound, -1 turns into uint.max when not found:
+                const firstCR = cast(uint) rawSource.countUntil("\r");
+                if (firstCR < cast(uint) rawSource.countUntil("\n"))
+                {
+                    if (firstCR == rawSource.countUntil("\r\n"))
+                        this.eolString = "\r\n";
+                    else
+                        this.eolString = "\r";
+                }
+                else
+                    this.eolString = "\n";
+            }
         }
     }
 
@@ -371,7 +388,7 @@ private:
         import dfmt.editorconfig : OB = OptionalBoolean;
         with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
         {
-        case unspecified:
+        case _unspecified:
             assert(false, "Config was not validated properly");
         case conditional_newline:
             immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);

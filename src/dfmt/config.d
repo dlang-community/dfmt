@@ -10,7 +10,7 @@ import dfmt.editorconfig;
 /// Brace styles
 enum BraceStyle
 {
-    unspecified,
+    _unspecified,
     /// $(LINK https://en.wikipedia.org/wiki/Indent_style#Allman_style)
     allman,
     /// $(LINK https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS)
@@ -23,7 +23,7 @@ enum BraceStyle
 
 enum TemplateConstraintStyle
 {
-    unspecified,
+    _unspecified,
     conditional_newline_indent,
     conditional_newline,
     always_newline,
@@ -73,7 +73,7 @@ struct Config
     void initializeWithDefaults()
     {
         pattern = "*.d";
-        end_of_line = EOL.lf;
+        end_of_line = EOL._default;
         indent_style = IndentStyle.space;
         indent_size = 4;
         tab_width = 4;
