@@ -26,3 +26,5 @@ do
 		exit 1
 	fi
 done
+
+echo "This script is superseded by test.d."
