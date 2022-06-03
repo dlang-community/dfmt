@@ -15,7 +15,7 @@ import dfmt.indentation;
 import dfmt.tokens;
 import dfmt.wrapping;
 import std.array;
-import std.algorithm.comparison : among;
+import std.algorithm.comparison : among, max;
 
 /**
  * Formats the code contained in `buffer` into `output`.
@@ -195,6 +195,11 @@ private:
 
     /// True if the next "else" should be formatted as a single line
     bool inlineElse;
+
+    /// Tracks paren depth on a single line. This information can be used to
+    /// indent array literals inside parens, since arrays are indented only once
+    /// and paren indentation is ignored.line breaks and "[" reset the counter.
+    int parenDepthOnLine;
 
     void formatStep()
     {
@@ -597,6 +602,7 @@ private:
         writeToken();
         if (p == tok!"(")
         {
+            ++parenDepthOnLine;
             // If the file starts with an open paren, just give up. This isn't
             // valid D code.
             if (index < 2)
@@ -616,9 +622,7 @@ private:
 
         if (arrayInitializerStart && isMultilineAt(index - 1))
         {
-            if (peekBack2Is(tok!"(")) {
-                indents.pop();
-            }
+            revertParenIndentation();
 
             // Use the close bracket as the indent token to distinguish
             // the array initialiazer from an array index in the newline
@@ -642,9 +646,7 @@ private:
         }
         else if (p == tok!"[" && config.dfmt_keep_line_breaks == OptionalBoolean.t)
         {
-            if (peekBack2Is(tok!"(")) {
-                indents.pop();
-            }
+            revertParenIndentation();
             IndentStack.Details detail;
 
             detail.wrap = false;
@@ -697,6 +699,16 @@ private:
         }
     }
 
+    void revertParenIndentation()
+    {
+        if (parenDepthOnLine)
+        {
+            indents.pop();
+            indents.popTempIndents();
+        }
+        parenDepthOnLine = 0;
+    }
+
     void formatRightParen()
     in
     {
@@ -704,6 +716,7 @@ private:
     }
     do
     {
+        parenDepthOnLine = max(parenDepthOnLine - 1, 0);
         parenDepth--;
         indents.popWrapIndents();
         while (indents.topIsOneOf(tok!"!", tok!")"))
@@ -1664,6 +1677,8 @@ private:
         import std.range : assumeSorted;
         import std.algorithm : max, canFind;
         import dfmt.editorconfig : OptionalBoolean;
+
+        parenDepthOnLine = 0;
 
         if (currentIs(tok!"comment") && index > 0 && current.line == tokenEndLine(tokens[index - 1]))
             return;

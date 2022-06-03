@@ -5,6 +5,8 @@ for braceStyle in allman otbs knr
 do
 	for source in *.d
 	do
+		test "$(basename $source '.d')" = 'test' && continue
+
 		echo "${source}.ref" "${braceStyle}/${source}.out"
 		argsFile=$(basename "${source}" .d).args
 		if [ -e "${argsFile}" ]; then
