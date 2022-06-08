@@ -35,4 +35,19 @@ void f()
     {
         send(TextDocument.publishDiagnostics, new PublishDiagnosticsParams(uri, []));
     }
+
+    foreach (x; map([
+            1,
+            2,
+            3,
+        ]))
+    {
+    }
+    foreach (x; foo!(map!([
+            1,
+            2,
+            3,
+        ])))
+    {
+    }
 }

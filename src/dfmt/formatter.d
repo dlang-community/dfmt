@@ -703,7 +703,10 @@ private:
     {
         if (parenDepthOnLine)
         {
-            indents.pop();
+            foreach (i; 0 .. parenDepthOnLine)
+            {
+                indents.pop();
+            }
             indents.popTempIndents();
         }
         parenDepthOnLine = 0;
