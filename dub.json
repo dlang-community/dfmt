@@ -14,7 +14,7 @@
     "versions" : [
         "built_with_dub"
     ],
-    "preGenerateCommands" : [
-      "rdmd \"$PACKAGE_DIR/dubhash.d\""
+    "preBuildCommands" : [
+      "$DC -run \"$PACKAGE_DIR/dubhash.d\""
     ]
 }
