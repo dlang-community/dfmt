@@ -1,0 +1,54 @@
+static foreach (x; [
+    1,
+    2,
+    3,
+])
+{
+}
+
+static foreach_reverse (x; [
+    1,
+    2,
+    3,
+])
+{
+}
+
+void f()
+{
+    foreach (x; [
+        1,
+        2,
+        3,
+    ])
+    {
+    }
+    foreach_reverse (x; [
+        1,
+        2,
+        3,
+    ])
+    {
+    }
+
+    if (!SymbolTool.instance.workspacesFilesUris.canFind!sameFile(uri))
+    {
+        send(TextDocument.publishDiagnostics, new PublishDiagnosticsParams(uri, [
+        ]));
+    }
+
+    foreach (x; map([
+        1,
+        2,
+        3,
+    ]))
+    {
+    }
+    foreach (x; foo!(map!([
+        1,
+        2,
+        3,
+    ])))
+    {
+    }
+}
