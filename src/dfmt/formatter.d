@@ -105,8 +105,6 @@ struct TokenFormatter(OutputRange)
     this(const ubyte[] rawSource, const(Token)[] tokens, immutable short[] depths,
             OutputRange output, ASTInformation* astInformation, Config* config)
     {
-        import std.algorithm.searching : countUntil;
-
         this.rawSource = rawSource;
         this.tokens = tokens;
         this.depths = depths;
@@ -127,18 +125,8 @@ struct TokenFormatter(OutputRange)
                 assert(false, "config.end_of_line was unspecified");
             else
             {
-                assert (eol == eol._default); // Same as input.
-                // Intentional wraparound, -1 turns into uint.max when not found:
-                const firstCR = cast(uint) rawSource.countUntil("\r");
-                if (firstCR < cast(uint) rawSource.countUntil("\n"))
-                {
-                    if (firstCR == rawSource.countUntil("\r\n"))
-                        this.eolString = "\r\n";
-                    else
-                        this.eolString = "\r";
-                }
-                else
-                    this.eolString = "\n";
+                assert (eol == eol._default);
+                this.eolString = eolStringFromInput;
             }
         }
     }
@@ -217,6 +205,17 @@ private:
     /// indent array literals inside parens, since arrays are indented only once
     /// and paren indentation is ignored.line breaks and "[" reset the counter.
     int parenDepthOnLine;
+
+    string eolStringFromInput() const
+    {
+        import std.algorithm : countUntil;
+
+        // Intentional wraparound, -1 turns into uint.max when not found:
+        const firstCR = cast(uint) rawSource.countUntil("\r");
+        if (firstCR < cast(uint) rawSource.countUntil("\n"))
+            return firstCR == rawSource.countUntil("\r\n") ? "\r\n" : "\r";
+        return "\n";
+    }
 
     void formatStep()
     {
