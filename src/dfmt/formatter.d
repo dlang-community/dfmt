@@ -726,6 +726,8 @@ private:
             indents.pop();
         if (indents.topIs(tok!"("))
             indents.pop();
+        if (indents.topIs(tok!"."))
+            indents.pop();
 
         if (onNextLine)
         {
@@ -1440,7 +1442,8 @@ private:
             if (ufcsWrap || linebreakHints.canFind(index) || onNextLine
                     || (linebreakHints.length == 0 && currentLineLength + nextTokenLength() > config.max_line_length))
             {
-                pushWrapIndent();
+                if (!indents.topIs(tok!"."))
+                    indents.push(tok!".");
                 if (!peekBackIs(tok!"comment"))
                     newline();
                 if (ufcsWrap || onNextLine)
