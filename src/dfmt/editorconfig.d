@@ -26,21 +26,22 @@ private auto commentRe = ctRegex!(`^\s*[#;].*$`);
 
 enum OptionalBoolean : ubyte
 {
-    unspecified = 3,
+    _unspecified = 3,
     t = 1,
     f = 0
 }
 
 enum IndentStyle : ubyte
 {
-    unspecified,
+    _unspecified,
     tab,
     space
 }
 
 enum EOL : ubyte
 {
-    unspecified,
+    _unspecified,
+    _default,
     lf,
     cr,
     crlf
@@ -74,7 +75,7 @@ mixin template StandardEditorConfigFields()
             static if (N == "pattern")
                 continue;
             else static if (is(T == enum))
-                *thisN = otherN != T.unspecified ? otherN : *thisN;
+                *thisN = otherN != T._unspecified ? otherN : *thisN;
             else static if (is(T == int))
                 *thisN = otherN != -1 ? otherN : *thisN;
             else static if (is(T == string))

@@ -121,8 +121,13 @@ struct TokenFormatter(OutputRange)
                 this.eolString = "\n";
             else if (eol == eol.crlf)
                 this.eolString = "\r\n";
-            else if (eol == eol.unspecified)
+            else if (eol == eol._unspecified)
                 assert(false, "config.end_of_line was unspecified");
+            else
+            {
+                assert (eol == eol._default);
+                this.eolString = eolStringFromInput;
+            }
         }
     }
 
@@ -200,6 +205,17 @@ private:
     /// indent array literals inside parens, since arrays are indented only once
     /// and paren indentation is ignored.line breaks and "[" reset the counter.
     int parenDepthOnLine;
+
+    string eolStringFromInput() const
+    {
+        import std.algorithm : countUntil;
+
+        // Intentional wraparound, -1 turns into uint.max when not found:
+        const firstCR = cast(uint) rawSource.countUntil("\r");
+        if (firstCR < cast(uint) rawSource.countUntil("\n"))
+            return firstCR == rawSource.countUntil("\r\n") ? "\r\n" : "\r";
+        return "\n";
+    }
 
     void formatStep()
     {
@@ -376,7 +392,7 @@ private:
         import dfmt.editorconfig : OB = OptionalBoolean;
         with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
         {
-        case unspecified:
+        case _unspecified:
             assert(false, "Config was not validated properly");
         case conditional_newline:
             immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);

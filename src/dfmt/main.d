@@ -289,12 +289,14 @@ private version (Windows)
 
 template optionsToString(E) if (is(E == enum))
 {
+    import std.algorithm.searching : startsWith;
+
     enum optionsToString = () {
 
         string result = "(";
         foreach (s; [__traits(allMembers, E)])
         {
-            if (s != "unspecified")
+            if (!s.startsWith("_"))
                 result ~= s ~ "|";
         }
         result = result[0 .. $ - 1] ~ ")";
