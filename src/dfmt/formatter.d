@@ -499,6 +499,9 @@ private:
 
             if (peekIs(tok!"(") && (peekBackIs(tok!")") || peekBack2Is(tok!"!")))
                 pushWrapIndent(tok!"(");
+
+            if (peekIs(tok!".") && !indents.topIs(tok!"."))
+                indents.push(tok!".");
         }
         writeToken();
         immutable j = justAddedExtraNewline;
