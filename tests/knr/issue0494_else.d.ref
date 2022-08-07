@@ -1,0 +1,52 @@
+private void selectMember(Args...)(Args args)
+{
+    static if (true) {
+        static if (args[0]) {
+        } else {
+        }
+    }
+    if (true) {
+        if (args[0]) {
+        } else {
+        }
+    }
+}
+
+private void selectMember(Args...)(Args args)
+{
+    static if (true) {
+        static if ([
+            0,
+            1,
+            2,
+            3,
+            4,
+        ]) {
+        } else {
+        }
+    }
+    if (true) {
+        if (args[
+            0,
+            1,
+            2,
+            3,
+            4,
+        ]) {
+        } else {
+        }
+    }
+}
+
+void f()
+{
+    foreach (x; y)
+        if (foo) {
+        } else {
+        }
+
+    if (a)
+        if (b) {
+        } else {
+        }
+}

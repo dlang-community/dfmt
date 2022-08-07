@@ -203,7 +203,7 @@ private:
 
     /// Tracks paren depth on a single line. This information can be used to
     /// indent array literals inside parens, since arrays are indented only once
-    /// and paren indentation is ignored.line breaks and "[" reset the counter.
+    /// and paren indentation is ignored. Line breaks and "[" reset the counter.
     int parenDepthOnLine;
 
     string eolStringFromInput() const
@@ -726,7 +726,6 @@ private:
             {
                 indents.pop();
             }
-            indents.popTempIndents();
         }
         parenDepthOnLine = 0;
     }
@@ -1703,8 +1702,6 @@ private:
         import std.algorithm : max, canFind;
         import dfmt.editorconfig : OptionalBoolean;
 
-        parenDepthOnLine = 0;
-
         if (currentIs(tok!"comment") && index > 0 && current.line == tokenEndLine(tokens[index - 1]))
             return;
 
@@ -1822,7 +1819,19 @@ private:
                 if (indents.topIs(tok!"]"))
                 {
                     indents.pop();
-                    indentLevel = indents.indentLevel;
+                }
+                // Find the initial indentation of constructs like "if" and
+                // "foreach" without removing them from the stack, since they
+                // still can be used later to indent "else".
+                auto savedIndents = IndentStack(config);
+                while (indents.length >= 0 && indents.topIsTemp) {
+                    savedIndents.push(indents.top, indents.topDetails);
+                    indents.pop;
+                }
+                indentLevel = indents.indentLevel;
+                while (savedIndents.length > 0) {
+                    indents.push(savedIndents.top, savedIndents.topDetails);
+                    savedIndents.pop;
                 }
             }
             else if (astInformation.attributeDeclarationLines.canFindIndex(current.line))
@@ -1853,6 +1862,7 @@ private:
             }
             indent();
         }
+        parenDepthOnLine = 0;
     }
 
     void write(string str)
