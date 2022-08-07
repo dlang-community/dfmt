@@ -278,6 +278,12 @@ private:
 
                 immutable currentIsNonWrapTemp = !details[i].wrap
                     && details[i].temp && arr[i] != tok!")" && arr[i] != tok!"!";
+
+                if (currentIsNonWrapTemp && arr[i + 1] == tok!"]")
+                {
+                    parenCount = pc;
+                    continue;
+                }
                 if (arr[i] == tok!"static"
                     && arr[i + 1].among!(tok!"if", tok!"else", tok!"foreach", tok!"foreach_reverse")
                     && (i + 2 >= index || arr[i + 2] != tok!"{"))
