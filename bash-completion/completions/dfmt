@@ -24,7 +24,7 @@ _dfmt()
 
 	eolOpts="lf cr crlf"
 	boolOpts="true false"
-	braceOpts="allman otbs stroustrup"
+	braceOpts="allman otbs stroustrup knr"
 	indentOpts="tab space"
 	constraintOpts="conditional_newline_indent conditional_newline always_newline always_newline_indent"
 
