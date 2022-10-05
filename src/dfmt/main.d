@@ -38,13 +38,13 @@ version (NoMain)
 }
 else
 {
-    import std.array : front, popFront;
-    import std.stdio : stdout, stdin, stderr, writeln, File;
     import dfmt.config : Config;
-    import dfmt.formatter : format;
-    import std.path : buildPath, dirName, expandTilde;
     import dfmt.editorconfig : getConfigFor;
+    import dfmt.formatter : format;
+    import std.array : appender, front, popFront;
     import std.getopt : getopt, GetOptException;
+    import std.path : buildPath, dirName, expandTilde;
+    import std.stdio : File, stderr, stdin, stdout, writeln;
 
     int main(string[] args)
     {
@@ -153,14 +153,13 @@ else
         args.popFront();
         immutable bool readFromStdin = args.length == 0;
 
-        File output = stdout;
         version (Windows)
         {
             // On Windows, set stdout to binary mode (needed for correct EOL writing)
             // See Phobos' stdio.File.rawWrite
             {
                 import std.stdio : _O_BINARY;
-                immutable fd = output.fileno;
+                immutable fd = stdout.fileno;
                 _setmode(fd, _O_BINARY);
                 version (CRuntime_DigitalMars)
                 {
@@ -220,7 +219,7 @@ else
                     break;
             }
             immutable bool formatSuccess = format("stdin", buffer,
-                output.lockingTextWriter(), &config);
+                stdout.lockingTextWriter(), &config);
             return formatSuccess ? 0 : 1;
         }
         else
@@ -262,10 +261,16 @@ else
                 {
                     buffer = new ubyte[](cast(size_t) f.size);
                     f.rawRead(buffer);
-                    if (inplace)
-                        output = File(path, "wb");
-                    immutable bool formatSuccess = format(path, buffer, output.lockingTextWriter(), &config);
-                    if (!formatSuccess)
+                    auto output = appender!string;
+                    immutable bool formatSuccess = format(path, buffer, output, &config);
+                    if (formatSuccess)
+                    {
+                        if (inplace)
+                            File(path, "wb").rawWrite(output.data);
+                        else
+                            stdout.rawWrite(output.data);
+                    }
+                    else
                         retVal = 1;
                 }
             }

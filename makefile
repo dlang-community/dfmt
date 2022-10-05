@@ -31,7 +31,7 @@ gdc:githash
 	$(GDC) $(SRC) $(GDC_FLAGS) -obin/dfmt
 
 test: debug
-	cd tests && ./test.sh
+	cd tests && ./test.d
 
 bin/dfmt-test: githash $(SRC)
 	$(DC) $(DMD_TEST_FLAGS) $^ -of$@

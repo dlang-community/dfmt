@@ -12,4 +12,4 @@ else
     make debug -j2
 fi
 
-cd tests && ./test.sh
+cd tests && ./test.d

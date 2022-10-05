@@ -29,39 +29,55 @@ int main()
             if (const result = spawnProcess(dfmtCommand, stdin, File(outFileName, "w")).wait)
                 return result;
 
-            const outText = outFileName.readText;
-            const refText = refFileName.readText;
-            const outLines = outText.splitLines(Yes.keepTerminator);
-            const refLines = refText.splitLines(Yes.keepTerminator);
-            foreach (i; 0 .. min(refLines.length, outLines.length))
-                if (outLines[i] != refLines[i])
-                {
-                    writeln("Found difference between ", outFileName, " and ", refFileName, " on line ", i + 1, ":");
-                    writefln("out: %(%s%)", [outLines[i]]); // Wrapping in array shows line endings.
-                    writefln("ref: %(%s%)", [refLines[i]]);
-                    return 1;
-                }
-            if (outLines.length < refLines.length)
-            {
-                writeln("Line ", outLines.length + 1, " in ", refFileName, " not found in ", outFileName, ":");
-                writefln("%(%s%)", [refLines[outLines.length]]);
-                return 1;
-            }
-            if (outLines.length > refLines.length)
-            {
-                writeln("Line ", outLines.length + 1, " in ", outFileName, " not present in ", refFileName, ":");
-                writefln("%(%s%)", [outLines[refLines.length]]);
-                return 1;
-            }
+            if (int ret = diff(refFileName, outFileName))
+                return ret;
         }
 
     foreach (entry; dirEntries("expected_failures", "*.d", SpanMode.shallow))
-        if (execute([dfmt, entry]).status == 0)
+    {
+        string copied = entry ~ ".out.d";
+        copy(entry, copied);
+        scope (exit)
+            remove(copied);
+        if (execute([dfmt, copied, "--inplace"]).status == 0)
         {
             stderr.writeln("Expected failure on test ", entry, " but passed.");
             return 1;
         }
 
+        if (int ret = diff(entry, copied))
+            return ret;
+    }
+
     writeln("All tests succeeded.");
+    return 0;
+}
+
+int diff(string refFileName, string outFileName)
+{
+    const outText = outFileName.readText;
+    const refText = refFileName.readText;
+    const outLines = outText.splitLines(Yes.keepTerminator);
+    const refLines = refText.splitLines(Yes.keepTerminator);
+    foreach (i; 0 .. min(refLines.length, outLines.length))
+        if (outLines[i] != refLines[i])
+        {
+            writeln("Found difference between ", outFileName, " and ", refFileName, " on line ", i + 1, ":");
+            writefln("out: %(%s%)", [outLines[i]]); // Wrapping in array shows line endings.
+            writefln("ref: %(%s%)", [refLines[i]]);
+            return 1;
+        }
+    if (outLines.length < refLines.length)
+    {
+        writeln("Line ", outLines.length + 1, " in ", refFileName, " not found in ", outFileName, ":");
+        writefln("%(%s%)", [refLines[outLines.length]]);
+        return 1;
+    }
+    if (outLines.length > refLines.length)
+    {
+        writeln("Line ", outLines.length + 1, " in ", outFileName, " not present in ", refFileName, ":");
+        writefln("%(%s%)", [outLines[refLines.length]]);
+        return 1;
+    }
     return 0;
 }
