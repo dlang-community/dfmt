@@ -12,10 +12,11 @@ version (Windows)
 else
     enum dfmt = `../bin/dfmt`;
 
-int main()
+int main(string[] args)
 {
+    string pattern = args.length == 2 ? args[1] : "*.d";
     foreach (braceStyle; ["allman", "otbs", "knr"])
-        foreach (entry; dirEntries(".", "*.d", SpanMode.shallow).filter!(e => e.baseName(".d") != "test"))
+        foreach (entry; dirEntries(".", pattern, SpanMode.shallow).filter!(e => e.baseName(".d") != "test"))
         {
             const source = entry.baseName;
             const outFileName = buildPath(braceStyle, source ~ ".out");

@@ -198,6 +198,11 @@ private:
     /// True if the next "this" should have a space behind it
     bool thisSpace;
 
+    /// True if the next write call should first write a space, unless it is a
+    /// new line or other whitespace, in which case no further space is inserted.
+    /// Call queueSpace() to set this to support keep_line_breaks.
+    bool queuedSpace;
+
     /// True if the next "else" should be formatted as a single line
     bool inlineElse;
 
@@ -215,6 +220,15 @@ private:
         if (firstCR < cast(uint) rawSource.countUntil("\n"))
             return firstCR == rawSource.countUntil("\r\n") ? "\r\n" : "\r";
         return "\n";
+    }
+
+    /// Returns currentLineLength + things that are yet to be written
+    uint virtualLineLength() const
+    {
+        uint offset = 0;
+        if (queuedSpace)
+            offset++;
+        return currentLineLength + offset;
     }
 
     void formatStep()
@@ -237,7 +251,7 @@ private:
                         || isNumberLiteral(t) || t == tok!"characterLiteral"
                         // a!"b" function()
                         || t == tok!"function" || t == tok!"delegate")
-                    write(" ");
+                    queueSpace();
             }
         }
         else if (currentIs(tok!"module") || currentIs(tok!"import"))
@@ -250,14 +264,14 @@ private:
             if (!currentIs(tok!";") && !currentIs(tok!")") && !currentIs(tok!"{")
                     && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"do")
                     && (hasCurrent && tokens[index].text != "body"))
-                write(" ");
+                queueSpace();
         }
         else if (currentIs(tok!"with"))
         {
             if (indents.length == 0 || !indents.topIsOneOf(tok!"switch", tok!"with"))
                 indents.push(tok!"with");
             writeToken();
-            write(" ");
+            queueSpace();
             if (currentIs(tok!"("))
                 writeParens(false);
             if (!currentIs(tok!"switch") && !currentIs(tok!"with")
@@ -266,7 +280,7 @@ private:
                 newline();
             }
             else if (!currentIs(tok!"{"))
-                write(" ");
+                queueSpace();
         }
         else if (currentIs(tok!"switch"))
         {
@@ -275,7 +289,7 @@ private:
         else if (currentIs(tok!"extern") && peekIs(tok!"("))
         {
             writeToken();
-            write(" ");
+            queueSpace();
             while (hasCurrent)
             {
                 if (currentIs(tok!"("))
@@ -338,7 +352,7 @@ private:
                 && (thisSpace || astInformation.constructorDestructorLocations
                     .canFindIndex(thisIndex)))
             {
-                write(" ");
+                queueSpace();
                 thisSpace = false;
             }
         }
@@ -351,8 +365,8 @@ private:
         else if (isBasicType(current.type))
         {
             writeToken();
-            if (currentIs(tok!"identifier") || isKeyword(current.type) || inAsm)
-                write(" ");
+            if (isLikeIdentifier(current.type) || inAsm)
+                queueSpace();
         }
         else if (isOperator(current.type))
         {
@@ -375,7 +389,7 @@ private:
             )))
             //dfmt on
             {
-                write(" ");
+                queueSpace();
             }
         }
         else if (currentIs(tok!"scriptLine") || currentIs(tok!"specialTokenSequence"))
@@ -395,17 +409,17 @@ private:
         case _unspecified:
             assert(false, "Config was not validated properly");
         case conditional_newline:
-            immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
+            immutable l = virtualLineLength + betweenParenLength(tokens[index + 1 .. $]);
             if (l > config.dfmt_soft_max_line_length)
                 newline();
             else if (peekBackIs(tok!")") || peekBackIs(tok!"identifier"))
-                write(" ");
+                queueSpace();
             break;
         case always_newline:
             newline();
             break;
         case conditional_newline_indent:
-            immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
+            immutable l = virtualLineLength + betweenParenLength(tokens[index + 1 .. $]);
             if (l > config.dfmt_soft_max_line_length)
             {
                 config.dfmt_single_template_constraint_indent == OB.t ?
@@ -413,7 +427,7 @@ private:
                 newline();
             }
             else if (peekBackIs(tok!")") || peekBackIs(tok!"identifier"))
-                write(" ");
+                queueSpace();
             break;
         case always_newline_indent:
             {
@@ -427,7 +441,7 @@ private:
         writeToken();
         // assume that the parens are present, otherwise the parser would not
         // have told us there was a constraint here
-        write(" ");
+        queueSpace();
         writeParens(false);
     }
 
@@ -489,11 +503,11 @@ private:
             if (peekBackIsOperator() && !peekBackIsOneOf(false, tok!"comment",
                     tok!"{", tok!"}", tok!":", tok!";", tok!",", tok!"[", tok!"(")
                     && !canAddNewline && prevTokenEndLine < currTokenLine)
-                write(" ");
+                queueSpace();
             else if (prevTokenEndLine == currTokenLine || (t == tok!")" && peekIs(tok!"{")))
-                write(" ");
+                queueSpace();
             else if (peekBackIsOneOf(false, tok!"else", tok!"identifier"))
-                write(" ");
+                queueSpace();
             else if (canAddNewline || (peekIs(tok!"{") && t == tok!"}"))
                 newline();
 
@@ -518,10 +532,10 @@ private:
                 {
                     if (indents.topIs(tok!"{"))
                         indents.pop();
-                    write(" ");
+                    queueSpace();
                 }
                 else if (!currentIs(tok!"{"))
-                    write(" ");
+                    queueSpace();
             }
             else if (!currentIs(tok!"{") && !currentIs(tok!"in") && !currentIs(tok!"out"))
             {
@@ -546,7 +560,7 @@ private:
             writeParens(false);
             return;
         }
-        write(" ");
+        queueSpace();
         while (hasCurrent)
         {
             if (currentIs(tok!";"))
@@ -585,10 +599,10 @@ private:
             else if (currentIs(tok!":"))
             {
                 if (config.dfmt_selective_import_space)
-                    write(" ");
+                    queueSpace();
                 writeToken();
                 if (!currentIs(tok!"comment"))
-                    write(" ");
+                    queueSpace();
                 pushWrapIndent(tok!",");
             }
             else if (currentIs(tok!"comment"))
@@ -661,7 +675,7 @@ private:
             newline();
             immutable size_t j = expressionEndIndex(index);
             linebreakHints = chooseLineBreakTokens(index, tokens[index .. j],
-                    depths[index .. j], config, currentLineLength, indentLevel);
+                    depths[index .. j], config, virtualLineLength, indentLevel);
         }
         else if (p == tok!"[" && config.dfmt_keep_line_breaks == OptionalBoolean.t)
         {
@@ -708,7 +722,7 @@ private:
         }
         else if (!currentIs(tok!")") && !currentIs(tok!"]")
                 && (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
-                    && currentLineLength > config.max_line_length)))
+                    && virtualLineLength > config.max_line_length)))
         {
             newline();
         }
@@ -761,13 +775,13 @@ private:
         {
             writeToken();
             if (spaceAfterParens || parenDepth > 0)
-                writeSpace();
+                queueSpace();
         }
         else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens
                 && !peekIs(tok!"in") && !peekIs(tok!"is") && !peekIs(tok!"if"))
         {
             writeToken();
-            writeSpace();
+            queueSpace();
         }
         else
             writeToken();
@@ -790,7 +804,7 @@ private:
         }
         writeToken();
         if (currentIs(tok!"identifier"))
-            write(" ");
+            queueSpace();
     }
 
     void formatAt()
@@ -809,16 +823,12 @@ private:
                     && astInformation.atAttributeStartLocations.canFindIndex(atIndex))
                 newline();
             else
-                write(" ");
+                queueSpace();
         }
-        else if (hasCurrent && (currentIs(tok!"@")
-                || isBasicType(tokens[index].type)
-                || currentIs(tok!"invariant")
-                || currentIs(tok!"extern")
-                || currentIs(tok!"identifier"))
-                && !currentIsIndentedTemplateConstraint())
+        else if (hasCurrent
+            && (currentIs(tok!"@") || isLikeIdentifier(current.type)))
         {
-            writeSpace();
+            queueSpace();
         }
     }
 
@@ -859,7 +869,7 @@ private:
         {
             writeToken();
             if (isStructInitializer)
-                write(" ");
+                queueSpace();
             else if (!currentIs(tok!"{"))
                 newline();
         }
@@ -872,7 +882,7 @@ private:
             {
                 writeToken();
                 if (config.dfmt_compact_labeled_statements)
-                    write(" ");
+                    queueSpace();
                 else
                     newline();
             }
@@ -881,7 +891,7 @@ private:
                 pushWrapIndent();
                 newline();
                 writeToken();
-                write(" ");
+                queueSpace();
             }
             else
             {
@@ -898,7 +908,7 @@ private:
 
         if ((parenDepth > 0 && sBraceDepth == 0) || (sBraceDepth > 0 && niBraceDepth > 0))
         {
-            if (currentLineLength > config.dfmt_soft_max_line_length)
+            if (virtualLineLength > config.dfmt_soft_max_line_length)
             {
                 writeToken();
                 pushWrapIndent(tok!";");
@@ -974,7 +984,7 @@ private:
 
             sBraceDepth++;
             if (peekBackIsOneOf(true, tok!")", tok!"identifier"))
-                write(" ");
+                queueSpace(true);
             immutable bool multiline = isMultilineAt(index);
             writeToken();
             if (multiline)
@@ -986,7 +996,7 @@ private:
             {
                 niBraceDepth++;
                 if (!currentIs(tok!"}"))
-                    write(" ");
+                    queueSpace(true);
             }
         }
         else
@@ -1014,7 +1024,7 @@ private:
                         && (peekBackIs(tok!")") || (!peekBackIs(tok!"do") && peekBack().text != "body")))
                     newline();
                 else if (!peekBackIsOneOf(true, tok!"{", tok!"}", tok!";"))
-                    write(" ");
+                    queueSpace(true);
                 writeToken();
             }
             indents.push(tok!"{");
@@ -1058,7 +1068,7 @@ private:
             if (niBraceDepth > 0)
             {
                 if (!peekBackIsSlashSlash() && !peekBackIs(tok!"{"))
-                    write(" ");
+                    queueSpace();
                 niBraceDepth--;
             }
             if (sBraceDepth > 0)
@@ -1088,7 +1098,7 @@ private:
                             && !indents.topIs(tok!"while") && !indents.topIs(tok!"do"))
                         || peekIs(tok!"catch") || peekIs(tok!"finally")))
             {
-                write(" ");
+                queueSpace(true);
                 index++;
             }
             else
@@ -1113,7 +1123,7 @@ private:
             indents.pop();
         indents.push(tok!"switch");
         writeToken(); // switch
-        write(" ");
+        queueSpace();
     }
 
     void formatBlockHeader()
@@ -1144,20 +1154,20 @@ private:
 
         if (currentIs(tok!"("))
         {
-            write(" ");
+            queueSpace();
             writeParens(false);
         }
 
         if (hasCurrent)
         {
             if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch")))
-                write(" ");
+                queueSpace();
             else if (currentIs(tok!"comment"))
                 formatStep();
             else if (!shouldPushIndent)
             {
                 if (!currentIs(tok!"{") && !currentIs(tok!";"))
-                    write(" ");
+                    queueSpace();
             }
             else if (hasCurrent && !currentIs(tok!"{") && !currentIs(tok!";") && !currentIs(tok!"in") &&
                 !currentIs(tok!"out") && !currentIs(tok!"do") && current.text != "body")
@@ -1198,7 +1208,7 @@ private:
             if (indents.topIs(tok!"if") || indents.topIs(tok!"version"))
                 indents.pop();
             inlineElse = false;
-            write(" ");
+            queueSpace();
         }
         else if (currentIs(tok!":"))
         {
@@ -1243,11 +1253,11 @@ private:
                         && astInformation.contractLocations.canFindIndex(current.index))
                     newline();
                 else if (peekBackIsKeyword)
-                    write(" ");
+                    queueSpace();
             }
             writeToken();
             if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
-                write(" ");
+                queueSpace();
             break;
         case tok!"try":
         case tok!"finally":
@@ -1275,7 +1285,7 @@ private:
                     newline();
                 }
                 else if (!peekBackIsOneOf(false, tok!"(", tok!",", tok!"!"))
-                    write(" ");
+                    queueSpace();
             }
             writeToken();
             immutable isFunctionLit = astInformation.funLitStartLocations.canFindIndex(
@@ -1283,20 +1293,20 @@ private:
             if (isFunctionLit && config.dfmt_brace_style == BraceStyle.allman)
                 newline();
             else if (!isContract || currentIs(tok!"("))
-                write(" ");
+                queueSpace();
             break;
         case tok!"is":
             if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",",
                     tok!"}", tok!"=", tok!"&&", tok!"||") && !peekBackIsKeyword())
-                write(" ");
+                queueSpace();
             writeToken();
             if (!currentIs(tok!"(") && !currentIs(tok!"{") && !currentIs(tok!"comment"))
-                write(" ");
+                queueSpace();
             break;
         case tok!"case":
             writeToken();
             if (!currentIs(tok!";"))
-                write(" ");
+                queueSpace();
             break;
         case tok!"enum":
             if (peekIs(tok!")") || peekIs(tok!"=="))
@@ -1306,11 +1316,11 @@ private:
             else
             {
                 if (peekBackIs(tok!"identifier"))
-                    write(" ");
+                    queueSpace();
                 indents.push(tok!"enum");
                 writeToken();
                 if (!currentIs(tok!":") && !currentIs(tok!"{"))
-                    write(" ");
+                    queueSpace();
             }
             break;
         case tok!"static":
@@ -1334,12 +1344,12 @@ private:
         case tok!"invariant":
             writeToken();
             if (currentIs(tok!"("))
-                write(" ");
+                queueSpace();
             break;
         default:
             if (peekBackIs(tok!"identifier"))
             {
-                writeSpace();
+                queueSpace();
             }
             if (index + 1 < tokens.length)
             {
@@ -1353,7 +1363,7 @@ private:
                     writeToken();
                     if (!currentIsIndentedTemplateConstraint())
                     {
-                        writeSpace();
+                        queueSpace();
                     }
                 }
             }
@@ -1369,7 +1379,7 @@ private:
             && astInformation.constraintLocations.canFindIndex(current.index)
             && (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline
                 || config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent
-                || currentLineLength >= config.dfmt_soft_max_line_length);
+                || virtualLineLength >= config.dfmt_soft_max_line_length);
     }
 
     void formatOperator()
@@ -1386,7 +1396,7 @@ private:
                 if (!currentIs(tok!"*") && !currentIs(tok!")")
                         && !currentIs(tok!"[") && !currentIs(tok!",") && !currentIs(tok!";"))
                 {
-                    write(" ");
+                    queueSpace();
                 }
                 break;
             }
@@ -1403,7 +1413,7 @@ private:
                 if (!(index == 0 || peekBackIs(tok!"{", true)
                         || peekBackIs(tok!"}", true) || peekBackIs(tok!";", true)))
                 {
-                    write(" ");
+                    queueSpace(true);
                 }
                 writeToken();
                 break;
@@ -1432,7 +1442,7 @@ private:
         case tok!"!":
             if (((peekIs(tok!"is") || peekIs(tok!"in"))
                     && !peekBackIsOperator()) || peekBackIs(tok!")"))
-                write(" ");
+                queueSpace();
             goto case;
         case tok!"...":
         case tok!"++":
@@ -1459,7 +1469,7 @@ private:
             regenLineBreakHintsIfNecessary(index);
             immutable bool ufcsWrap = astInformation.ufcsHintLocations.canFindIndex(current.index);
             if (ufcsWrap || linebreakHints.canFind(index) || onNextLine
-                    || (linebreakHints.length == 0 && currentLineLength + nextTokenLength() > config.max_line_length))
+                    || (linebreakHints.length == 0 && virtualLineLength + nextTokenLength() > config.max_line_length))
             {
                 if (!indents.topIs(tok!"."))
                     indents.push(tok!".");
@@ -1531,7 +1541,7 @@ private:
                 }
                 else
                 {
-                    write(" ");
+                    queueSpace();
                 }
                 if (rightOperandLine > operatorLine
                         && !indents.topIs(tok!"enum"))
@@ -1547,7 +1557,7 @@ private:
                 }
                 else
                 {
-                    write(" ");
+                    queueSpace();
                 }
             }
             else if (config.dfmt_split_operator_at_line_end)
@@ -1556,16 +1566,16 @@ private:
                 {
                     if (!indents.topIs(tok!"enum"))
                         pushWrapIndent();
-                    write(" ");
+                    queueSpace();
                     writeToken();
                     newline();
                 }
                 else
                 {
-                    write(" ");
+                    queueSpace();
                     writeToken();
                     if (!currentIs(tok!"comment"))
-                        write(" ");
+                        queueSpace();
                 }
             }
             else
@@ -1579,11 +1589,11 @@ private:
                 }
                 else
                 {
-                    write(" ");
+                    queueSpace();
                     writeToken();
                 }
                 if (!currentIs(tok!"comment"))
-                    write(" ");
+                    queueSpace();
             }
             break;
         default:
@@ -1631,7 +1641,7 @@ private:
             {
                 if (tokens[index].line == commaLine)
                 {
-                    write(" ");
+                    queueSpace();
                 }
                 else
                 {
@@ -1640,7 +1650,7 @@ private:
             }
         }
         else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
-                || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
+                || (linebreakHints.length == 0 && virtualLineLength > config.max_line_length)))
         {
             pushWrapIndent();
             writeToken();
@@ -1652,7 +1662,7 @@ private:
             if (!currentIs(tok!")") && !currentIs(tok!"]")
                     && !currentIs(tok!"}") && !currentIs(tok!"comment"))
             {
-                write(" ");
+                queueSpace();
             }
         }
         regenLineBreakHintsIfNecessary(index - 1);
@@ -1681,7 +1691,7 @@ private:
         immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel
             : indentLevel;
         linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], depths[i .. j],
-                config, currentLineLength, inLvl);
+                config, virtualLineLength, inLvl);
     }
 
     void regenLineBreakHintsIfNecessary(immutable size_t i)
@@ -1694,7 +1704,9 @@ private:
     {
         import dfmt.editorconfig : EOL;
 
+        queuedSpace = false;
         output.put(eolString);
+        currentLineLength = 0;
     }
 
     void newline()
@@ -1855,8 +1867,23 @@ private:
         }
     }
 
+    void commitSpace()
+    {
+        if (queuedSpace)
+        {
+            if (currentLineLength > 0)
+            {
+                // don't put single space at start of line
+                currentLineLength++;
+                output.put(" ");
+            }
+            queuedSpace = false;
+        }
+    }
+
     void write(string str)
     {
+        commitSpace();
         currentLineLength += str.length;
         output.put(str);
     }
@@ -1871,11 +1898,13 @@ private:
         if (current.text is null)
         {
             immutable s = str(current.type);
+            commitSpace();
             currentLineLength += s.length;
             output.put(str(current.type));
         }
         else
         {
+            commitSpace();
             output.put(current.text.lineSplitter.joiner(eolString));
             switch (current.type)
             {
@@ -1915,7 +1944,7 @@ private:
             if (currentIs(tok!";") && niBraceDepth <= startingNiBraceDepth
                     && sBraceDepth <= startingSBraceDepth)
             {
-                if (currentLineLength >= config.dfmt_soft_max_line_length)
+                if (virtualLineLength >= config.dfmt_soft_max_line_length)
                 {
                     pushWrapIndent();
                     writeToken();
@@ -1925,7 +1954,7 @@ private:
                 {
                     writeToken();
                     if (!currentIs(tok!")") && !currentIs(tok!";"))
-                        write(" ");
+                        queueSpace();
                 }
             }
             else
@@ -1943,6 +1972,7 @@ private:
     {
         import dfmt.editorconfig : IndentStyle;
 
+        queuedSpace = false;
         if (config.indent_style == IndentStyle.tab)
         {
             foreach (i; 0 .. indentLevel)
@@ -1982,16 +2012,13 @@ private:
             indents.push(type, detail);
     }
 
-    void writeSpace()
+    void queueSpace(bool avoidNewline = false)
     {
-        if (onNextLine)
-        {
+        if (!avoidNewline && onNextLine && !queuedSpace)
             newline();
-        }
-        else
-        {
-            write(" ");
-        }
+        // also queue space after new line, to avoid double newline through
+        // queueSpace.
+        queuedSpace = true;
     }
 
 const pure @safe @nogc:
@@ -2023,7 +2050,7 @@ const pure @safe @nogc:
         import std.algorithm : map, sum, canFind;
 
         auto e = expressionEndIndex(i, matchComma);
-        immutable int l = currentLineLength + tokens[i .. e].map!(a => tokenLength(a)).sum();
+        immutable int l = virtualLineLength + tokens[i .. e].map!(a => tokenLength(a)).sum();
         return l > config.dfmt_soft_max_line_length || tokens[i .. e].canFind!(
                 a => a.type == tok!"comment" || isBlockHeaderToken(a.type))();
     }

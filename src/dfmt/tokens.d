@@ -241,3 +241,10 @@ private string generateFixedLengthCases()
             a => format(`case tok!"%s": return %d;`, a, a.length)).join("\n\t");
     return spacedOperatorTokenCases ~ identifierTokenCases;
 }
+
+/// Returns true if the given token type is an identifier or a keyword that
+/// would be an identifier if it wasn't reserved.
+bool isLikeIdentifier(IdType t)
+{
+    return isKeyword(t) || isBasicType(t) || t == tok!"identifier";
+}
