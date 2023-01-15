@@ -1625,6 +1625,10 @@ private:
             const commaLine = tokens[index].line;
 
             writeToken();
+            if (indents.topIs(tok!"."))
+            {
+                indents.pop;
+            }
             if (!currentIs(tok!")") && !currentIs(tok!"]")
                     && !currentIs(tok!"}") && !currentIs(tok!"comment"))
             {
@@ -1643,6 +1647,10 @@ private:
         {
             pushWrapIndent();
             writeToken();
+            if (indents.topIs(tok!"."))
+            {
+                indents.pop;
+            }
             newline();
         }
         else
