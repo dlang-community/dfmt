@@ -1625,7 +1625,7 @@ private:
             const commaLine = tokens[index].line;
 
             writeToken();
-            if (indents.topIs(tok!"."))
+            if (indents.topIsWrap && !indents.topIs(tok!","))
             {
                 indents.pop;
             }
@@ -1647,7 +1647,7 @@ private:
         {
             pushWrapIndent();
             writeToken();
-            if (indents.topIs(tok!"."))
+            if (indents.topIsWrap && !indents.topIs(tok!","))
             {
                 indents.pop;
             }
