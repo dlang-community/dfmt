@@ -10,6 +10,22 @@ class C
                     .to!string,
                 __FILE__,
                 __LINE__);
+
+            g(
+                map &&
+                    map,
+                    __FILE__,
+                    __LINE__);
+            h(
+                map ||
+                    map,
+                    __FILE__,
+                    __LINE__);
+            i(
+                map
+                    + map,
+                    __FILE__,
+                    __LINE__);
         }
     }
 }
