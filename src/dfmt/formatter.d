@@ -247,9 +247,9 @@ private:
         else if (currentIs(tok!"return"))
         {
             writeToken();
-            if (!currentIs(tok!";") && !currentIs(tok!")") && !currentIs(tok!"{")
+            if (hasCurrent && (!currentIs(tok!";") && !currentIs(tok!")") && !currentIs(tok!"{")
                     && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"do")
-                    && (hasCurrent && tokens[index].text != "body"))
+                    && tokens[index].text != "body"))
                 write(" ");
         }
         else if (currentIs(tok!"with"))
@@ -258,14 +258,14 @@ private:
                 indents.push(tok!"with");
             writeToken();
             write(" ");
-            if (currentIs(tok!"("))
+            if (hasCurrent && currentIs(tok!"("))
                 writeParens(false);
-            if (!currentIs(tok!"switch") && !currentIs(tok!"with")
+            if (hasCurrent && !currentIs(tok!"switch") && !currentIs(tok!"with")
                     && !currentIs(tok!"{") && !(currentIs(tok!"final") && peekIs(tok!"switch")))
             {
                 newline();
             }
-            else if (!currentIs(tok!"{"))
+            else if (hasCurrent && !currentIs(tok!"{"))
                 write(" ");
         }
         else if (currentIs(tok!"switch"))
@@ -351,7 +351,7 @@ private:
         else if (isBasicType(current.type))
         {
             writeToken();
-            if (currentIs(tok!"identifier") || isKeyword(current.type) || inAsm)
+            if (hasCurrent && (currentIs(tok!"identifier") || isKeyword(current.type) || inAsm))
                 write(" ");
         }
         else if (isOperator(current.type))
@@ -1233,7 +1233,7 @@ private:
             break;
         case tok!"cast":
             writeToken();
-            if (currentIs(tok!"("))
+            if (hasCurrent && currentIs(tok!"("))
                 writeParens(config.dfmt_space_after_cast == OptionalBoolean.t);
             break;
         case tok!"out":
@@ -1245,14 +1245,14 @@ private:
                     write(" ");
             }
             writeToken();
-            if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
+            if (hasCurrent && !currentIs(tok!"{") && !currentIs(tok!"comment"))
                 write(" ");
             break;
         case tok!"try":
         case tok!"finally":
             indents.push(current.type);
             writeToken();
-            if (!currentIs(tok!"{"))
+            if (hasCurrent && !currentIs(tok!"{"))
                 newline();
             break;
         case tok!"identifier":
@@ -1277,6 +1277,8 @@ private:
                     write(" ");
             }
             writeToken();
+            if (!hasCurrent)
+                return;
             immutable isFunctionLit = astInformation.funLitStartLocations.canFindIndex(
                     current.index);
             if (isFunctionLit && config.dfmt_brace_style == BraceStyle.allman)
@@ -1289,12 +1291,12 @@ private:
                     tok!"}", tok!"=", tok!"&&", tok!"||") && !peekBackIsKeyword())
                 write(" ");
             writeToken();
-            if (!currentIs(tok!"(") && !currentIs(tok!"{") && !currentIs(tok!"comment"))
+            if (hasCurrent && !currentIs(tok!"(") && !currentIs(tok!"{") && !currentIs(tok!"comment"))
                 write(" ");
             break;
         case tok!"case":
             writeToken();
-            if (!currentIs(tok!";"))
+            if (hasCurrent && !currentIs(tok!";"))
                 write(" ");
             break;
         case tok!"enum":
@@ -1308,7 +1310,7 @@ private:
                     write(" ");
                 indents.push(tok!"enum");
                 writeToken();
-                if (!currentIs(tok!":") && !currentIs(tok!"{"))
+                if (hasCurrent && !currentIs(tok!":") && !currentIs(tok!"{"))
                     write(" ");
             }
             break;
@@ -1332,7 +1334,7 @@ private:
             goto default;
         case tok!"invariant":
             writeToken();
-            if (currentIs(tok!"("))
+            if (hasCurrent && currentIs(tok!"("))
                 write(" ");
             break;
         default:
