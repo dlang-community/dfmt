@@ -98,6 +98,9 @@ else
             case "single_indent":
                 optConfig.dfmt_single_indent = optVal;
                 break;
+            case "reflow_property_chains":
+                optConfig.dfmt_reflow_property_chains = optVal;
+                break;
             default:
                 assert(false, "Invalid command-line switch");
             }
@@ -129,7 +132,8 @@ else
                 "tab_width", &optConfig.tab_width,
                 "template_constraint_style", &optConfig.dfmt_template_constraint_style,
                 "keep_line_breaks", &handleBooleans,
-                "single_indent", &handleBooleans);
+                "single_indent", &handleBooleans,
+                "reflow_property_chains", &handleBooleans);
             // dfmt on
         }
         catch (GetOptException e)
@@ -341,6 +345,7 @@ Formatting Options:
     --template_constraint_style
     --space_before_aa_colon
     --single_indent
+    --reflow_property_chains
         `,
             optionsToString!(typeof(Config.dfmt_template_constraint_style)));
 }

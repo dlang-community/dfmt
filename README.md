@@ -56,6 +56,8 @@ found there.
 * `--tab_width`: *see tab_width [below](#standard-editorconfig-properties)*
 * `--template_constraint_style`: *see dfmt_template_constraint_style [below](#dfmt-specific-properties)*
 * `--keep_line_breaks`: *see dfmt_keep_line_breaks [below](#dfmt-specific-properties)*
+* `--single_indent`: *see dfmt_single_indent [below](#dfmt-specific-properties)*
+* `--reflow_property_chains`: *see dfmt_property_chains [below](#dfmt-specific-properties)*
 
 ### Example
 ```
@@ -117,6 +119,7 @@ dfmt_single_template_constraint_indent | `true`, **`false`** | Set if the constr
 dfmt_space_before_aa_colon | `true`, **`false`** | Adds a space after an associative array key before the `:` like in older dfmt versions.
 dfmt_keep_line_breaks | `true`, **`false`** | Keep existing line breaks if these don't violate other formatting rules.
 dfmt_single_indent | `true`, **`false`** | Set if the code in parens is indented by a single tab instead of two.
+dfmt_reflow_property_chains | **`true`**, `false` | Recalculate the splitting of property chains into multiple lines.
 
 ## Terminology
 * Braces - `{` and `}`

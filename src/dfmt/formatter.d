@@ -1458,7 +1458,8 @@ private:
             break;
         case tok!".":
             regenLineBreakHintsIfNecessary(index);
-            immutable bool ufcsWrap = astInformation.ufcsHintLocations.canFindIndex(current.index);
+            immutable bool ufcsWrap = config.dfmt_reflow_property_chains == OptionalBoolean.t
+                    && astInformation.ufcsHintLocations.canFindIndex(current.index);
             if (ufcsWrap || linebreakHints.canFind(index) || onNextLine
                     || (linebreakHints.length == 0 && currentLineLength + nextTokenLength() > config.max_line_length))
             {

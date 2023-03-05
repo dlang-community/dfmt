@@ -63,6 +63,8 @@ struct Config
     OptionalBoolean dfmt_keep_line_breaks;
     ///
     OptionalBoolean dfmt_single_indent;
+    ///
+    OptionalBoolean dfmt_reflow_property_chains;
 
     mixin StandardEditorConfigFields;
 
@@ -93,6 +95,7 @@ struct Config
         dfmt_space_before_aa_colon = OptionalBoolean.f;
         dfmt_keep_line_breaks = OptionalBoolean.f;
         dfmt_single_indent = OptionalBoolean.f;
+        dfmt_reflow_property_chains = OptionalBoolean.t;
     }
 
     /**
