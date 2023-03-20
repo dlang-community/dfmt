@@ -720,6 +720,12 @@ private:
 
     void revertParenIndentation()
     {
+        import std.algorithm.searching : canFind, until;
+
+        if (tokens[index .. $].until!(tok => tok.line != current.line).canFind!(x => x.type == tok!"]"))
+        {
+            return;
+        }
         if (parenDepthOnLine)
         {
             foreach (i; 0 .. parenDepthOnLine)

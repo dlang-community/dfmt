@@ -4,3 +4,8 @@ unittest
         x
     ]);
 }
+
+void f(T[] x,
+        const U y)
+{
+}
