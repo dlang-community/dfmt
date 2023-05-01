@@ -1,4 +1,5 @@
-# dfmt [![Build Status](https://travis-ci.org/dlang-community/dfmt.svg?branch=master)](https://travis-ci.org/dlang-community/dfmt)
+# dfmt [![Build Status](https://github.com/dlang-community/dfmt/actions/workflows/d.yml/badge.svg)](https://github.com/dlang-community/dfmt/actions?query=workflow%3A%22D%22)
+
 **dfmt** is a formatter for D source code
 
 ## Status
