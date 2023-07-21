@@ -101,6 +101,9 @@ else
             case "reflow_property_chains":
                 optConfig.dfmt_reflow_property_chains = optVal;
                 break;
+            case "space_after_keywords":
+                optConfig.dfmt_space_after_keywords = optVal;
+                break;
             default:
                 assert(false, "Invalid command-line switch");
             }
@@ -123,6 +126,7 @@ else
                 "soft_max_line_length", &optConfig.dfmt_soft_max_line_length,
                 "outdent_attributes", &handleBooleans,
                 "space_after_cast", &handleBooleans,
+                "space_after_keywords", &handleBooleans,
                 "selective_import_space", &handleBooleans,
                 "space_before_function_parameters", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
@@ -338,6 +342,7 @@ Formatting Options:
     --outdent_attributes
     --space_after_cast
     --space_before_function_parameters
+    --space_after_keywords
     --selective_import_space
     --single_template_constraint_indent
     --split_operator_at_line_end

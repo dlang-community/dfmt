@@ -1,0 +1,15 @@
+void main(string[] args)
+{
+    for(int i = 0; i < 10; ++i)
+    {
+        if(i == 9)
+            break;
+    }
+    while(false)
+    {
+    }
+
+    foreach(i; 0 .. 9)
+    {
+    }
+}

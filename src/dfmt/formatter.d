@@ -257,7 +257,9 @@ private:
             if (indents.length == 0 || !indents.topIsOneOf(tok!"switch", tok!"with"))
                 indents.push(tok!"with");
             writeToken();
-            write(" ");
+            if (config.dfmt_space_after_keywords) {
+                write(" ");
+            }
             if (hasCurrent && currentIs(tok!"("))
                 writeParens(false);
             if (hasCurrent && !currentIs(tok!"switch") && !currentIs(tok!"with")
@@ -266,7 +268,9 @@ private:
                 newline();
             }
             else if (hasCurrent && !currentIs(tok!"{"))
+            {
                 write(" ");
+            }
         }
         else if (currentIs(tok!"switch"))
         {
@@ -1118,7 +1122,10 @@ private:
             indents.pop();
         indents.push(tok!"switch");
         writeToken(); // switch
-        write(" ");
+        if (config.dfmt_space_after_keywords)
+        {
+            write(" ");
+        }
     }
 
     void formatBlockHeader()
@@ -1149,16 +1156,26 @@ private:
 
         if (currentIs(tok!"("))
         {
-            write(" ");
+            if (config.dfmt_space_after_keywords)
+            {
+                write(" ");
+            }
             writeParens(false);
         }
 
         if (hasCurrent)
         {
             if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch")))
-                write(" ");
+            {
+                if (config.dfmt_space_after_keywords)
+                {
+                    write(" ");
+                }
+            }
             else if (currentIs(tok!"comment"))
+            {
                 formatStep();
+            }
             else if (!shouldPushIndent)
             {
                 if (!currentIs(tok!"{") && !currentIs(tok!";"))
