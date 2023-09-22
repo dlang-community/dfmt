@@ -16,9 +16,9 @@ when using the **--inplace** option.
 
 ### Building from source using Make
 * Clone the repository
-* Run ```git submodule update --init --recursive``` in the dfmt directory
-* To compile with DMD, run ```make``` in the dfmt directory. To compile with
-  LDC, run ```make ldc``` instead. The generated binary will be placed in ```dfmt/bin/```.
+* Run `git submodule update --init --recursive` in the dfmt directory
+* To compile with DMD, run `make` in the dfmt directory. To compile with
+  LDC, run `make ldc` instead. The generated binary will be placed in `dfmt/bin/`.
 
 ### Building from source using dub
 * Clone the repository
@@ -69,8 +69,8 @@ dfmt --inplace --space_after_cast=false --max_line_length=80 \
 ```
 
 ## Disabling formatting
-Formatting can be temporarily disabled by placing the comments ```// dfmt off```
-and ```// dfmt on``` around code that you do not want formatted.
+Formatting can be temporarily disabled by placing the comments `// dfmt off`
+and `// dfmt on` around code that you do not want formatted.
 
 ```d
 void main(string[] args)
