@@ -5,14 +5,14 @@
 
 module dfmt.wrapping;
 
-import dparse.lexer;
+import dmd.tokens;
 import dfmt.tokens;
 import dfmt.config;
 
 struct State
 {
     this(uint breaks, const Token[] tokens, immutable short[] depths,
-            const Config* config, int currentLineLength, int indentLevel) pure @safe
+        const Config* config, int currentLineLength, int indentLevel) @safe
     {
         import std.math : abs;
         import core.bitop : popcnt, bsf;
@@ -42,8 +42,8 @@ struct State
             {
                 if (((1 << i) & breaks) == 0)
                     continue;
-                immutable prevType = i > 0 ? tokens[i - 1].type : tok!"";
-                immutable currentType = tokens[i].type;
+                immutable prevType = i > 0 ? tokens[i - 1].value : TOK.error;
+                immutable currentType = tokens[i].value;
                 immutable p = abs(depths[i]);
                 immutable bc = breakCost(prevType, currentType) * (p == 0 ? 1 : p * 2);
                 this._cost += bc + newlinePenalty;
@@ -126,7 +126,7 @@ private enum ALGORITHMIC_COMPLEXITY_SUCKS = uint.sizeof * 8;
  *     continuation indents are reduced. This is used for array literals.
  */
 size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
-        immutable short[] depths, const Config* config, int currentLineLength, int indentLevel)
+    immutable short[] depths, const Config* config, int currentLineLength, int indentLevel)
 {
     import std.container.rbtree : RedBlackTree;
     import std.algorithm : filter, min;
@@ -159,7 +159,7 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
         if (current < lowest)
             lowest = current;
         validMoves!(typeof(open))(open, tokens[0 .. tokensEnd], depths[0 .. tokensEnd],
-                current.breaks, config, currentLineLength, indentLevel);
+            current.breaks, config, currentLineLength, indentLevel);
     }
     foreach (r; open[].filter!(a => a.solved))
         return genRetVal(r.breaks, index);
@@ -170,11 +170,11 @@ size_t[] chooseLineBreakTokens(size_t index, const Token[] tokens,
 }
 
 void validMoves(OR)(auto ref OR output, const Token[] tokens, immutable short[] depths,
-        uint current, const Config* config, int currentLineLength, int indentLevel)
+    uint current, const Config* config, int currentLineLength, int indentLevel)
 {
     foreach (i, token; tokens)
     {
-        if (!isBreakToken(token.type) || (((1 << i) & current) != 0))
+        if (!isBreakToken(token.value) || (((1 << i) & current) != 0))
             continue;
         immutable uint breaks = current | (1 << i);
         output.insert(State(breaks, tokens, depths, config, currentLineLength, indentLevel));

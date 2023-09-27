@@ -7,25 +7,82 @@ module dfmt.indentation;
 
 import dfmt.config;
 import dfmt.editorconfig;
-import dparse.lexer;
+import dmd.tokens;
 
 import std.bitmanip : bitfields;
 
 /**
  * Returns: true if the given token type is a wrap indent type
  */
-bool isWrapIndent(IdType type) pure nothrow @nogc @safe
+bool isWrapIndent(TOK type) pure nothrow @nogc @safe
 {
-    return type != tok!"{" && type != tok!"case" && type != tok!"@"
-        && type != tok!"]" && type != tok!"(" && type != tok!")" && isOperator(type);
+    switch (type)
+    {
+    case TOK.leftCurly:
+    case TOK.case_:
+    case TOK.at:
+    case TOK.rightBracket:
+    case TOK.leftParenthesis:
+    case TOK.rightParenthesis:
+        return false;
+
+        // Operators
+    case TOK.lessThan:
+    case TOK.greaterThan:
+    case TOK.lessOrEqual:
+    case TOK.greaterOrEqual:
+    case TOK.equal:
+    case TOK.notEqual:
+    case TOK.identity:
+    case TOK.notIdentity:
+    case TOK.is_:
+
+    case TOK.leftShift:
+    case TOK.rightShift:
+    case TOK.leftShiftAssign:
+    case TOK.rightShiftAssign:
+    case TOK.unsignedRightShift:
+    case TOK.unsignedRightShiftAssign:
+    case TOK.concatenateAssign:
+    case TOK.add:
+    case TOK.min:
+    case TOK.addAssign:
+    case TOK.minAssign:
+    case TOK.mul:
+    case TOK.div:
+    case TOK.mod:
+    case TOK.mulAssign:
+    case TOK.divAssign:
+    case TOK.modAssign:
+    case TOK.and:
+    case TOK.or:
+    case TOK.xor:
+    case TOK.andAssign:
+    case TOK.orAssign:
+    case TOK.xorAssign:
+    case TOK.assign:
+    case TOK.not:
+    case TOK.tilde:
+    case TOK.plusPlus:
+    case TOK.minusMinus:
+    case TOK.dot:
+    case TOK.comma:
+    case TOK.question:
+    case TOK.andAnd:
+    case TOK.orOr:
+        return true;
+    default:
+        return false;
+    }
 }
 
 /**
  * Returns: true if the given token type is a temporary indent type
  */
-bool isTempIndent(IdType type) pure nothrow @nogc @safe
+bool isTempIndent(TOK type) pure nothrow @nogc @safe
 {
-    return type != tok!")" && type != tok!"{" && type != tok!"case" && type != tok!"@";
+    return type != TOK.rightParenthesis && type != TOK.leftCurly && type != TOK.case_ && type != TOK
+        .at;
 }
 
 /**
@@ -44,24 +101,20 @@ struct IndentStack
     static struct Details
     {
         mixin(bitfields!(
-            // generally true for all operators except {, case, @, ], (, )
-            bool, "wrap", 1,
-            // temporary indentation which get's reverted when a block starts
-            // generally true for all tokens except ), {, case, @
-            bool, "temp", 1,
-            // emit minimal newlines
-            bool, "mini", 1,
-            // for associative arrays or arrays containing them, break after every item
-            bool, "breakEveryItem", 1,
-            // when an item inside an array would break mid-item, definitely break at the comma first
-            bool, "preferLongBreaking", 1,
-            uint, "",     27));
+                // generally true for all operators except {, case, @, ], (, )
+                bool, "wrap", 1, // temporary indentation which get's reverted when a block starts
+                // generally true for all tokens except ), {, case, @
+                bool, "temp", 1, // emit minimal newlines
+                bool, "mini", 1, // for associative arrays or arrays containing them, break after every item
+                bool, "breakEveryItem", 1, // when an item inside an array would break mid-item, definitely break at the comma first
+                bool, "preferLongBreaking", 1,
+                uint, "", 27));
     }
 
     /**
      * Get the indent size at the most recent occurrence of the given indent type
      */
-    int indentToMostRecent(IdType item) const
+    int indentToMostRecent(TOK item) const
     {
         if (index == 0)
             return -1;
@@ -84,7 +137,7 @@ struct IndentStack
         int tempIndentCount = 0;
         for (size_t i = index; i > 0; i--)
         {
-            if (!details[i - 1].wrap && arr[i - 1] != tok!"]")
+            if (!details[i - 1].wrap && arr[i - 1] != TOK.rightBracket)
                 break;
             tempIndentCount++;
         }
@@ -94,7 +147,7 @@ struct IndentStack
     /**
      * Pushes the given indent type on to the stack.
      */
-    void push(IdType item) pure nothrow
+    void push(TOK item) pure nothrow
     {
         Details detail;
         detail.wrap = isWrapIndent(item);
@@ -105,7 +158,7 @@ struct IndentStack
     /**
      * Pushes the given indent type on to the stack.
      */
-    void push(IdType item, Details detail) pure nothrow
+    void push(TOK item, Details detail) pure nothrow
     {
         arr[index] = item;
         details[index] = detail;
@@ -145,7 +198,7 @@ struct IndentStack
             index--;
     }
 
-    bool topAre(IdType[] types...)
+    bool topAre(TOK[] types...)
     {
         if (types.length > index)
             return false;
@@ -156,7 +209,7 @@ struct IndentStack
     /**
      * Returns: `true` if the top of the indent stack is the given indent type.
      */
-    bool topIs(IdType type) const pure nothrow @safe @nogc
+    bool topIs(TOK type) const pure nothrow @safe @nogc
     {
         return index > 0 && index <= arr.length && arr[index - 1] == type;
     }
@@ -172,9 +225,10 @@ struct IndentStack
     /**
      * Returns: `true` if the top of the indent stack is a temporary indent with the specified token
      */
-    bool topIsTemp(IdType item)
+    bool topIsTemp(TOK item)
     {
-        return index > 0 && index <= arr.length && arr[index - 1] == item && details[index - 1].temp;
+        return index > 0 && index <= arr.length && arr[index - 1] == item && details[index - 1]
+            .temp;
     }
 
     /**
@@ -188,16 +242,17 @@ struct IndentStack
     /**
      * Returns: `true` if the top of the indent stack is a temporary indent with the specified token
      */
-    bool topIsWrap(IdType item)
+    bool topIsWrap(TOK item)
     {
-        return index > 0 && index <= arr.length && arr[index - 1] == item && details[index - 1].wrap;
+        return index > 0 && index <= arr.length && arr[index - 1] == item && details[index - 1]
+            .wrap;
     }
 
     /**
      * Returns: `true` if the top of the indent stack is one of the given token
      *     types.
      */
-    bool topIsOneOf(IdType[] types...) const pure nothrow @safe @nogc
+    bool topIsOneOf(TOK[] types...) const pure nothrow @safe @nogc
     {
         if (index == 0)
             return false;
@@ -208,7 +263,7 @@ struct IndentStack
         return false;
     }
 
-    IdType top() const pure nothrow @property @safe @nogc
+    TOK top() const pure nothrow @property @safe @nogc
     {
         return arr[index - 1];
     }
@@ -233,26 +288,28 @@ struct IndentStack
      */
     void dump(size_t pos = size_t.max, string file = __FILE__, uint line = __LINE__) const
     {
-        import dparse.lexer : str;
         import std.algorithm.iteration : map;
         import std.stdio : stderr;
 
         if (pos == size_t.max)
-            stderr.writefln("\033[31m%s:%d %(%s %)\033[0m", file, line, arr[0 .. index].map!(a => str(a)));
+            stderr.writefln("\033[31m%s:%d %(%s %)\033[0m", file, line, arr[0 .. index].map!(
+                    a => Token.toString(a)));
         else
-            stderr.writefln("\033[31m%s:%d at %d %(%s %)\033[0m", file, line, pos, arr[0 .. index].map!(a => str(a)));
+            stderr.writefln("\033[31m%s:%d at %d %(%s %)\033[0m", file, line, pos, arr[0 .. index].map!(
+                    a => Token.toString(a)));
     }
 
 private:
 
     size_t index;
 
-    IdType[256] arr;
+    TOK[256] arr;
     Details[arr.length] details;
 
     int indentSize(const size_t k = size_t.max) const pure nothrow @safe @nogc
     {
         import std.algorithm : among;
+
         if (index == 0 || k == 0)
             return 0;
         immutable size_t j = k == size_t.max ? index : k;
@@ -260,9 +317,9 @@ private:
         int parenCount;
         foreach (i; 0 .. j)
         {
-            immutable int pc = (arr[i] == tok!"!" || arr[i] == tok!"(" || arr[i] == tok!")") ? parenCount + 1
-                : parenCount;
-            if ((details[i].wrap || arr[i] == tok!"(") && parenCount > 1)
+            immutable int pc = (arr[i] == TOK.not || arr[i] == TOK.leftParenthesis || arr[i] == TOK
+                    .rightParenthesis) ? parenCount + 1 : parenCount;
+            if ((details[i].wrap || arr[i] == TOK.leftParenthesis) && parenCount > 1)
             {
                 parenCount = pc;
                 continue;
@@ -277,31 +334,33 @@ private:
                 }
 
                 immutable currentIsNonWrapTemp = !details[i].wrap
-                    && details[i].temp && arr[i] != tok!")" && arr[i] != tok!"!";
+                    && details[i].temp && arr[i] != TOK.rightParenthesis && arr[i] != TOK.not;
 
-                if (currentIsNonWrapTemp && arr[i + 1] == tok!"]")
+                if (currentIsNonWrapTemp && arr[i + 1] == TOK.rightBracket)
                 {
                     parenCount = pc;
                     continue;
                 }
-                if (arr[i] == tok!"static"
-                    && arr[i + 1].among!(tok!"if", tok!"else", tok!"foreach", tok!"foreach_reverse")
-                    && (i + 2 >= index || arr[i + 2] != tok!"{"))
+                if (arr[i] == TOK.static_
+                    && arr[i + 1].among!(TOK.if_, TOK.else_, TOK.foreach_, TOK.foreach_reverse_)
+                    && (i + 2 >= index || arr[i + 2] != TOK.leftCurly))
                 {
                     parenCount = pc;
                     continue;
                 }
-                if (currentIsNonWrapTemp && (arr[i + 1] == tok!"switch"
-                        || arr[i + 1] == tok!"{" || arr[i + 1] == tok!")"))
+
+                if (currentIsNonWrapTemp && (arr[i + 1] == TOK.switch_
+                        || arr[i + 1] == TOK.leftCurly || arr[i + 1] == TOK.rightParenthesis))
                 {
                     parenCount = pc;
                     continue;
                 }
             }
-            else if (parenCount == 0 && arr[i] == tok!"(" && config.dfmt_single_indent == OptionalBoolean.f)
+            else if (parenCount == 0 && arr[i] == TOK.leftParenthesis && config.dfmt_single_indent == OptionalBoolean
+                .f)
                 size++;
 
-            if (arr[i] == tok!"!")
+            if (arr[i] == TOK.not)
                 size++;
 
             parenCount = pc;
@@ -312,21 +371,21 @@ private:
 
     bool skipDoubleIndent(size_t i, int parenCount) const pure nothrow @safe @nogc
     {
-        return (details[i + 1].wrap && arr[i] == tok!")")
-            || (parenCount == 0 && arr[i + 1] == tok!"," && arr[i] == tok!"(");
+        return (details[i + 1].wrap && arr[i] == TOK.rightParenthesis)
+            || (parenCount == 0 && arr[i + 1] == TOK.comma && arr[i] == TOK.leftParenthesis);
     }
 }
 
 unittest
 {
     IndentStack stack;
-    stack.push(tok!"{");
+    stack.push(TOK.leftCurly);
     assert(stack.length == 1);
     assert(stack.indentLevel == 1);
     stack.pop();
     assert(stack.length == 0);
     assert(stack.indentLevel == 0);
-    stack.push(tok!"if");
+    stack.push(TOK.if_);
     assert(stack.topIsTemp());
     stack.popTempIndents();
     assert(stack.length == 0);
