@@ -1,15 +1,36 @@
-struct S {
+struct S1 {
+    ulong x;
+    ulong y;
+    ulong function(ulong) f;
+}
+
+struct S2 {
     ulong x;
     ulong y;
     ulong z;
     ulong w;
 }
 
-immutable int function(int) f = (x) { return x + 1111; };
+// -----------------------------------------------------------------------------
+// Example 1
+// Anonymous function in struct, long struct initializer
 
-immutable S s = {
+immutable S1 s1 = {
+    1111111111111111111, 1111111111111111111, (x) { return x + 1111; },
+};
+
+void f1() {
+}
+
+// -----------------------------------------------------------------------------
+// Example 2
+// Anonymous function anywhere, long struct initializer
+
+int function(int) f2 = (x) { return x + 1111; };
+
+immutable S2 s = {
     1111111111111111111, 1111111111111111111, 1111111111111111111, 1111111111111111111,
 };
 
-void main() {
+void f2() {
 }
