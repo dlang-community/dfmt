@@ -1053,6 +1053,14 @@ private:
             if (niBraceDepth > 0)
                 niBraceDepth--;
 
+            // Account for possible function literals in this array which offset
+            // the previously set index (pos). Fixes issue #432.
+            while(astInformation.indentInfoSortedByEndLocation[pos].endLocation !=
+                tokens[index].index)
+            {
+                pos++;
+            }
+
             auto indentInfo = astInformation.indentInfoSortedByEndLocation[pos];
             if (indentInfo.flags & BraceIndentInfoFlags.tempIndent)
             {
