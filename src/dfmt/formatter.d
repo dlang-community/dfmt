@@ -1055,10 +1055,17 @@ private:
 
             // Account for possible function literals in this array which offset
             // the previously set index (pos). Fixes issue #432.
-            while(astInformation.indentInfoSortedByEndLocation[pos].endLocation !=
+            size_t newPos = pos;
+            while(astInformation.indentInfoSortedByEndLocation[newPos].endLocation <
                 tokens[index].index)
             {
-                pos++;
+                newPos++;
+            }
+
+            if (astInformation.indentInfoSortedByEndLocation[newPos].endLocation ==
+                tokens[index].index)
+            {
+                pos = newPos;
             }
 
             auto indentInfo = astInformation.indentInfoSortedByEndLocation[pos];
