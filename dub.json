@@ -4,18 +4,17 @@
     "targetType": "autodetect",
     "license": "BSL-1.0",
     "dependencies": {
-      "libdparse": ">=0.19.2 <1.0.0",
-      "dmd": "~>2.105.2"
+        "dmd": "~>2.106.0-beta.1"
     },
-    "targetPath" : "bin/",
-    "targetName" : "dfmt",
-    "stringImportPaths" : [
-      "bin"
+    "targetPath": "bin/",
+    "targetName": "dfmt",
+    "stringImportPaths": [
+        "bin"
     ],
-    "versions" : [
+    "versions": [
         "built_with_dub"
     ],
-    "preBuildCommands" : [
-      "$DC -run \"$PACKAGE_DIR/dubhash.d\""
+    "preBuildCommands": [
+        "$DC -run \"$PACKAGE_DIR/dubhash.d\""
     ]
 }
