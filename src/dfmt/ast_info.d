@@ -63,6 +63,7 @@ struct ASTInformation
             (structInfoSortedByEndLocation);
         sort(ufcsHintLocations);
         ufcsHintLocations = ufcsHintLocations.uniq().array();
+        sort(ternaryColonLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -135,6 +136,9 @@ struct ASTInformation
 
     /// Opening & closing braces of struct initializers
     StructInitializerInfo[] structInfoSortedByEndLocation;
+
+    /// Locations ternary expression colons.
+    size_t[] ternaryColonLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -436,6 +440,11 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.contractLocations ~= outStatement.outTokenLocation;
         outStatement.accept(this);
+    }
+
+    override void visit(const TernaryExpression ternaryExpression)
+    {
+        astInformation.ternaryColonLocations ~= ternaryExpression.colon.index;
     }
 
 private:
