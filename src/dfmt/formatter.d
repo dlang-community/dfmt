@@ -841,6 +841,7 @@ private:
                 current.line);
         immutable bool isStructInitializer = astInformation.structInfoSortedByEndLocation
             .canFind!(st => st.startLocation < current.index && current.index < st.endLocation);
+        immutable bool isTernary = astInformation.ternaryColonLocations.canFindIndex(current.index);
 
         if (isCase || isAttribute)
         {
@@ -856,7 +857,7 @@ private:
                 newline();
             }
         }
-        else if (indents.topIs(tok!"]")) // Associative array
+        else if (indents.topIs(tok!"]") && !isTernary) // Associative array
         {
             write(config.dfmt_space_before_aa_colon ? " : " : ": ");
             ++index;
