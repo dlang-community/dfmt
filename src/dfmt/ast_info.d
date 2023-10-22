@@ -445,6 +445,7 @@ final class FormatVisitor : ASTVisitor
     override void visit(const TernaryExpression ternaryExpression)
     {
         astInformation.ternaryColonLocations ~= ternaryExpression.colon.index;
+        ternaryExpression.accept(this);
     }
 
 private:
