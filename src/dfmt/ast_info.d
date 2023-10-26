@@ -64,6 +64,7 @@ struct ASTInformation
         sort(ufcsHintLocations);
         ufcsHintLocations = ufcsHintLocations.uniq().array();
         sort(ternaryColonLocations);
+        sort(namedArgumentColonLocations);
     }
 
     /// Locations of end braces for struct bodies
@@ -139,6 +140,9 @@ struct ASTInformation
 
     /// Locations ternary expression colons.
     size_t[] ternaryColonLocations;
+
+    /// Locations of named arguments of function call or struct constructor.
+    size_t[] namedArgumentColonLocations;
 }
 
 /// Collects information from the AST that is useful for the formatter
@@ -446,6 +450,51 @@ final class FormatVisitor : ASTVisitor
     {
         astInformation.ternaryColonLocations ~= ternaryExpression.colon.index;
         ternaryExpression.accept(this);
+    }
+
+    override void visit(const FunctionCallExpression functionCall)
+    {
+        // Check if function has any arguments.
+        if (functionCall.arguments.namedArgumentList is null)
+        {
+            functionCall.accept(this);
+            return;
+        }
+
+        /+
+        Items are function arguments: f(<item>, <item>);
+        Iterate them and check if they are named arguments: tok!":" belongs to a
+        named argument if it is preceeded by one tok!"identifier" (+ any number
+        of comments):
+        +/
+        foreach (item; functionCall.arguments.namedArgumentList.items)
+        {
+            // Set to true after first tok!"identifier".
+            auto foundIdentifier = false;
+
+            foreach (t; item.tokens)
+            {
+                if (t.type == tok!"comment")
+                {
+                    continue;
+                }
+
+                if (t.type == tok!"identifier" && !foundIdentifier)
+                {
+                    foundIdentifier = true;
+                    continue;
+                }
+
+                if (t.type == tok!":" && foundIdentifier)
+                {
+                    astInformation.namedArgumentColonLocations ~= t.index;
+                }
+
+                break;
+            }
+        }
+
+        functionCall.accept(this);
     }
 
 private:
