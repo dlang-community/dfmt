@@ -52,6 +52,7 @@ found there.
 * `--soft_max_line_length`: *see dfmt_soft_max_line_length [below](#dfmt-specific-properties)*
 * `--space_after_cast`: *see dfmt_space_after_cast [below](#dfmt-specific-properties)*
 * `--space_before_aa_colon`: *see dfmt_space_before_aa_colon [below](#dfmt-specific-properties)*
+* `--space_before_named_arg_colon`: *see dfmt_space_before_named_arg_colon [below](#dfmt-specific-properties)*
 * `--space_before_function_parameters`: *see dfmt_space_before_function_parameters [below](#dfmt-specific-properties)*
 * `--split_operator_at_line_end`: *see dfmt_split_operator_at_line_end [below](#dfmt-specific-properties)*
 * `--tab_width`: *see tab_width [below](#standard-editorconfig-properties)*
@@ -119,6 +120,7 @@ dfmt_compact_labeled_statements | **`true`**, `false` | Place labels on the same
 dfmt_template_constraint_style | **`conditional_newline_indent`** `conditional_newline` `always_newline` `always_newline_indent` | Control the formatting of template constraints.
 dfmt_single_template_constraint_indent | `true`, **`false`** | Set if the constraints are indented by a single tab instead of two. Has only an effect if the style set to `always_newline_indent` or `conditional_newline_indent`.
 dfmt_space_before_aa_colon | `true`, **`false`** | Adds a space after an associative array key before the `:` like in older dfmt versions.
+dfmt_space_before_named_arg_colon | `true`, **`false`** | Adds a space after a named function argument or named struct constructor argument before the `:`.
 dfmt_keep_line_breaks | `true`, **`false`** | Keep existing line breaks if these don't violate other formatting rules.
 dfmt_single_indent | `true`, **`false`** | Set if the code in parens is indented by a single tab instead of two.
 dfmt_reflow_property_chains | **`true`**, `false` | Recalculate the splitting of property chains into multiple lines.

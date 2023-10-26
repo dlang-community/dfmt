@@ -92,6 +92,9 @@ else
             case "space_before_aa_colon":
                 optConfig.dfmt_space_before_aa_colon = optVal;
                 break;
+            case "space_before_named_arg_colon":
+                optConfig.dfmt_space_before_named_arg_colon = optVal;
+                break;
             case "keep_line_breaks":
                 optConfig.dfmt_keep_line_breaks = optVal;
                 break;
@@ -133,6 +136,7 @@ else
                 "compact_labeled_statements", &handleBooleans,
                 "single_template_constraint_indent", &handleBooleans,
                 "space_before_aa_colon", &handleBooleans,
+                "space_before_named_arg_colon", &handleBooleans,
                 "tab_width", &optConfig.tab_width,
                 "template_constraint_style", &optConfig.dfmt_template_constraint_style,
                 "keep_line_breaks", &handleBooleans,
@@ -349,6 +353,7 @@ Formatting Options:
     --compact_labeled_statements
     --template_constraint_style
     --space_before_aa_colon
+    --space_before_named_arg_colon
     --single_indent
     --reflow_property_chains
         `,

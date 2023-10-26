@@ -835,13 +835,13 @@ private:
     {
         import dfmt.editorconfig : OptionalBoolean;
         import std.algorithm : canFind, any;
-
         immutable bool isCase = astInformation.caseEndLocations.canFindIndex(current.index);
         immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(
                 current.line);
         immutable bool isStructInitializer = astInformation.structInfoSortedByEndLocation
             .canFind!(st => st.startLocation < current.index && current.index < st.endLocation);
         immutable bool isTernary = astInformation.ternaryColonLocations.canFindIndex(current.index);
+        immutable bool isNamedArg = astInformation.namedArgumentColonLocations.canFindIndex(current.index);
 
         if (isCase || isAttribute)
         {
@@ -860,6 +860,12 @@ private:
         else if (indents.topIs(tok!"]") && !isTernary) // Associative array
         {
             write(config.dfmt_space_before_aa_colon ? " : " : ": ");
+            ++index;
+        }
+        // Named function or struct constructor arguments.
+        else if (isNamedArg)
+        {
+            write(config.dfmt_space_before_named_arg_colon ? " : " : ": ");
             ++index;
         }
         else if (peekBackIs(tok!"identifier")
