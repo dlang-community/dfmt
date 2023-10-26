@@ -474,11 +474,6 @@ final class FormatVisitor : ASTVisitor
 
             foreach (t; item.tokens)
             {
-                if (t.type == tok!"comment")
-                {
-                    continue;
-                }
-
                 if (t.type == tok!"identifier" && !foundIdentifier)
                 {
                     foundIdentifier = true;
