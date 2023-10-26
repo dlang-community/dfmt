@@ -461,31 +461,22 @@ final class FormatVisitor : ASTVisitor
             return;
         }
 
-        /+
-        Items are function arguments: f(<item>, <item>);
-        Iterate them and check if they are named arguments: tok!":" belongs to a
-        named argument if it is preceeded by one tok!"identifier" (+ any number
-        of comments):
-        +/
         foreach (item; functionCall.arguments.namedArgumentList.items)
         {
-            // Set to true after first tok!"identifier".
-            auto foundIdentifier = false;
+            // Do nothing if not a named argument.
+            if (item.name == tok!"")
+            {
+                continue;
+            }
 
+            // Find first colon if named argument.
             foreach (t; item.tokens)
             {
-                if (t.type == tok!"identifier" && !foundIdentifier)
-                {
-                    foundIdentifier = true;
-                    continue;
-                }
-
-                if (t.type == tok!":" && foundIdentifier)
+                if (t.type == tok!":")
                 {
                     astInformation.namedArgumentColonLocations ~= t.index;
+                    break;
                 }
-
-                break;
             }
         }
 
