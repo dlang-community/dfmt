@@ -25,6 +25,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     string eol;
     uint depth;
     bool declstring; // set while declaring alias for string,wstring or dstring
+    bool doindent; // insert indentation before writing the string
 
     this(File.LockingTextWriter buf, Config* config)
     {
@@ -69,10 +70,21 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         }
     }
 
-    pragma(inline)
     void newline()
     {
         buf.put(eol);
+        // Indicate that the next write should be indented
+        doindent = true;
+    }
+
+    extern (D) void write(T)(T data)
+    {
+        if (doindent)
+        {
+            indent();
+            doindent = false;
+        }
+        buf.put(data);
     }
 
     /*******************************************
@@ -86,6 +98,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             stc &= ~(ASTCodegen.STC.scope_ | ASTCodegen.STC.scopeinferred);
         }
+
         if (stc & ASTCodegen.STC.returninferred)
         {
             stc &= ~(ASTCodegen.STC.return_ | ASTCodegen.STC.returninferred);
@@ -118,7 +131,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             rrs = isout ? "out return scope" : "ref return scope";
             goto L1;
         L1:
-            buf.put(rrs);
+            write(rrs);
             writeSpace = true;
             stc &= ~(
                 ASTCodegen.STC.out_ | ASTCodegen.STC.scope_ | ASTCodegen.STC.ref_ | ASTCodegen
@@ -132,13 +145,13 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             if (!s.length)
                 break;
             if (writeSpace)
-                buf.put(' ');
+                write(' ');
             writeSpace = true;
-            buf.put(s);
+            write(s);
         }
 
         if (writeSpace)
-            buf.put(' ');
+            write(' ');
 
     }
 
@@ -157,7 +170,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         assert(strlen(buffer.ptr) < BUFFER_LEN);
         if (buffer.ptr[strlen(buffer.ptr) - 1] == '.')
             buffer.ptr[strlen(buffer.ptr) - 1] = char.init;
-        buf.put(buffer.array);
+        write(buffer.array);
 
         if (type)
         {
@@ -167,18 +180,18 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             case Tfloat32:
             case Timaginary32:
             case Tcomplex32:
-                buf.put('F');
+                write('F');
                 break;
             case Tfloat80:
             case Timaginary80:
             case Tcomplex80:
-                buf.put('L');
+                write('L');
                 break;
             default:
                 break;
             }
             if (t.isimaginary())
-                buf.put('i');
+                write('i');
         }
     }
 
@@ -188,11 +201,13 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visit(ASTCodegen.Expression e)
         {
-            buf.put(EXPtoString(e.op));
+            write(EXPtoString(e.op));
         }
 
         void visitInteger(ASTCodegen.IntegerExp e)
         {
+            import core.stdc.stdio : sprintf;
+
             auto v = e.toInteger();
             if (e.type)
             {
@@ -210,13 +225,13 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                             {
                                 if ((cast(ASTCodegen.EnumMember) em).value.toInteger == v)
                                 {
-                                    buf.put(format("%s.%s", sym.toString(), em.ident.toString()));
+                                    write(format("%s.%s", sym.toString(), em.ident.toString()));
                                     return;
                                 }
                             }
                         }
 
-                        buf.put(format("cast(%s)", te.sym.toString()));
+                        write(format("cast(%s)", te.sym.toString()));
                         t = te.sym.memtype;
                         goto L1;
                     }
@@ -224,27 +239,27 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 case Twchar:
                 case Tdchar:
                     {
-                        buf.put(cast(dchar) v);
+                        write(cast(dchar) v);
                         break;
                     }
                 case Tint8:
-                    buf.put("cast(byte)");
+                    write("cast(byte)");
                     goto L2;
                 case Tint16:
-                    buf.put("cast(short)");
+                    write("cast(short)");
                     goto L2;
                 case Tint32:
                 L2:
-                    buf.put(format("%d", cast(int) v));
+                    write(format("%d", cast(int) v));
                     break;
                 case Tuns8:
-                    buf.put("cast(ubyte)");
+                    write("cast(ubyte)");
                     goto case Tuns32;
                 case Tuns16:
-                    buf.put("cast(ushort)");
+                    write("cast(ushort)");
                     goto case Tuns32;
                 case Tuns32:
-                    buf.put(format("%uu", cast(uint) v));
+                    write(format("%uu", cast(uint) v));
                     break;
                 case Tint64:
                     if (v == long.min)
@@ -252,23 +267,23 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                         // https://issues.dlang.org/show_bug.cgi?id=23173
                         // This is a special case because - is not part of the
                         // integer literal and 9223372036854775808L overflows a long
-                        buf.put("cast(long)-9223372036854775808");
+                        write("cast(long)-9223372036854775808");
                     }
                     else
                     {
-                        buf.put(format("%lldL", v));
+                        write(format("%uL", v));
                     }
                     break;
                 case Tuns64:
-                    buf.put(format("%lluLU", v));
+                    write(format("%uLU", v));
                     break;
                 case Tbool:
-                    buf.put(v ? "true" : "false");
+                    write(v ? "true" : "false");
                     break;
                 case Tpointer:
-                    buf.put("cast(");
-                    buf.put(t.toString());
-                    buf.put(')');
+                    write("cast(");
+                    write(t.toString());
+                    write(')');
                     if (target.ptrsize == 8)
                         goto case Tuns64;
                     else if (target.ptrsize == 4 ||
@@ -278,26 +293,26 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                         assert(0);
 
                 case Tvoid:
-                    buf.put("cast(void)0");
+                    write("cast(void)0");
                     break;
                 default:
                     break;
                 }
             }
             else if (v & 0x8000000000000000L)
-                buf.put(format("0x%llx", v));
+                write(format("0x%u", v));
             else
-                buf.put(format("%lu", v));
+                write(format("%u", v));
         }
 
         void visitError(ASTCodegen.ErrorExp _)
         {
-            buf.put("__error");
+            write("__error");
         }
 
         void visitVoidInit(ASTCodegen.VoidInitExp _)
         {
-            buf.put("void");
+            write("void");
         }
 
         void visitReal(ASTCodegen.RealExp e)
@@ -310,85 +325,84 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             /* Print as:
          *  (re+imi)
          */
-            buf.put('(');
+            write('(');
             writeFloat(e.type, e.value.re);
-            buf.put('+');
+            write('+');
             writeFloat(e.type, e.value.im);
-            buf.put("i)");
+            write("i)");
         }
 
         void visitIdentifier(ASTCodegen.IdentifierExp e)
         {
-            /* writeln("writing ident"); */
-            buf.put(e.ident.toString());
+            write(e.ident.toString());
         }
 
         void visitDsymbol(ASTCodegen.DsymbolExp e)
         {
-            buf.put(e.s.toString());
+            write(e.s.toString());
         }
 
         void visitThis(ASTCodegen.ThisExp _)
         {
-            buf.put("this");
+            write("this");
         }
 
         void visitSuper(ASTCodegen.SuperExp _)
         {
-            buf.put("super");
+            write("super");
         }
 
         void visitNull(ASTCodegen.NullExp _)
         {
-            buf.put("null");
+            write("null");
         }
 
         void visitString(ASTCodegen.StringExp e)
         {
-            buf.put('"');
+            write('"');
             foreach (i; 0 .. e.len)
             {
-                buf.put(e.getCodeUnit(i));
+                write(e.getCodeUnit(i));
             }
-            buf.put('"');
+            write('"');
             if (e.postfix)
-                buf.put(e.postfix);
+                write(e.postfix);
         }
 
         void visitArrayLiteral(ASTCodegen.ArrayLiteralExp e)
         {
-            buf.put('[');
+            write('[');
             writeArgs(e.elements, e.basis);
-            buf.put(']');
+            write(']');
         }
 
         void visitAssocArrayLiteral(ASTCodegen.AssocArrayLiteralExp e)
         {
-            buf.put('[');
+            write('[');
             foreach (i, key; *e.keys)
             {
                 if (i)
-                    buf.put(", ");
+                    write(", ");
                 writeExprWithPrecedence(key, PREC.assign);
-                buf.put(':');
+                write(": ");
                 auto value = (*e.values)[i];
                 writeExprWithPrecedence(value, PREC.assign);
             }
-            buf.put(']');
+            write(']');
         }
 
         void visitStructLiteral(ASTCodegen.StructLiteralExp e)
         {
             import dmd.expression;
 
-            buf.put(e.sd.toString());
-            buf.put('(');
+            write(e.sd.toString());
+            write('(');
             // CTFE can generate struct literals that contain an AddrExp pointing
             // to themselves, need to avoid infinite recursion:
             // struct S { this(int){ this.s = &this; } S* s; }
             // const foo = new S(0);
             if (e.stageflags & stageToCBuffer)
-                buf.put("<recursion>");
+                write("<recursion>");
             else
             {
                 const old = e.stageflags;
@@ -396,14 +410,14 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 writeArgs(e.elements);
                 e.stageflags = old;
             }
-            buf.put(')');
+            write(')');
         }
 
         void visitCompoundLiteral(ASTCodegen.CompoundLiteralExp e)
         {
-            buf.put('(');
+            write('(');
             writeTypeWithIdent(e.type, null);
-            buf.put(')');
+            write(')');
             writeInitializer(e.initializer);
         }
 
@@ -422,15 +436,15 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             }
             else
             {
-                buf.put(e.sds.kind().toDString());
-                buf.put(' ');
-                buf.put(e.sds.toString());
+                write(e.sds.kind().toDString());
+                write(' ');
+                write(e.sds.toString());
             }
         }
 
         void visitTemplate(ASTCodegen.TemplateExp e)
         {
-            buf.put(e.td.toString());
+            write(e.td.toString());
         }
 
         void visitNew(ASTCodegen.NewExp e)
@@ -438,15 +452,15 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             if (e.thisexp)
             {
                 writeExprWithPrecedence(e.thisexp, PREC.primary);
-                buf.put('.');
+                write('.');
             }
-            buf.put("new ");
+            write("new ");
             writeTypeWithIdent(e.newtype, null);
             if (e.arguments && e.arguments.length)
             {
-                buf.put('(');
+                write('(');
                 writeArgs(e.arguments, null, e.names);
-                buf.put(')');
+                write(')');
             }
         }
 
@@ -455,15 +469,15 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             if (e.thisexp)
             {
                 writeExprWithPrecedence(e.thisexp, PREC.primary);
-                buf.put('.');
+                write('.');
             }
-            buf.put("new");
-            buf.put(" class ");
+            write("new");
+            write(" class ");
             if (e.arguments && e.arguments.length)
             {
-                buf.put('(');
+                write('(');
                 writeArgs(e.arguments);
-                buf.put(')');
+                write(')');
             }
             if (e.cd)
                 e.cd.accept(this);
@@ -472,44 +486,43 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         void visitSymOff(ASTCodegen.SymOffExp e)
         {
             if (e.offset)
-                buf.put(format("(& %s%+lld)", e.var.toString(), e.offset));
+                write(format("(& %s%+lld)", e.var.toString(), e.offset));
             else if (e.var.isTypeInfoDeclaration())
-                buf.put(e.var.toString());
+                write(e.var.toString());
             else
-                buf.put(format("& %s", e.var.toString()));
+                write(format("& %s", e.var.toString()));
         }
 
         void visitVar(ASTCodegen.VarExp e)
         {
-            buf.put(e.var.toString());
+            write(e.var.toString());
         }
 
         void visitOver(ASTCodegen.OverExp e)
         {
-            buf.put(e.vars.ident.toString());
+            write(e.vars.ident.toString());
         }
 
         void visitTuple(ASTCodegen.TupleExp e)
         {
             if (e.e0)
             {
-                buf.put('(');
+                write('(');
                 writeExpr(e.e0);
-                buf.put(", AliasSeq!(");
+                write(", AliasSeq!(");
                 writeArgs(e.exps);
-                buf.put("))");
+                write("))");
             }
             else
             {
-                buf.put("AliasSeq!(");
+                write("AliasSeq!(");
                 writeArgs(e.exps);
-                buf.put(')');
+                write(')');
             }
         }
 
         void visitFunc(ASTCodegen.FuncExp e)
         {
-            /* writeln("stringifying func literal"); */
             e.fd.accept(this);
         }
 
@@ -527,12 +540,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                     // - Avoid printing newline.
                     // - Intentionally use the format (Type var;)
                     //   which isn't correct as regular D code.
-                    buf.put('(');
+                    write('(');
 
                     writeVarDecl(var, false);
 
-                    buf.put(';');
-                    buf.put(')');
+                    write(';');
+                    write(')');
                 }
                 else
                     e.declaration.accept(this);
@@ -541,59 +554,59 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitTypeid(ASTCodegen.TypeidExp e)
         {
-            buf.put("typeid(");
+            write("typeid(");
             writeObject(e.obj);
-            buf.put(')');
+            write(')');
         }
 
         void visitTraits(ASTCodegen.TraitsExp e)
         {
-            buf.put("__traits(");
+            write("__traits(");
             if (e.ident)
-                buf.put(e.ident.toString());
+                write(e.ident.toString());
             if (e.args)
             {
                 foreach (arg; *e.args)
                 {
-                    buf.put(", ");
+                    write(", ");
                     writeObject(arg);
                 }
             }
-            buf.put(')');
+            write(')');
         }
 
         void visitHalt(ASTCodegen.HaltExp _)
         {
-            buf.put("halt");
+            write("halt");
         }
 
         void visitIs(ASTCodegen.IsExp e)
         {
-            buf.put("is(");
+            write("is(");
             writeTypeWithIdent(e.targ, e.id);
             if (e.tok2 != TOK.reserved)
             {
-                buf.put(format(" %s %s", Token.toChars(e.tok), Token.toChars(e.tok2)));
+                write(format(" %s %s", Token.toChars(e.tok), Token.toChars(e.tok2)));
             }
             else if (e.tspec)
             {
                 if (e.tok == TOK.colon)
-                    buf.put(" : ");
+                    write(" : ");
                 else
-                    buf.put(" == ");
+                    write(" == ");
                 writeTypeWithIdent(e.tspec, null);
             }
             if (e.parameters && e.parameters.length)
             {
-                buf.put(", ");
+                write(", ");
                 visitTemplateParameters(e.parameters);
             }
-            buf.put(')');
+            write(')');
         }
 
         void visitUna(ASTCodegen.UnaExp e)
         {
-            buf.put(EXPtoString(e.op));
+            write(EXPtoString(e.op));
             writeExprWithPrecedence(e.e1, precedence[e.op]);
         }
 
@@ -605,9 +618,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         void visitBin(ASTCodegen.BinExp e)
         {
             writeExprWithPrecedence(e.e1, precedence[e.op]);
-            buf.put(' ');
-            buf.put(EXPtoString(e.op));
-            buf.put(' ');
+            write(' ');
+            write(EXPtoString(e.op));
+            write(' ');
             writeExprWithPrecedence(e.e2, cast(PREC)(precedence[e.op] + 1));
         }
 
@@ -660,33 +673,33 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitMixin(ASTCodegen.MixinExp e)
         {
-            buf.put("mixin(");
+            write("mixin(");
             writeArgs(e.exps);
-            buf.put(')');
+            write(')');
         }
 
         void visitImport(ASTCodegen.ImportExp e)
         {
-            buf.put("import(");
+            write("import(");
             writeExprWithPrecedence(e.e1, PREC.assign);
-            buf.put(')');
+            write(')');
         }
 
         void visitAssert(ASTCodegen.AssertExp e)
         {
-            buf.put("assert(");
+            write("assert(");
             writeExprWithPrecedence(e.e1, PREC.assign);
             if (e.msg)
             {
-                buf.put(", ");
+                write(", ");
                 writeExprWithPrecedence(e.msg, PREC.assign);
             }
-            buf.put(')');
+            write(')');
         }
 
         void visitThrow(ASTCodegen.ThrowExp e)
         {
-            buf.put("throw ");
+            write("throw ");
             writeExprWithPrecedence(e.e1, PREC.unary);
         }
 
@@ -694,54 +707,53 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
             if (e.arrow)
-                buf.put("->");
+                write("->");
             else
-                buf.put('.');
-            buf.put(e.ident.toString());
+                write('.');
+            write(e.ident.toString());
         }
 
         void visitDotTemplate(ASTCodegen.DotTemplateExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put('.');
-            buf.put(e.td.toString());
+            write('.');
+            write(e.td.toString());
         }
 
         void visitDotVar(ASTCodegen.DotVarExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put('.');
-            buf.put(e.var.toString());
+            write('.');
+            write(e.var.toString());
         }
 
         void visitDotTemplateInstance(ASTCodegen.DotTemplateInstanceExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put('.');
+            write('.');
             e.ti.accept(this);
         }
 
         void visitDelegate(ASTCodegen.DelegateExp e)
         {
-            buf.put('&');
+            write('&');
             if (!e.func.isNested() || e.func.needThis())
             {
                 writeExprWithPrecedence(e.e1, PREC.primary);
-                buf.put('.');
+                write('.');
             }
-            buf.put(e.func.toString());
+            write(e.func.toString());
         }
 
         void visitDotType(ASTCodegen.DotTypeExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put('.');
-            buf.put(e.sym.toString());
+            write('.');
+            write(e.sym.toString());
         }
 
         void visitCall(ASTCodegen.CallExp e)
         {
-            /* writeln("stringifying func call"); */
             if (e.e1.op == EXP.type)
             {
                 /* Avoid parens around type to prevent forbidden cast syntax:
@@ -749,160 +761,157 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
              * This is ok since types in constructor calls
              * can never depend on parens anyway
              */
-                /* writeln("stringifying func e1 expr"); */
                 writeExpr(e.e1);
             }
-            else /* writeln("stringifying func e1 expr with precedence"); */
-                writeExprWithPrecedence(e.e1, precedence[e.op]);
-            /* writeln("writing brace at indent level: ", depth); */
-            buf.put('(');
+            writeExprWithPrecedence(e.e1, precedence[e.op]);
+            write('(');
             writeArgs(e.arguments, null, e.names);
-            buf.put(')');
+            write(')');
         }
 
         void visitPtr(ASTCodegen.PtrExp e)
         {
-            buf.put('*');
+            write('*');
             writeExprWithPrecedence(e.e1, precedence[e.op]);
         }
 
         void visitDelete(ASTCodegen.DeleteExp e)
         {
-            buf.put("delete ");
+            write("delete ");
             writeExprWithPrecedence(e.e1, precedence[e.op]);
         }
 
         void visitCast(ASTCodegen.CastExp e)
         {
-            buf.put("cast(");
+            write("cast(");
             if (e.to)
                 writeTypeWithIdent(e.to, null);
             else
             {
-                buf.put(MODtoString(e.mod));
+                write(MODtoString(e.mod));
             }
-            buf.put(')');
+            write(')');
             writeExprWithPrecedence(e.e1, precedence[e.op]);
         }
 
         void visitVector(ASTCodegen.VectorExp e)
         {
-            buf.put("cast(");
+            write("cast(");
             writeTypeWithIdent(e.to, null);
-            buf.put(')');
+            write(')');
             writeExprWithPrecedence(e.e1, precedence[e.op]);
         }
 
         void visitVectorArray(ASTCodegen.VectorArrayExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put(".array");
+            write(".array");
         }
 
         void visitSlice(ASTCodegen.SliceExp e)
         {
             writeExprWithPrecedence(e.e1, precedence[e.op]);
-            buf.put('[');
+            write('[');
             if (e.upr || e.lwr)
             {
                 if (e.lwr)
                     writeSize(e.lwr);
                 else
-                    buf.put('0');
-                buf.put("..");
+                    write('0');
+                write("..");
                 if (e.upr)
                     writeSize(e.upr);
                 else
-                    buf.put('$');
+                    write('$');
             }
-            buf.put(']');
+            write(']');
         }
 
         void visitArrayLength(ASTCodegen.ArrayLengthExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put(".length");
+            write(".length");
         }
 
         void visitInterval(ASTCodegen.IntervalExp e)
         {
             writeExprWithPrecedence(e.lwr, PREC.assign);
-            buf.put("..");
+            write("..");
             writeExprWithPrecedence(e.upr, PREC.assign);
         }
 
         void visitDelegatePtr(ASTCodegen.DelegatePtrExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put(".ptr");
+            write(".ptr");
         }
 
         void visitDelegateFuncptr(ASTCodegen.DelegateFuncptrExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put(".funcptr");
+            write(".funcptr");
         }
 
         void visitArray(ASTCodegen.ArrayExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put('[');
+            write('[');
             writeArgs(e.arguments);
-            buf.put(']');
+            write(']');
         }
 
         void visitDot(ASTCodegen.DotExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put('.');
+            write('.');
             writeExprWithPrecedence(e.e2, PREC.primary);
         }
 
         void visitIndex(ASTCodegen.IndexExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put('[');
+            write('[');
             writeSize(e.e2);
-            buf.put(']');
+            write(']');
         }
 
         void visitPost(ASTCodegen.PostExp e)
         {
             writeExprWithPrecedence(e.e1, precedence[e.op]);
-            buf.put(EXPtoString(e.op));
+            write(EXPtoString(e.op));
         }
 
         void visitPre(ASTCodegen.PreExp e)
         {
-            buf.put(EXPtoString(e.op));
+            write(EXPtoString(e.op));
             writeExprWithPrecedence(e.e1, precedence[e.op]);
         }
 
         void visitRemove(ASTCodegen.RemoveExp e)
         {
             writeExprWithPrecedence(e.e1, PREC.primary);
-            buf.put(".remove(");
+            write(".remove(");
             writeExprWithPrecedence(e.e2, PREC.assign);
-            buf.put(')');
+            write(')');
         }
 
         void visitCond(ASTCodegen.CondExp e)
         {
             writeExprWithPrecedence(e.econd, PREC.oror);
-            buf.put(" ? ");
+            write(" ? ");
             writeExprWithPrecedence(e.e1, PREC.expr);
-            buf.put(" : ");
+            write(" : ");
             writeExprWithPrecedence(e.e2, PREC.cond);
         }
 
         void visitDefaultInit(ASTCodegen.DefaultInitExp e)
         {
-            buf.put(EXPtoString(e.op));
+            write(EXPtoString(e.op));
         }
 
         void visitClassReference(ASTCodegen.ClassReferenceExp e)
         {
-            buf.put(e.value.toString());
+            write(e.value.toString());
         }
 
         switch (e.op)
@@ -1055,12 +1064,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             foreach (i, el; *expressions)
             {
                 if (i)
-                    buf.put(", ");
+                    write(", ");
 
                 if (names && i < names.length && (*names)[i])
                 {
-                    buf.put((*names)[i].toString());
-                    buf.put(": ");
+                    write((*names)[i].toString());
+                    write(": ");
                 }
                 if (!el)
                     el = basis;
@@ -1074,9 +1083,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             //      [0..length: basis, 1: e1, 5: e5]
             if (basis)
             {
-                buf.put("0..");
+                write("0..");
                 buf.print(expressions.length);
-                buf.put(": ");
+                write(": ");
                 writeExprWithPrecedence(basis, PREC.assign);
             }
             foreach (i, el; *expressions)
@@ -1085,12 +1094,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 {
                     if (basis)
                     {
-                        buf.put(", ");
-                        buf.put(i);
-                        buf.put(": ");
+                        write(", ");
+                        write(i);
+                        write(": ");
                     }
                     else if (i)
-                        buf.put(", ");
+                        write(", ");
                     writeExprWithPrecedence(el, PREC.assign);
                 }
             }
@@ -1101,7 +1110,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         if (e.op == 0xFF)
         {
-            buf.put("<FF>");
+            write("<FF>");
             return;
         }
         assert(precedence[e.op] != PREC.zero);
@@ -1112,9 +1121,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (precedence[e.op] < pr || (pr == PREC.rel && precedence[e.op] == pr)
             || (pr >= PREC.or && pr <= PREC.and && precedence[e.op] == PREC.rel))
         {
-            buf.put('(');
+            write('(');
             writeExpr(e);
-            buf.put(')');
+            write(')');
         }
         else
         {
@@ -1132,8 +1141,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         writeWithMask(t, modMask);
         if (ident)
         {
-            buf.put(' ');
-            buf.put(ident.toString());
+            write(' ');
+            write(ident.toString());
         }
     }
 
@@ -1149,26 +1158,26 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             ubyte m = t.mod & ~(t.mod & modMask);
             if (m & MODFlags.shared_)
             {
-                buf.put(MODtoString(MODFlags.shared_));
-                buf.put('(');
+                write(MODtoString(MODFlags.shared_));
+                write('(');
             }
             if (m & MODFlags.wild)
             {
-                buf.put(MODtoString(MODFlags.wild));
-                buf.put('(');
+                write(MODtoString(MODFlags.wild));
+                write('(');
             }
             if (m & (MODFlags.const_ | MODFlags.immutable_))
             {
-                buf.put(MODtoString(m & (MODFlags.const_ | MODFlags.immutable_)));
-                buf.put('(');
+                write(MODtoString(m & (MODFlags.const_ | MODFlags.immutable_)));
+                write('(');
             }
             writeType(t);
             if (m & (MODFlags.const_ | MODFlags.immutable_))
-                buf.put(')');
+                write(')');
             if (m & MODFlags.wild)
-                buf.put(')');
+                write(')');
             if (m & MODFlags.shared_)
-                buf.put(')');
+                write(')');
         }
     }
 
@@ -1181,23 +1190,21 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitError(ASTCodegen.ErrorStatement _)
         {
-            buf.put("__error__");
+            write("__error__");
             newline();
         }
 
         void visitExp(ASTCodegen.ExpStatement s)
         {
-            /* writeln("visiting exp decl"); */
             if (s.exp && s.exp.op == EXP.declaration &&
                 (cast(ASTCodegen.DeclarationExp) s.exp).declaration)
             {
                 (cast(ASTCodegen.DeclarationExp) s.exp).declaration.accept(this);
                 return;
             }
-            /* writeln("writing exp: ", s.exp.stringof); */
             if (s.exp)
                 writeExpr(s.exp);
-            buf.put(';');
+            write(';');
             newline();
         }
 
@@ -1208,9 +1215,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitMixin(ASTCodegen.MixinStatement s)
         {
-            buf.put("mixin(");
+            write("mixin(");
             writeArgs(s.exps);
-            buf.put(");");
+            write(");");
         }
 
         void visitCompound(ASTCodegen.CompoundStatement s)
@@ -1247,12 +1254,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                     anywritten = true;
                 }
             }
-            buf.put(';');
+            write(';');
         }
 
         void visitUnrolledLoop(ASTCodegen.UnrolledLoopStatement s)
         {
-            buf.put("/*unrolled*/ {");
+            write("/*unrolled*/ {");
             newline();
             depth++;
             foreach (sx; *s.statements)
@@ -1261,25 +1268,25 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                     writeStatement(sx);
             }
             depth--;
-            buf.put('}');
+            write('}');
             newline();
         }
 
         void visitScope(ASTCodegen.ScopeStatement s)
         {
-            buf.put('{');
+            write('{');
             newline();
             depth++;
             if (s.statement)
                 writeStatement(s.statement);
             depth--;
-            buf.put('}');
+            write('}');
             newline();
         }
 
         void visitWhile(ASTCodegen.WhileStatement s)
         {
-            buf.put("while (");
+            write("while (");
             if (auto p = s.param)
             {
                 // Print condition assignment
@@ -1290,11 +1297,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (p.type)
                     writeTypeWithIdent(p.type, p.ident);
                 else
-                    buf.put(p.ident.toString());
-                buf.put(" = ");
+                    write(p.ident.toString());
+                write(" = ");
             }
             writeExpr(s.condition);
-            buf.put(')');
+            write(')');
             newline();
             if (s._body)
                 writeStatement(s._body);
@@ -1302,114 +1309,114 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitDo(ASTCodegen.DoStatement s)
         {
-            buf.put("do");
+            write("do");
             newline();
             if (s._body)
                 writeStatement(s._body);
-            buf.put("while (");
+            write("while (");
             writeExpr(s.condition);
-            buf.put(");");
+            write(");");
             newline();
         }
 
         void visitFor(ASTCodegen.ForStatement s)
         {
-            buf.put("for (");
+            write("for (");
             if (s._init)
             {
                 writeStatement(s._init);
             }
             else
-                buf.put(';');
+                write(';');
             if (s.condition)
             {
-                buf.put(' ');
+                write(' ');
                 writeExpr(s.condition);
             }
-            buf.put(';');
+            write(';');
             if (s.increment)
             {
-                buf.put(' ');
+                write(' ');
                 writeExpr(s.increment);
             }
-            buf.put(')');
+            write(')');
             newline();
-            buf.put('{');
+            write('{');
             newline();
             depth++;
             if (s._body)
                 writeStatement(s._body);
             depth--;
-            buf.put('}');
+            write('}');
             newline();
         }
 
         void visitForeachWithoutBody(ASTCodegen.ForeachStatement s)
         {
-            buf.put(Token.toString(s.op));
-            buf.put(" (");
+            write(Token.toString(s.op));
+            write(" (");
             foreach (i, p; *s.parameters)
             {
                 if (i)
-                    buf.put(", ");
+                    write(", ");
                 writeStc(p.storageClass);
                 if (p.type)
                     writeTypeWithIdent(p.type, p.ident);
                 else
-                    buf.put(p.ident.toString());
+                    write(p.ident.toString());
             }
-            buf.put("; ");
+            write("; ");
             writeExpr(s.aggr);
-            buf.put(')');
+            write(')');
             newline();
         }
 
         void visitForeach(ASTCodegen.ForeachStatement s)
         {
             visitForeachWithoutBody(s);
-            buf.put('{');
+            write('{');
             newline();
             depth++;
             if (s._body)
                 writeStatement(s._body);
             depth--;
-            buf.put('}');
+            write('}');
             newline();
         }
 
         void visitForeachRangeWithoutBody(ASTCodegen.ForeachRangeStatement s)
         {
-            buf.put(Token.toString(s.op));
-            buf.put(" (");
+            write(Token.toString(s.op));
+            write(" (");
             if (s.prm.type)
                 writeTypeWithIdent(s.prm.type, s.prm.ident);
             else
-                buf.put(s.prm.ident.toString());
-            buf.put("; ");
+                write(s.prm.ident.toString());
+            write("; ");
             writeExpr(s.lwr);
-            buf.put(" .. ");
+            write(" .. ");
             writeExpr(s.upr);
-            buf.put(')');
+            write(')');
             newline();
         }
 
         void visitForeachRange(ASTCodegen.ForeachRangeStatement s)
         {
             visitForeachRangeWithoutBody(s);
-            buf.put('{');
+            write('{');
             newline();
             depth++;
             if (s._body)
                 writeStatement(s._body);
             depth--;
-            buf.put('}');
+            write('}');
             newline();
         }
 
         void visitStaticForeach(ASTCodegen.StaticForeachStatement s)
         {
             indent();
-            buf.put("static ");
+            write("static ");
             if (s.sfe.aggrfe)
             {
                 visitForeach(s.sfe.aggrfe);
@@ -1428,7 +1435,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitIf(ASTCodegen.IfStatement s)
         {
-            buf.put("if (");
+            write("if (");
             if (Parameter p = s.prm)
             {
                 StorageClass stc = p.storageClass;
@@ -1438,11 +1445,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (p.type)
                     writeTypeWithIdent(p.type, p.ident);
                 else
-                    buf.put(p.ident.toString());
-                buf.put(" = ");
+                    write(p.ident.toString());
+                write(" = ");
             }
             writeExpr(s.condition);
-            buf.put(')');
+            write(')');
             newline();
             if (s.ifbody.isScopeStatement())
             {
@@ -1456,14 +1463,14 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             }
             if (s.elsebody)
             {
-                buf.put("else");
+                write("else");
                 if (!s.elsebody.isIfStatement())
                 {
                     newline();
                 }
                 else
                 {
-                    buf.put(' ');
+                    write(' ');
                 }
                 if (s.elsebody.isScopeStatement() || s.elsebody.isIfStatement())
                 {
@@ -1482,52 +1489,52 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             s.condition.accept(this);
             newline();
-            buf.put('{');
+            write('{');
             newline();
             depth++;
             if (s.ifbody)
                 writeStatement(s.ifbody);
             depth--;
-            buf.put('}');
+            write('}');
             newline();
             if (s.elsebody)
             {
-                buf.put("else");
+                write("else");
                 newline();
-                buf.put('{');
+                write('{');
                 depth++;
                 newline();
                 writeStatement(s.elsebody);
                 depth--;
-                buf.put('}');
+                write('}');
             }
             newline();
         }
 
         void visitPragma(ASTCodegen.PragmaStatement s)
         {
-            buf.put("pragma (");
-            buf.put(s.ident.toString());
+            write("pragma (");
+            write(s.ident.toString());
             if (s.args && s.args.length)
             {
-                buf.put(", ");
+                write(", ");
                 writeArgs(s.args);
             }
-            buf.put(')');
+            write(')');
             if (s._body)
             {
                 newline();
-                buf.put('{');
+                write('{');
                 newline();
                 depth++;
                 writeStatement(s._body);
                 depth--;
-                buf.put('}');
+                write('}');
                 newline();
             }
             else
             {
-                buf.put(';');
+                write(';');
                 newline();
             }
         }
@@ -1539,7 +1546,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitSwitch(ASTCodegen.SwitchStatement s)
         {
-            buf.put(s.isFinal ? "final switch (" : "switch (");
+            write(s.isFinal ? "final switch (" : "switch (");
             if (auto p = s.param)
             {
                 // Print condition assignment
@@ -1550,22 +1557,22 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (p.type)
                     writeTypeWithIdent(p.type, p.ident);
                 else
-                    buf.put(p.ident.toString());
-                buf.put(" = ");
+                    write(p.ident.toString());
+                write(" = ");
             }
             writeExpr(s.condition);
-            buf.put(')');
+            write(')');
             newline();
             if (s._body)
             {
                 if (!s._body.isScopeStatement())
                 {
-                    buf.put('{');
+                    write('{');
                     newline();
                     depth++;
                     writeStatement(s._body);
                     depth--;
-                    buf.put('}');
+                    write('}');
                     newline();
                 }
                 else
@@ -1577,109 +1584,103 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitCase(ASTCodegen.CaseStatement s)
         {
-            buf.put("case ");
+            write("case ");
             writeExpr(s.exp);
-            buf.put(':');
+            write(':');
             newline();
             writeStatement(s.statement);
         }
 
         void visitCaseRange(ASTCodegen.CaseRangeStatement s)
         {
-            buf.put("case ");
+            write("case ");
             writeExpr(s.first);
-            buf.put(": .. case ");
+            write(": .. case ");
             writeExpr(s.last);
-            buf.put(':');
+            write(':');
             newline();
             writeStatement(s.statement);
         }
 
         void visitDefault(ASTCodegen.DefaultStatement s)
         {
-            buf.put("default:");
+            write("default:");
             newline();
             writeStatement(s.statement);
         }
 
         void visitGotoDefault(ASTCodegen.GotoDefaultStatement _)
         {
-            buf.put("goto default;");
+            write("goto default;");
             newline();
         }
 
         void visitGotoCase(ASTCodegen.GotoCaseStatement s)
         {
-            buf.put("goto case");
+            write("goto case");
             if (s.exp)
             {
-                buf.put(' ');
+                write(' ');
                 writeExpr(s.exp);
             }
-            buf.put(';');
-            newline();
-        }
-
-        void visitSwitchError(ASTCodegen.SwitchErrorStatement _)
-        {
-            buf.put("SwitchErrorStatement::toCBuffer()");
+            write(';');
             newline();
         }
 
         void visitReturn(ASTCodegen.ReturnStatement s)
         {
-            buf.put("return ");
+            write("return ");
             if (s.exp)
                 writeExpr(s.exp);
-            buf.put(';');
+            write(';');
             newline();
         }
 
         void visitBreak(ASTCodegen.BreakStatement s)
         {
-            buf.put("break");
+            write("break");
             if (s.ident)
             {
-                buf.put(' ');
-                buf.put(s.ident.toString());
+                write(' ');
+                write(s.ident.toString());
             }
-            buf.put(';');
+            write(';');
             newline();
         }
 
         void visitContinue(ASTCodegen.ContinueStatement s)
         {
-            buf.put("continue");
+            write("continue");
             if (s.ident)
             {
-                buf.put(' ');
-                buf.put(s.ident.toString());
+                write(' ');
+                write(s.ident.toString());
             }
-            buf.put(';');
+            write(';');
             newline();
         }
 
         void visitSynchronized(ASTCodegen.SynchronizedStatement s)
         {
-            buf.put("synchronized");
+            write("synchronized");
             if (s.exp)
             {
-                buf.put('(');
+                write('(');
                 writeExpr(s.exp);
-                buf.put(')');
+                write(')');
             }
             if (s._body)
             {
-                buf.put(' ');
+                write(' ');
                 writeStatement(s._body);
             }
         }
 
         void visitWith(ASTCodegen.WithStatement s)
         {
-            buf.put("with (");
+            write("with (");
             writeExpr(s.exp);
-            buf.put(")");
+            write(")");
             newline();
             if (s._body)
                 writeStatement(s._body);
@@ -1687,7 +1688,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitTryCatch(ASTCodegen.TryCatchStatement s)
         {
-            buf.put("try");
+            write("try");
             newline();
             if (s._body)
             {
@@ -1704,37 +1705,37 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             }
             foreach (c; *s.catches)
             {
-                buf.put("catch");
+                write("catch");
                 if (c.type)
                 {
-                    buf.put('(');
+                    write('(');
                     writeTypeWithIdent(c.type, c.ident);
-                    buf.put(')');
+                    write(')');
                 }
                 newline();
-                buf.put('{');
+                write('{');
                 newline();
                 depth++;
                 if (c.handler)
                     writeStatement(c.handler);
                 depth--;
-                buf.put('}');
+                write('}');
                 newline();
             }
         }
 
         void visitTryFinally(ASTCodegen.TryFinallyStatement s)
         {
-            buf.put("try");
+            write("try");
             newline();
-            buf.put('{');
+            write('{');
             newline();
             depth++;
             writeStatement(s._body);
             depth--;
-            buf.put('}');
+            write('}');
             newline();
-            buf.put("finally");
+            write("finally");
             newline();
             if (s.finalbody.isScopeStatement())
             {
@@ -1750,17 +1751,17 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitScopeGuard(ASTCodegen.ScopeGuardStatement s)
         {
-            buf.put(Token.toString(s.tok));
-            buf.put(' ');
+            write(Token.toString(s.tok));
+            write(' ');
             if (s.statement)
                 writeStatement(s.statement);
         }
 
         void visitThrow(ASTCodegen.ThrowStatement s)
         {
-            buf.put("throw ");
+            write("throw ");
             writeExpr(s.exp);
-            buf.put(';');
+            write(';');
             newline();
         }
 
@@ -1774,16 +1775,16 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitGoto(ASTCodegen.GotoStatement s)
         {
-            buf.put("goto ");
-            buf.put(s.ident.toString());
-            buf.put(';');
+            write("goto ");
+            write(s.ident.toString());
+            write(';');
             newline();
         }
 
         void visitLabel(ASTCodegen.LabelStatement s)
         {
-            buf.put(s.ident.toString());
-            buf.put(':');
+            write(s.ident.toString());
+            write(':');
             newline();
             if (s.statement)
                 writeStatement(s.statement);
@@ -1791,12 +1792,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitAsm(ASTCodegen.AsmStatement s)
         {
-            buf.put("asm { ");
+            write("asm { ");
             Token* t = s.tokens;
             depth++;
             while (t)
             {
-                buf.put(Token.toString(t.value));
+                write(Token.toString(t.value));
                 if (t.next &&
                     t.value != TOK.min &&
                     t.value != TOK.comma && t.next.value != TOK.comma &&
@@ -1806,12 +1807,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                     t.next.value != TOK.rightParenthesis &&
                     t.value != TOK.dot && t.next.value != TOK.dot)
                 {
-                    buf.put(' ');
+                    write(' ');
                 }
                 t = t.next;
             }
             depth--;
-            buf.put("; }");
+            write("; }");
             newline();
         }
 
@@ -1848,7 +1849,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 newline();
                 writeContracts(f);
             }
-            buf.put(';');
+            write(';');
             newline();
             return;
         }
@@ -1858,17 +1859,15 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         if (requireDo)
         {
-            buf.put("do");
+            write("do");
             newline();
         }
-        buf.put('{');
+        write('{');
         newline();
         depth++;
-        /* writeln("writing at depth ", depth); */
         writeStatement(f.fbody);
         depth--;
-        /* writeln("finished writing, now depth ", depth); */
-        buf.put('}');
+        write('}');
         newline();
     }
 
@@ -1881,13 +1880,13 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             foreach (frequire; *f.frequires)
             {
-                buf.put("in");
+                write("in");
                 if (auto es = frequire.isExpStatement())
                 {
                     assert(es.exp && es.exp.op == EXP.assert_);
-                    buf.put(" (");
+                    write(" (");
                     writeExpr((cast(ASTCodegen.AssertExp) es.exp).e1);
-                    buf.put(')');
+                    write(')');
                     newline();
                     requireDo = false;
                 }
@@ -1904,18 +1903,18 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             foreach (fensure; *f.fensures)
             {
-                buf.put("out");
+                write("out");
                 if (auto es = fensure.ensure.isExpStatement())
                 {
                     assert(es.exp && es.exp.op == EXP.assert_);
-                    buf.put(" (");
+                    write(" (");
                     if (fensure.id)
                     {
-                        buf.put(fensure.id.toString());
+                        write(fensure.id.toString());
                     }
-                    buf.put("; ");
+                    write("; ");
                     writeExpr((cast(ASTCodegen.AssertExp) es.exp).e1);
-                    buf.put(')');
+                    write(')');
                     newline();
                     requireDo = false;
                 }
@@ -1923,9 +1922,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 {
                     if (fensure.id)
                     {
-                        buf.put('(');
-                        buf.put(fensure.id.toString());
-                        buf.put(')');
+                        write('(');
+                        write(fensure.id.toString());
+                        write(')');
                     }
                     newline();
                     writeStatement(fensure.ensure);
@@ -1940,49 +1939,49 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         void visitError(ErrorInitializer _)
         {
-            buf.put("__error__");
+            write("__error__");
         }
 
         void visitVoid(VoidInitializer _)
         {
-            buf.put("void");
+            write("void");
         }
 
         void visitStruct(StructInitializer si)
         {
             //printf("StructInitializer::toCBuffer()\n");
-            buf.put('{');
+            write('{');
             foreach (i, const id; si.field)
             {
                 if (i)
-                    buf.put(", ");
+                    write(", ");
                 if (id)
                 {
-                    buf.put(id.toString());
-                    buf.put(':');
+                    write(id.toString());
+                    write(':');
                 }
                 if (auto iz = si.value[i])
                     writeInitializer(iz);
             }
-            buf.put('}');
+            write('}');
         }
 
         void visitArray(ArrayInitializer ai)
         {
-            buf.put('[');
+            write('[');
             foreach (i, ex; ai.index)
             {
                 if (i)
-                    buf.put(", ");
+                    write(", ");
                 if (ex)
                 {
                     writeExpr(ex);
-                    buf.put(':');
+                    write(':');
                 }
                 if (auto iz = ai.value[i])
                     writeInitializer(iz);
             }
-            buf.put(']');
+            write(']');
         }
 
         void visitExp(ExpInitializer ei)
@@ -1992,32 +1991,32 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitC(CInitializer ci)
         {
-            buf.put('{');
+            write('{');
             foreach (i, ref DesigInit di; ci.initializerList)
             {
                 if (i)
-                    buf.put(", ");
+                    write(", ");
                 if (di.designatorList)
                 {
                     foreach (ref Designator d; (*di.designatorList)[])
                     {
                         if (d.exp)
                         {
-                            buf.put('[');
+                            write('[');
                             d.exp.accept(this);
-                            buf.put(']');
+                            write(']');
                         }
                         else
                         {
-                            buf.put('.');
-                            buf.put(d.ident.toString());
+                            write('.');
+                            write(d.ident.toString());
                         }
                     }
-                    buf.put('=');
+                    write('=');
                 }
                 writeInitializer(di.initializer);
             }
-            buf.put('}');
+            write('}');
         }
 
         mixin VisitInitializer!void visit;
@@ -2047,7 +2046,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         else if (ASTCodegen.Dsymbol s = isDsymbol(oarg))
         {
             const p = s.ident ? s.ident.toString() : s.toString();
-            buf.put(p);
+            write(p);
         }
         else if (auto v = isTuple(oarg))
         {
@@ -2055,7 +2054,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             foreach (i, arg; *args)
             {
                 if (i)
-                    buf.put(", ");
+                    write(", ");
                 writeObject(arg);
             }
         }
@@ -2065,7 +2064,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         }
         else if (!oarg)
         {
-            buf.put("NULL");
+            write("NULL");
         }
         else
         {
@@ -2086,8 +2085,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         if (anywritten)
         {
-            buf.put(", ");
-            buf.put(v.ident.toString());
+            write(", ");
+            write(v.ident.toString());
         }
         else
         {
@@ -2096,11 +2095,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             if (v.type)
                 writeTypeWithIdent(v.type, v.ident);
             else
-                buf.put(v.ident.toString());
+                write(v.ident.toString());
         }
         if (v._init)
         {
-            buf.put(" = ");
+            write(" = ");
             vinit(v);
         }
     }
@@ -2127,7 +2126,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                     assert(0);
                 if (uval <= sizemax && uval <= 0x7FFFFFFFFFFFFFFFUL)
                 {
-                    buf.put(format("%lu", uval));
+                    write(format("%lu", uval));
                     return;
                 }
             }
@@ -2149,8 +2148,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
      */
         if (t.mod)
         {
-            buf.put(MODtoString(t.mod));
-            buf.put(' ');
+            write(MODtoString(t.mod));
+            write(' ');
         }
 
         void ignoreReturn(string str)
@@ -2162,8 +2161,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 // don't write 'ref' for ctors
                 if ((ident == Id.ctor) && str == "ref")
                     return;
-                buf.put(str);
-                buf.put(' ');
+                write(str);
+                write(' ');
             }
         }
 
@@ -2172,7 +2171,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (t.linkage > LINK.d)
         {
             writeLinkage(t.linkage);
-            buf.put(' ');
+            write(' ');
         }
         if (ident && ident.toHChars2() != ident.toChars())
         {
@@ -2182,25 +2181,25 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             writeTypeWithIdent(t.next, null);
             if (ident)
-                buf.put(' ');
+                write(' ');
         }
         if (ident)
-            buf.put(ident.toString());
+            write(ident.toString());
         if (td)
         {
-            buf.put('(');
+            write('(');
             foreach (i, p; *td.origParameters)
             {
                 if (i)
-                    buf.put(", ");
+                    write(", ");
                 p.accept(this);
             }
-            buf.put(')');
+            write(')');
         }
         writeParamList(t.parameterList);
         if (t.isreturn)
         {
-            buf.put(" return");
+            write(" return");
         }
         t.inuse--;
     }
@@ -2216,30 +2215,30 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (t.linkage > LINK.d)
         {
             writeLinkage(t.linkage);
-            buf.put(' ');
+            write(' ');
         }
         if (t.linkage == LINK.objc && isStatic)
-            buf.put("static ");
+            write("static ");
         if (t.next)
         {
             writeTypeWithIdent(t.next, null);
             if (ident)
-                buf.put(' ');
+                write(' ');
         }
         if (ident)
-            buf.put(ident);
+            write(ident);
         writeParamList(t.parameterList);
         /* Use postfix style for attributes */
         if (t.mod)
         {
-            buf.put(' ');
-            buf.put(MODtoString(t.mod));
+            write(' ');
+            write(MODtoString(t.mod));
         }
 
         void dg(string str)
         {
-            buf.put(' ');
-            buf.put(str);
+            write(' ');
+            write(str);
         }
 
         t.attributesApply(&dg);
@@ -2256,12 +2255,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitError(TypeError _)
         {
-            buf.put("_error_");
+            write("_error_");
         }
 
         void visitBasic(TypeBasic t)
         {
-            buf.put(t.toString());
+            write(t.toString());
         }
 
         void visitTraits(TypeTraits t)
@@ -2271,17 +2270,17 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitVector(TypeVector t)
         {
-            buf.put("__vector(");
+            write("__vector(");
             writeWithMask(t.basetype, t.mod);
-            buf.put(")");
+            write(")");
         }
 
         void visitSArray(TypeSArray t)
         {
             writeWithMask(t.next, t.mod);
-            buf.put('[');
+            write('[');
             writeSize(t.dim);
-            buf.put(']');
+            write(']');
         }
 
         void visitDArray(TypeDArray t)
@@ -2290,25 +2289,25 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             if (declstring)
                 goto L1;
             if (ut.equals(Type.tstring))
-                buf.put("string");
+                write("string");
             else if (ut.equals(Type.twstring))
-                buf.put("wstring");
+                write("wstring");
             else if (ut.equals(Type.tdstring))
-                buf.put("dstring");
+                write("dstring");
             else
             {
             L1:
                 writeWithMask(t.next, t.mod);
-                buf.put("[]");
+                write("[]");
             }
         }
 
         void visitAArray(TypeAArray t)
         {
             writeWithMask(t.next, t.mod);
-            buf.put('[');
+            write('[');
             writeWithMask(t.index, 0);
-            buf.put(']');
+            write(']');
         }
 
         void visitPointer(TypePointer t)
@@ -2318,14 +2317,14 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             else
             {
                 writeWithMask(t.next, t.mod);
-                buf.put('*');
+                write('*');
             }
         }
 
         void visitReference(TypeReference t)
         {
             writeWithMask(t.next, t.mod);
-            buf.put('&');
+            write('&');
         }
 
         void visitFunction(TypeFunction t)
@@ -2345,30 +2344,30 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 switch (id.dyncast()) with (DYNCAST)
                 {
                 case dsymbol:
-                    buf.put('.');
+                    write('.');
                     ASTCodegen.TemplateInstance ti = cast(ASTCodegen.TemplateInstance) id;
                     ti.accept(this);
                     break;
                 case expression:
-                    buf.put('[');
+                    write('[');
                     writeExpr(cast(ASTCodegen.Expression) id);
-                    buf.put(']');
+                    write(']');
                     break;
                 case type:
-                    buf.put('[');
+                    write('[');
                     writeType(cast(Type) id);
-                    buf.put(']');
+                    write(']');
                     break;
                 default:
-                    buf.put('.');
-                    buf.put(id.toString());
+                    write('.');
+                    write(id.toString());
                 }
             }
         }
 
         void visitIdentifier(TypeIdentifier t)
         {
-            buf.put(t.ident.toString());
+            write(t.ident.toString());
             visitTypeQualifiedHelper(t);
         }
 
@@ -2380,21 +2379,21 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitTypeof(TypeTypeof t)
         {
-            buf.put("typeof(");
+            write("typeof(");
             writeExpr(t.exp);
-            buf.put(')');
+            write(')');
             visitTypeQualifiedHelper(t);
         }
 
         void visitReturn(TypeReturn t)
         {
-            buf.put("typeof(return)");
+            write("typeof(return)");
             visitTypeQualifiedHelper(t);
         }
 
         void visitEnum(TypeEnum t)
         {
-            buf.put(t.sym.toString());
+            write(t.sym.toString());
         }
 
         void visitStruct(TypeStruct t)
@@ -2404,9 +2403,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             // while printing messages.
             ASTCodegen.TemplateInstance ti = t.sym.parent ? t.sym.parent.isTemplateInstance() : null;
             if (ti && ti.aliasdecl == t.sym)
-                buf.put(ti.toString());
+                write(ti.toString());
             else
-                buf.put(t.sym.toString());
+                write(t.sym.toString());
         }
 
         void visitClass(TypeClass t)
@@ -2416,22 +2415,22 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             // while printing messages.
             ASTCodegen.TemplateInstance ti = t.sym.parent ? t.sym.parent.isTemplateInstance() : null;
             if (ti && ti.aliasdecl == t.sym)
-                buf.put(ti.toString());
+                write(ti.toString());
             else
-                buf.put(t.sym.toString());
+                write(t.sym.toString());
         }
 
         void visitTag(TypeTag t)
         {
             if (t.mod & MODFlags.const_)
-                buf.put("const ");
-            buf.put(Token.toString(t.tok));
-            buf.put(' ');
+                write("const ");
+            write(Token.toString(t.tok));
+            write(' ');
             if (t.id)
-                buf.put(t.id.toString());
+                write(t.id.toString());
             if (t.tok == TOK.enum_ && t.base && t.base.ty != TY.Tint32)
             {
-                buf.put(" : ");
+                write(" : ");
                 writeWithMask(t.base, t.mod);
             }
         }
@@ -2444,28 +2443,28 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         void visitSlice(TypeSlice t)
         {
             writeWithMask(t.next, t.mod);
-            buf.put('[');
+            write('[');
             writeSize(t.lwr);
-            buf.put(" .. ");
+            write(" .. ");
             writeSize(t.upr);
-            buf.put(']');
+            write(']');
         }
 
         void visitNull(TypeNull _)
         {
-            buf.put("typeof(null)");
+            write("typeof(null)");
         }
 
         void visitMixin(TypeMixin t)
         {
-            buf.put("mixin(");
+            write("mixin(");
             writeArgs(t.exps);
-            buf.put(')');
+            write(')');
         }
 
         void visitNoreturn(TypeNoreturn _)
         {
-            buf.put("noreturn");
+            write("noreturn");
         }
 
         switch (t.ty)
@@ -2528,9 +2527,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         const s = linkageToString(linkage);
         if (s.length)
         {
-            buf.put("extern (");
-            buf.put(s);
-            buf.put(')');
+            write("extern (");
+            write(s);
+            write(')');
         }
     }
 
@@ -2538,30 +2537,30 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         if (p.userAttribDecl)
         {
-            buf.put('@');
+            write('@');
 
             bool isAnonymous = p.userAttribDecl.atts.length > 0 && !(*p.userAttribDecl.atts)[0].isCallExp();
             if (isAnonymous)
-                buf.put('(');
+                write('(');
 
             writeArgs(p.userAttribDecl.atts);
 
             if (isAnonymous)
-                buf.put(')');
-            buf.put(' ');
+                write(')');
+            write(' ');
         }
         if (p.storageClass & STC.auto_)
-            buf.put("auto ");
+            write("auto ");
 
         StorageClass stc = p.storageClass;
         if (p.storageClass & STC.in_)
         {
-            buf.put("in ");
+            write("in ");
         }
         else if (p.storageClass & STC.lazy_)
-            buf.put("lazy ");
+            write("lazy ");
         else if (p.storageClass & STC.alias_)
-            buf.put("alias ");
+            write("alias ");
 
         if (p.type && p.type.mod & MODFlags.shared_)
             stc &= ~STC.shared_;
@@ -2576,7 +2575,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (p.storageClass & STC.alias_)
         {
             if (p.ident)
-                buf.put(p.ident.toString());
+                write(p.ident.toString());
         }
         else if (p.type.ty == Tident &&
             (cast(TypeIdentifier) p.type)
@@ -2585,7 +2584,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 .ident.toChars(), "__T", 3) == 0)
         {
             // print parameter name, instead of undetermined type parameter
-            buf.put(p.ident.toString());
+            write(p.ident.toString());
         }
         else
         {
@@ -2594,18 +2593,18 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         if (p.defaultArg)
         {
-            buf.put(" = ");
+            write(" = ");
             writeExprWithPrecedence(p.defaultArg, PREC.assign);
         }
     }
 
     void writeParamList(ParameterList pl)
     {
-        buf.put('(');
+        write('(');
         foreach (i; 0 .. pl.length)
         {
             if (i)
-                buf.put(", ");
+                write(", ");
             writeParam(pl[i]);
         }
         final switch (pl.varargs)
@@ -2615,29 +2614,29 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         case VarArg.variadic:
             if (pl.length)
-                buf.put(", ");
+                write(", ");
 
             writeStc(pl.stc);
             goto case VarArg.typesafe;
 
         case VarArg.typesafe:
-            buf.put("...");
+            write("...");
             break;
 
         case VarArg.KRvariadic:
             break;
         }
-        buf.put(')');
+        write(')');
     }
 
     void writeVisibility(ASTCodegen.Visibility vis)
     {
-        buf.put(visibilityToString(vis.kind));
+        write(visibilityToString(vis.kind));
         if (vis.kind == ASTCodegen.Visibility.Kind.package_ && vis.pkg)
         {
-            buf.put('(');
-            buf.put(vis.pkg.toPrettyChars(true).toDString());
-            buf.put(')');
+            write('(');
+            write(vis.pkg.toPrettyChars(true).toDString());
+            write(')');
         }
     }
 
@@ -2659,15 +2658,15 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void writeTiArgs(ASTCodegen.TemplateInstance ti)
     {
-        buf.put('!');
+        write('!');
         if (ti.nest)
         {
-            buf.put("(...)");
+            write("(...)");
             return;
         }
         if (!ti.tiargs)
         {
-            buf.put("()");
+            write("()");
             return;
         }
         if (ti.tiargs.length == 1)
@@ -2680,7 +2679,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if ((t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0) && (
                         (t.isTypeBasic() || t.ty == Tident) && (cast(TypeIdentifier) t).idents.length == 0))
                 {
-                    buf.put(t.toString());
+                    write(t.toString());
                     return;
                 }
             }
@@ -2689,67 +2688,66 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (e.op == EXP.int64 || e.op == EXP.float64 || e.op == EXP.null_ || e.op == EXP.string_ || e.op == EXP
                     .this_)
                 {
-                    buf.put(e.toString());
+                    write(e.toString());
                     return;
                 }
             }
         }
-        buf.put('(');
+        write('(');
         ti.nestUp();
         foreach (i, arg; *ti.tiargs)
         {
             if (i)
-                buf.put(", ");
+                write(", ");
             writeObject(arg);
         }
         ti.nestDown();
-        buf.put(')');
+        write(')');
     }
     /*******************************************
     * Visitors for AST nodes
     */
     void visitDsymbol(ASTCodegen.Dsymbol s)
     {
-        /* writeln("visiting dsymbol"); */
-        buf.put(s.toString());
+        write(s.toString());
     }
 
     void visitStaticAssert(ASTCodegen.StaticAssert s)
     {
-        buf.put(s.kind().toDString());
-        buf.put('(');
+        write(s.kind().toDString());
+        write('(');
         writeExpr(s.exp);
         if (s.msgs)
         {
             foreach (m; (*s.msgs)[])
             {
-                buf.put(", ");
+                write(", ");
                 writeExpr(m);
             }
         }
-        buf.put(");");
+        write(");");
         newline();
     }
 
     void visitDebugSymbol(ASTCodegen.DebugSymbol s)
     {
-        buf.put("debug = ");
+        write("debug = ");
         if (s.ident)
-            buf.put(s.ident.toString());
+            write(s.ident.toString());
         else
-            buf.put(format("%d", s.level));
-        buf.put(';');
+            write(format("%d", s.level));
+        write(';');
         newline();
     }
 
     void visitVersionSymbol(ASTCodegen.VersionSymbol s)
     {
-        buf.put("version = ");
+        write("version = ");
         if (s.ident)
-            buf.put(s.ident.toString());
+            write(s.ident.toString());
         else
-            buf.put(format("%d", s.level));
-        buf.put(';');
+            write(format("%d", s.level));
+        write(';');
         newline();
     }
 
@@ -2758,10 +2756,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (em.type)
             writeTypeWithIdent(em.type, em.ident);
         else
-            buf.put(em.ident.toString());
+            write(em.ident.toString());
         if (em.value)
         {
-            buf.put(" = ");
+            write(" = ");
             writeExpr(em.value);
         }
     }
@@ -2769,47 +2767,47 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     void visitImport(ASTCodegen.Import imp)
     {
         if (imp.isstatic)
-            buf.put("static ");
-        buf.put("import ");
+            write("static ");
+        write("import ");
         if (imp.aliasId)
         {
-            buf.put(imp.aliasId.toString());
-            buf.put(" = ");
+            write(imp.aliasId.toString());
+            write(" = ");
         }
         foreach (const pid; imp.packages)
         {
-            buf.put(pid.toString());
-            buf.put(".");
+            write(pid.toString());
+            write(".");
         }
-        buf.put(imp.id.toString());
+        write(imp.id.toString());
         if (imp.names.length)
         {
-            buf.put(" : ");
+            write(" : ");
             foreach (const i, const name; imp.names)
             {
                 if (i)
-                    buf.put(", ");
+                    write(", ");
                 const _alias = imp.aliases[i];
                 if (_alias)
                 {
-                    buf.put(_alias.toString());
-                    buf.put(" = ");
-                    buf.put(name.toString());
+                    write(_alias.toString());
+                    write(" = ");
+                    write(name.toString());
                 }
                 else
-                    buf.put(name.toString());
+                    write(name.toString());
             }
         }
 
-        buf.put(';');
+        write(';');
         newline();
     }
 
     void visitAliasThis(ASTCodegen.AliasThis d)
     {
-        buf.put("alias ");
-        buf.put(d.ident.toString());
-        buf.put(" this;");
+        write("alias ");
+        write(d.ident.toString());
+        write(" this;");
         newline();
     }
 
@@ -2822,13 +2820,13 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         if (!d.decl)
         {
-            buf.put(';');
+            write(';');
             newline();
             return;
         }
         if (d.decl.length == 0)
         {
-            buf.put("{}");
+            write("{}");
         }
         else if (d.decl.length == 1)
         {
@@ -2838,13 +2836,13 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         else
         {
             newline();
-            buf.put('{');
+            write('{');
             newline();
             depth++;
             foreach (de; *d.decl)
                 de.accept(this);
             depth--;
-            buf.put('}');
+            write('}');
         }
         newline();
     }
@@ -2856,17 +2854,17 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitDeprecatedDeclaration(ASTCodegen.DeprecatedDeclaration d)
     {
-        buf.put("deprecated(");
+        write("deprecated(");
         writeExpr(d.msg);
-        buf.put(") ");
+        write(") ");
         visitAttribDeclaration(d);
     }
 
     void visitLinkDeclaration(ASTCodegen.LinkDeclaration d)
     {
-        buf.put("extern (");
-        buf.put(linkageToString(d.linkage));
-        buf.put(") ");
+        write("extern (");
+        write(linkageToString(d.linkage));
+        write(") ");
         visitAttribDeclaration(d);
     }
 
@@ -2884,9 +2882,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         case CPPMANGLE.def:
             break;
         }
-        buf.put("extern (C++, ");
-        buf.put(s);
-        buf.put(") ");
+        write("extern (C++, ");
+        write(s);
+        write(") ");
         visitAttribDeclaration(d);
     }
 
@@ -2895,7 +2893,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         writeVisibility(d.visibility);
         ASTCodegen.AttribDeclaration ad = cast(ASTCodegen.AttribDeclaration) d;
         if (ad.decl.length <= 1)
-            buf.put(' ');
+            write(' ');
         if (ad.decl.length == 1 && (*ad.decl)[0].isVisibilityDeclaration)
             visitAttribDeclaration((*ad.decl)[0].isVisibilityDeclaration);
         else
@@ -2909,23 +2907,23 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             foreach (i, exp; (*d.exps)[])
             {
                 if (i)
-                    buf.put(' ');
-                buf.put(format("align (%s)", exp.toString()));
+                    write(' ');
+                write(format("align (%s)", exp.toString()));
             }
             if (d.decl && d.decl.length < 2)
-                buf.put(' ');
+                write(' ');
         }
         else
-            buf.put("align ");
+            write("align ");
 
         visitAttribDeclaration(d.isAttribDeclaration());
     }
 
     void visitAnonDeclaration(ASTCodegen.AnonDeclaration d)
     {
-        buf.put(d.isunion ? "union" : "struct");
+        write(d.isunion ? "union" : "struct");
         newline();
-        buf.put("{");
+        write("{");
         newline();
         depth++;
         if (d.decl)
@@ -2934,21 +2932,21 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 de.accept(this);
         }
         depth--;
-        buf.put("}");
+        write("}");
         newline();
     }
 
     void visitPragmaDeclaration(ASTCodegen.PragmaDeclaration d)
     {
-        buf.put("pragma (");
-        buf.put(d.ident.toString());
+        write("pragma (");
+        write(d.ident.toString());
         if (d.args && d.args.length)
         {
-            buf.put(", ");
+            write(", ");
             writeArgs(d.args);
         }
 
-        buf.put(')');
+        write(')');
         visitAttribDeclaration(d);
     }
 
@@ -2958,7 +2956,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (d.decl || d.elsedecl)
         {
             newline();
-            buf.put('{');
+            write('{');
             newline();
             depth++;
             if (d.decl)
@@ -2967,23 +2965,23 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                     de.accept(this);
             }
             depth--;
-            buf.put('}');
+            write('}');
             if (d.elsedecl)
             {
                 newline();
-                buf.put("else");
+                write("else");
                 newline();
-                buf.put('{');
+                write('{');
                 newline();
                 depth++;
                 foreach (de; *d.elsedecl)
                     de.accept(this);
                 depth--;
-                buf.put('}');
+                write('}');
             }
         }
         else
-            buf.put(':');
+            write(':');
         newline();
     }
 
@@ -2991,21 +2989,21 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         void foreachWithoutBody(ASTCodegen.ForeachStatement s)
         {
-            buf.put(Token.toString(s.op));
-            buf.put(" (");
+            write(Token.toString(s.op));
+            write(" (");
             foreach (i, p; *s.parameters)
             {
                 if (i)
-                    buf.put(", ");
+                    write(", ");
                 writeStc(p.storageClass);
                 if (p.type)
                     writeTypeWithIdent(p.type, p.ident);
                 else
-                    buf.put(p.ident.toString());
+                    write(p.ident.toString());
             }
-            buf.put("; ");
+            write("; ");
             writeExpr(s.aggr);
-            buf.put(')');
+            write(')');
             newline();
         }
 
@@ -3013,21 +3011,21 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             /* s.op ( prm ; lwr .. upr )
              */
-            buf.put(Token.toString(s.op));
-            buf.put(" (");
+            write(Token.toString(s.op));
+            write(" (");
             if (s.prm.type)
                 writeTypeWithIdent(s.prm.type, s.prm.ident);
             else
-                buf.put(s.prm.ident.toString());
-            buf.put("; ");
+                write(s.prm.ident.toString());
+            write("; ");
             writeExpr(s.lwr);
-            buf.put(" .. ");
+            write(" .. ");
             writeExpr(s.upr);
-            buf.put(')');
+            write(')');
             newline();
         }
 
-        buf.put("static ");
+        write("static ");
         if (s.sfe.aggrfe)
         {
             foreachWithoutBody(s.sfe.aggrfe);
@@ -3037,29 +3035,29 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             assert(s.sfe.rangefe);
             foreachRangeWithoutBody(s.sfe.rangefe);
         }
-        buf.put('{');
+        write('{');
         newline();
         depth++;
         visitAttribDeclaration(s);
         depth--;
-        buf.put('}');
+        write('}');
         newline();
 
     }
 
     void visitMixinDeclaration(ASTCodegen.MixinDeclaration d)
     {
-        buf.put("mixin(");
+        write("mixin(");
         writeArgs(d.exps);
-        buf.put(");");
+        write(");");
         newline();
     }
 
     void visitUserAttributeDeclaration(ASTCodegen.UserAttributeDeclaration d)
     {
-        buf.put("@(");
+        write("@(");
         writeArgs(d.atts);
-        buf.put(')');
+        write(')');
         visitAttribDeclaration(d);
     }
 
@@ -3067,9 +3065,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         if (!constraint)
             return;
-        buf.put(" if (");
+        write(" if (");
         writeExpr(constraint);
-        buf.put(')');
+        write(')');
     }
 
     override void visitBaseClasses(ASTCodegen.ClassDeclaration d)
@@ -3077,11 +3075,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (!d || !d.baseclasses.length)
             return;
         if (!d.isAnonymous())
-            buf.put(" : ");
+            write(" : ");
         foreach (i, b; *d.baseclasses)
         {
             if (i)
-                buf.put(", ");
+                write(", ");
             writeTypeWithIdent(b.type, null);
         }
     }
@@ -3104,27 +3102,27 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         }
         if (ASTCodegen.AggregateDeclaration ad = onemember.isAggregateDeclaration())
         {
-            buf.put(ad.kind().toDString());
-            buf.put(' ');
-            buf.put(ad.ident.toString());
-            buf.put('(');
+            write(ad.kind().toDString());
+            write(' ');
+            write(ad.ident.toString());
+            write('(');
             visitTemplateParameters(d.parameters);
-            buf.put(')');
+            write(')');
             visitTemplateConstraint(d.constraint);
             visitBaseClasses(ad.isClassDeclaration());
             if (ad.members)
             {
                 newline();
-                buf.put('{');
+                write('{');
                 newline();
                 depth++;
                 foreach (s; *ad.members)
                     s.accept(this);
                 depth--;
-                buf.put('}');
+                write('}');
             }
             else
-                buf.put(';');
+                write(';');
             newline();
             return true;
         }
@@ -3136,20 +3134,20 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             if (vd.type)
                 writeTypeWithIdent(vd.type, vd.ident);
             else
-                buf.put(vd.ident.toString());
-            buf.put('(');
+                write(vd.ident.toString());
+            write('(');
             visitTemplateParameters(d.parameters);
-            buf.put(')');
+            write(')');
             if (vd._init)
             {
-                buf.put(" = ");
+                write(" = ");
                 ExpInitializer ie = vd._init.isExpInitializer();
                 if (ie && (ie.exp.op == EXP.construct || ie.exp.op == EXP.blit))
                     writeExpr((cast(ASTCodegen.AssignExp) ie.exp).e2);
                 else
                     writeInitializer(vd._init);
             }
-            buf.put(';');
+            write(';');
             newline();
             return true;
         }
@@ -3158,55 +3156,55 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitTemplateDeclaration(ASTCodegen.TemplateDeclaration d)
     {
-        buf.put("template");
-        buf.put(' ');
-        buf.put(d.ident.toString());
-        buf.put('(');
+        write("template");
+        write(' ');
+        write(d.ident.toString());
+        write('(');
         visitTemplateParameters(d.parameters);
-        buf.put(')');
+        write(')');
         visitTemplateConstraint(d.constraint);
     }
 
     void visitTemplateInstance(ASTCodegen.TemplateInstance ti)
     {
-        buf.put(ti.name.toString());
+        write(ti.name.toString());
         writeTiArgs(ti);
     }
 
     void visitTemplateMixin(ASTCodegen.TemplateMixin tm)
     {
-        buf.put("mixin ");
+        write("mixin ");
         writeTypeWithIdent(tm.tqual, null);
         writeTiArgs(tm);
         if (tm.ident && tm.ident.toString() != "__mixin")
         {
-            buf.put(' ');
-            buf.put(tm.ident.toString());
+            write(' ');
+            write(tm.ident.toString());
         }
-        buf.put(';');
+        write(';');
         newline();
     }
 
     void visitEnumDeclaration(ASTCodegen.EnumDeclaration d)
     {
-        buf.put("enum ");
+        write("enum ");
         if (d.ident)
         {
-            buf.put(d.ident.toString());
+            write(d.ident.toString());
         }
         if (d.memtype)
         {
-            buf.put(" : ");
+            write(" : ");
             writeTypeWithIdent(d.memtype, null);
         }
         if (!d.members)
         {
-            buf.put(';');
+            write(';');
             newline();
             return;
         }
         newline();
-        buf.put('{');
+        write('{');
         newline();
         depth++;
         foreach (em; *d.members)
@@ -3214,50 +3212,50 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             if (!em)
                 continue;
             em.accept(this);
-            buf.put(',');
+            write(',');
             newline();
         }
         depth--;
-        buf.put('}');
+        write('}');
         newline();
     }
 
     void visitNspace(ASTCodegen.Nspace d)
     {
-        buf.put("extern (C++, ");
-        buf.put(d.ident.toString());
-        buf.put(')');
+        write("extern (C++, ");
+        write(d.ident.toString());
+        write(')');
         newline();
-        buf.put('{');
+        write('{');
         newline();
         depth++;
         foreach (s; *d.members)
             s.accept(this);
         depth--;
-        buf.put('}');
+        write('}');
         newline();
     }
 
     void visitStructDeclaration(ASTCodegen.StructDeclaration d)
     {
-        buf.put(d.kind().toDString());
-        buf.put(' ');
+        write(d.kind().toDString());
+        write(' ');
         if (!d.isAnonymous())
-            buf.put(d.toString());
+            write(d.toString());
         if (!d.members)
         {
-            buf.put(';');
+            write(';');
             newline();
             return;
         }
         newline();
-        buf.put('{');
+        write('{');
         newline();
         depth++;
         foreach (s; *d.members)
             s.accept(this);
         depth--;
-        buf.put('}');
+        write('}');
         newline();
     }
 
@@ -3265,24 +3263,24 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         if (!d.isAnonymous())
         {
-            buf.put(d.kind().toDString());
-            buf.put(' ');
-            buf.put(d.ident.toString());
+            write(d.kind().toDString());
+            write(' ');
+            write(d.ident.toString());
         }
         visitBaseClasses(d);
         if (d.members)
         {
             newline();
-            buf.put('{');
+            write('{');
             newline();
             depth++;
             foreach (s; *d.members)
                 s.accept(this);
             depth--;
-            buf.put('}');
+            write('}');
         }
         else
-            buf.put(';');
+            write(';');
         newline();
     }
 
@@ -3290,11 +3288,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         if (d.storage_class & STC.local)
             return;
-        buf.put("alias ");
+        write("alias ");
         if (d.aliassym)
         {
-            buf.put(d.ident.toString());
-            buf.put(" = ");
+            write(d.ident.toString());
+            write(" = ");
             writeStc(d.storage_class);
             /*
                 https://issues.dlang.org/show_bug.cgi?id=23223
@@ -3304,7 +3302,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             */
             if (d.aliassym.isModule())
             {
-                buf.put(d.aliassym.ident.toString());
+                write(d.aliassym.ident.toString());
             }
             else
             {
@@ -3322,25 +3320,25 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
             declstring = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id
                     .dstring);
-            buf.put(d.ident.toString());
-            buf.put(" = ");
+            write(d.ident.toString());
+            write(" = ");
             writeStc(d.storage_class);
             writeTypeWithIdent(d.type, null);
             declstring = false;
         }
-        buf.put(';');
+        write(';');
         newline();
     }
 
     void visitAliasAssign(ASTCodegen.AliasAssign d)
     {
-        buf.put(d.ident.toString());
-        buf.put(" = ");
+        write(d.ident.toString());
+        write(" = ");
         if (d.aliassym)
             d.aliassym.accept(this);
         else // d.type
             writeTypeWithIdent(d.type, null);
-        buf.put(';');
+        write(';');
         newline();
     }
 
@@ -3349,31 +3347,29 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (d.storage_class & STC.local)
             return;
         writeVarDecl(d, false);
-        buf.put(';');
+        write(';');
         newline();
     }
 
     void visitFuncDeclaration(ASTCodegen.FuncDeclaration f)
     {
-        newline();
         writeStc(f.storage_class);
         auto tf = cast(TypeFunction) f.type;
         writeTypeWithIdent(tf, f.ident);
         writeFuncBody(f);
-        /* writeln("Wrote body"); */
     }
 
     void visitFuncLiteralDeclaration(ASTCodegen.FuncLiteralDeclaration f)
     {
         if (f.type.ty == Terror)
         {
-            buf.put("__error");
+            write("__error");
             return;
         }
         if (f.tok != TOK.reserved)
         {
-            buf.put(f.kind().toDString());
-            buf.put(' ');
+            write(f.kind().toDString());
+            write(' ');
         }
         TypeFunction tf = cast(TypeFunction) f.type;
 
@@ -3384,8 +3380,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         // https://issues.dlang.org/show_bug.cgi?id=20074
         void printAttribute(string str)
         {
-            buf.put(' ');
-            buf.put(str);
+            write(' ');
+            write(str);
         }
 
         tf.attributesApply(&printAttribute);
@@ -3396,7 +3392,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         ASTCodegen.ReturnStatement rs = s1 ? s1.endsWithReturnStatement() : null;
         if (rs && rs.exp)
         {
-            buf.put(" => ");
+            write(" => ");
             writeExpr(rs.exp);
         }
         else
@@ -3408,14 +3404,14 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     void visitPostBlitDeclaration(ASTCodegen.PostBlitDeclaration d)
     {
         writeStc(d.storage_class);
-        buf.put("this(this)");
+        write("this(this)");
         writeFuncBody(d);
     }
 
     void visitDtorDeclaration(ASTCodegen.DtorDeclaration d)
     {
         writeStc(d.storage_class);
-        buf.put("~this()");
+        write("~this()");
         writeFuncBody(d);
     }
 
@@ -3423,8 +3419,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         writeStc(d.storage_class & ~STC.static_);
         if (d.isSharedStaticCtorDeclaration())
-            buf.put("shared ");
-        buf.put("static this()");
+            write("shared ");
+        write("static this()");
         writeFuncBody(d);
     }
 
@@ -3432,21 +3428,21 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         writeStc(d.storage_class & ~STC.static_);
         if (d.isSharedStaticDtorDeclaration())
-            buf.put("shared ");
-        buf.put("static ~this()");
+            write("shared ");
+        write("static ~this()");
         writeFuncBody(d);
     }
 
     void visitInvariantDeclaration(ASTCodegen.InvariantDeclaration d)
     {
         writeStc(d.storage_class);
-        buf.put("invariant");
+        write("invariant");
         if (auto es = d.fbody.isExpStatement())
         {
             assert(es.exp && es.exp.op == EXP.assert_);
-            buf.put(" (");
+            write(" (");
             writeExpr((cast(ASTCodegen.AssertExp) es.exp).e1);
-            buf.put(");");
+            write(");");
             newline();
         }
         else
@@ -3458,7 +3454,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     void visitUnitTestDeclaration(ASTCodegen.UnitTestDeclaration d)
     {
         writeStc(d.storage_class);
-        buf.put("unittest");
+        write("unittest");
         writeFuncBody(d);
     }
 
@@ -3467,16 +3463,16 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         writeStc(d.storage_class);
         Identifier id = d.isAnonymous() ? null : d.ident;
         writeTypeWithIdent(d.type, id);
-        buf.put(" : ");
+        write(" : ");
         writeExpr(d.width);
-        buf.put(';');
+        write(';');
         newline();
     }
 
     void visitNewDeclaration(ASTCodegen.NewDeclaration d)
     {
         writeStc(d.storage_class & ~STC.static_);
-        buf.put("new();");
+        write("new();");
     }
 
     void visitModule(ASTCodegen.Module m)
@@ -3485,25 +3481,26 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             if (m.userAttribDecl)
             {
-                buf.put("@(");
+                write("@(");
                 writeArgs(m.userAttribDecl.atts);
-                buf.put(')');
+                write(')');
                 newline();
             }
             if (m.md.isdeprecated)
             {
                 if (m.md.msg)
                 {
-                    buf.put("deprecated(");
+                    write("deprecated(");
                     writeExpr(m.md.msg);
-                    buf.put(") ");
+                    write(") ");
                 }
                 else
-                    buf.put("deprecated ");
+                    write("deprecated ");
             }
-            buf.put("module ");
-            buf.put(m.md.toString());
-            buf.put(';');
+            write("module ");
+            write(m.md.toString());
+            write(';');
+            newline();
             newline();
         }
 
@@ -3515,67 +3512,67 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitDebugCondition(ASTCodegen.DebugCondition c)
     {
-        buf.put("debug (");
+        write("debug (");
         if (c.ident)
-            buf.put(c.ident.toString());
+            write(c.ident.toString());
         else
-            buf.put(format("%d", c.level));
-        buf.put(')');
+            write(format("%d", c.level));
+        write(')');
     }
 
     void visitVersionCondition(ASTCodegen.VersionCondition c)
     {
-        buf.put("version (");
+        write("version (");
         if (c.ident)
-            buf.put(c.ident.toString());
+            write(c.ident.toString());
         else
-            buf.put(format("%d", c.level));
-        buf.put(')');
+            write(format("%d", c.level));
+        write(')');
     }
 
     void visitStaticIfCondition(ASTCodegen.StaticIfCondition c)
     {
-        buf.put("static if (");
+        write("static if (");
         writeExpr(c.exp);
-        buf.put(')');
+        write(')');
     }
 
     void visitTemplateTypeParameter(ASTCodegen.TemplateTypeParameter tp)
     {
-        buf.put(tp.ident.toString());
+        write(tp.ident.toString());
         if (tp.specType)
         {
-            buf.put(" : ");
+            write(" : ");
             writeTypeWithIdent(tp.specType, null);
         }
         if (tp.defaultType)
         {
-            buf.put(" = ");
+            write(" = ");
             writeTypeWithIdent(tp.defaultType, null);
         }
     }
 
     void visitTemplateThisParameter(ASTCodegen.TemplateThisParameter tp)
     {
-        buf.put("this ");
+        write("this ");
         visit(cast(ASTCodegen.TemplateTypeParameter) tp);
     }
 
     void visitTemplateAliasParameter(ASTCodegen.TemplateAliasParameter tp)
     {
-        buf.put("alias ");
+        write("alias ");
         if (tp.specType)
             writeTypeWithIdent(tp.specType, tp.ident);
         else
-            buf.put(tp.ident.toString());
+            write(tp.ident.toString());
         if (tp.specAlias)
         {
-            buf.put(" : ");
+            write(" : ");
             writeObject(tp.specAlias);
         }
         if (tp.defaultAlias)
         {
-            buf.put(" = ");
+            write(" = ");
             writeObject(tp.defaultAlias);
         }
     }
@@ -3585,20 +3582,20 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         writeTypeWithIdent(tp.valType, tp.ident);
         if (tp.specValue)
         {
-            buf.put(" : ");
+            write(" : ");
             writeExpr(tp.specValue);
         }
         if (tp.defaultValue)
         {
-            buf.put(" = ");
+            write(" = ");
             writeExpr(tp.defaultValue);
         }
     }
 
     void visitTemplateTupleParameter(ASTCodegen.TemplateTupleParameter tp)
     {
-        buf.put(tp.ident.toString());
-        buf.put("...");
+        write(tp.ident.toString());
+        write("...");
     }
 
 override:
