@@ -24,8 +24,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     const Config* config;
     string eol;
     uint depth;
-    bool declstring; // set while declaring alias for string,wstring or dstring
-    bool doindent; // insert indentation before writing the string
+    bool declString; // set while declaring alias for string,wstring or dstring
+    bool isNewline; // used to indent before writing the line
+    bool insideCase; // true if the node a child of a CaseStatement
 
     this(File.LockingTextWriter buf, Config* config)
     {
@@ -74,15 +75,15 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         buf.put(eol);
         // Indicate that the next write should be indented
-        doindent = true;
+        isNewline = true;
     }
 
     extern (D) void write(T)(T data)
     {
-        if (doindent)
+        if (isNewline)
         {
             indent();
-            doindent = false;
+            isNewline = false;
         }
         buf.put(data);
     }
@@ -1079,8 +1080,6 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         }
         else
         {
-            // Sparse style formatting, for debug use only
-            //      [0..length: basis, 1: e1, 5: e5]
             if (basis)
             {
                 write("0..");
@@ -1274,14 +1273,20 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitScope(ASTCodegen.ScopeStatement s)
         {
-            write('{');
-            newline();
+            if (!insideCase)
+            {
+                write('{');
+                newline();
+            }
             depth++;
             if (s.statement)
                 writeStatement(s.statement);
             depth--;
-            write('}');
-            newline();
+            if (!insideCase)
+            {
+                write('}');
+                newline();
+            }
         }
 
         void visitWhile(ASTCodegen.WhileStatement s)
@@ -1507,8 +1512,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 writeStatement(s.elsebody);
                 depth--;
                 write('}');
+                newline();
             }
-            newline();
         }
 
         void visitPragma(ASTCodegen.PragmaStatement s)
@@ -1588,7 +1593,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             writeExpr(s.exp);
             write(':');
             newline();
+            insideCase = true;
             writeStatement(s.statement);
+            insideCase = false;
         }
 
         void visitCaseRange(ASTCodegen.CaseRangeStatement s)
@@ -1842,37 +1849,28 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void writeFuncBody(ASTCodegen.FuncDeclaration f)
     {
-        if (!f.fbody)
-        {
-            if (f.fensures || f.frequires)
-            {
-                newline();
-                writeContracts(f);
-            }
-            write(';');
-            newline();
-            return;
-        }
-
         newline();
-        bool requireDo = writeContracts(f);
-
-        if (requireDo)
-        {
-            write("do");
-            newline();
-        }
+        writeContracts(f);
         write('{');
         newline();
         depth++;
-        writeStatement(f.fbody);
+        if (f.fbody)
+        {
+            writeStatement(f.fbody);
+        }
+        else
+        {
+            write('{');
+            newline();
+            write('}');
+            newline();
+        }
         depth--;
         write('}');
         newline();
     }
 
-    // Returns: whether `do` is needed to write the function body
-    bool writeContracts(ASTCodegen.FuncDeclaration f)
+    void writeContracts(ASTCodegen.FuncDeclaration f)
     {
         bool requireDo = false;
         // in{}
@@ -1932,7 +1930,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 }
             }
         }
-        return requireDo;
+
+        if (requireDo)
+        {
+            write("do");
+            newline();
+        }
     }
 
     void writeInitializer(Initializer inx)
@@ -1949,7 +1952,6 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitStruct(StructInitializer si)
         {
-            //printf("StructInitializer::toCBuffer()\n");
             write('{');
             foreach (i, const id; si.field)
             {
@@ -2286,7 +2288,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         void visitDArray(TypeDArray t)
         {
             Type ut = t.castMod(0);
-            if (declstring)
+            if (declString)
                 goto L1;
             if (ut.equals(Type.tstring))
                 write("string");
@@ -2732,10 +2734,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     void visitDebugSymbol(ASTCodegen.DebugSymbol s)
     {
         write("debug = ");
-        if (s.ident)
-            write(s.ident.toString());
-        else
-            write(format("%d", s.level));
+        write(s.ident.toString());
         write(';');
         newline();
     }
@@ -2743,10 +2742,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     void visitVersionSymbol(ASTCodegen.VersionSymbol s)
     {
         write("version = ");
-        if (s.ident)
-            write(s.ident.toString());
-        else
-            write(format("%d", s.level));
+        write(s.ident.toString());
         write(';');
         newline();
     }
@@ -2813,6 +2809,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     override void visitAttribDeclaration(ASTCodegen.AttribDeclaration d)
     {
+        if (isNewline)
+        {
+            newline();
+        }
         if (auto stcd = d.isStorageClassDeclaration)
         {
             writeStc(stcd.stc);
@@ -2824,6 +2824,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             newline();
             return;
         }
+
         if (d.decl.length == 0)
         {
             write("{}");
@@ -2890,6 +2891,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitVisibilityDeclaration(ASTCodegen.VisibilityDeclaration d)
     {
+        if (isNewline)
+        {
+            newline();
+        }
         writeVisibility(d.visibility);
         ASTCodegen.AttribDeclaration ad = cast(ASTCodegen.AttribDeclaration) d;
         if (ad.decl.length <= 1)
@@ -3318,13 +3323,13 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             import dmd.id : Id;
 
-            declstring = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id
+            declString = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id
                     .dstring);
             write(d.ident.toString());
             write(" = ");
             writeStc(d.storage_class);
             writeTypeWithIdent(d.type, null);
-            declstring = false;
+            declString = false;
         }
         write(';');
         newline();
@@ -3353,6 +3358,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitFuncDeclaration(ASTCodegen.FuncDeclaration f)
     {
+        if (isNewline)
+        {
+            newline();
+        }
         writeStc(f.storage_class);
         auto tf = cast(TypeFunction) f.type;
         writeTypeWithIdent(tf, f.ident);
@@ -3512,22 +3521,24 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitDebugCondition(ASTCodegen.DebugCondition c)
     {
-        write("debug (");
+        write("debug ");
         if (c.ident)
+        {
+            write('(');
             write(c.ident.toString());
-        else
-            write(format("%d", c.level));
-        write(')');
+            write(')');
+        }
     }
 
     void visitVersionCondition(ASTCodegen.VersionCondition c)
     {
         write("version (");
         if (c.ident)
+        {
+            write('(');
             write(c.ident.toString());
-        else
-            write(format("%d", c.level));
-        write(')');
+            write(')');
+        }
     }
 
     void visitStaticIfCondition(ASTCodegen.StaticIfCondition c)
