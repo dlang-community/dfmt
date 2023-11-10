@@ -385,6 +385,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (i)
                     write(", ");
                 writeExprWithPrecedence(key, PREC.assign);
+                if (config.dfmt_space_before_aa_colon == OptionalBoolean.t)
+                    write(' ');
                 write(": ");
                 auto value = (*e.values)[i];
                 writeExprWithPrecedence(value, PREC.assign);
@@ -792,6 +794,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 write(MODtoString(e.mod));
             }
             write(')');
+            if (config.dfmt_space_after_cast)
+            {
+                write(' ');
+            }
             writeExprWithPrecedence(e.e1, precedence[e.op]);
         }
 
@@ -1589,6 +1595,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitCase(ASTCodegen.CaseStatement s)
         {
+            if (config.dfmt_align_switch_statements)
+                depth--;
             write("case ");
             writeExpr(s.exp);
             write(':');
@@ -1596,6 +1604,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             insideCase = true;
             writeStatement(s.statement);
             insideCase = false;
+            if (config.dfmt_align_switch_statements)
+                depth++;
         }
 
         void visitCaseRange(ASTCodegen.CaseRangeStatement s)
@@ -1611,9 +1621,13 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitDefault(ASTCodegen.DefaultStatement s)
         {
+            if (config.dfmt_align_switch_statements)
+                depth--;
             write("default:");
             newline();
             writeStatement(s.statement);
+            if (config.dfmt_align_switch_statements)
+                depth++;
         }
 
         void visitGotoDefault(ASTCodegen.GotoDefaultStatement _)
@@ -1978,7 +1992,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (ex)
                 {
                     writeExpr(ex);
-                    write(':');
+                    if (config.dfmt_space_before_aa_colon == OptionalBoolean.t)
+                        write(' ');
+                    write(": ");
                 }
                 if (auto iz = ai.value[i])
                     writeInitializer(iz);
@@ -2602,6 +2618,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void writeParamList(ParameterList pl)
     {
+        if (config.dfmt_space_before_function_parameters)
+            write(' ');
         write('(');
         foreach (i; 0 .. pl.length)
         {
