@@ -2827,7 +2827,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         write(imp.id.toString());
         if (imp.names.length)
         {
-            write(" : ");
+            if (config.dfmt_selective_import_space)
+                write(' ');
+            write(": ");
             foreach (const i, const name; imp.names)
             {
                 if (i)
