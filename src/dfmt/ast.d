@@ -1297,7 +1297,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitWhile(ASTCodegen.WhileStatement s)
         {
-            write("while (");
+            write("while");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             if (auto p = s.param)
             {
                 // Print condition assignment
@@ -1324,7 +1327,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             newline();
             if (s._body)
                 writeStatement(s._body);
-            write("while (");
+            write("while");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             writeExpr(s.condition);
             write(");");
             newline();
@@ -1332,7 +1338,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitFor(ASTCodegen.ForStatement s)
         {
-            write("for (");
+            write("for");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             if (s._init)
             {
                 writeStatement(s._init);
@@ -1365,7 +1374,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         void visitForeachWithoutBody(ASTCodegen.ForeachStatement s)
         {
             write(Token.toString(s.op));
-            write(" (");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             foreach (i, p; *s.parameters)
             {
                 if (i)
@@ -1398,7 +1409,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         void visitForeachRangeWithoutBody(ASTCodegen.ForeachRangeStatement s)
         {
             write(Token.toString(s.op));
-            write(" (");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             if (s.prm.type)
                 writeTypeWithIdent(s.prm.type, s.prm.ident);
             else
@@ -1446,7 +1459,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitIf(ASTCodegen.IfStatement s)
         {
-            write("if (");
+            write("if");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             if (Parameter p = s.prm)
             {
                 StorageClass stc = p.storageClass;
@@ -1524,7 +1540,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitPragma(ASTCodegen.PragmaStatement s)
         {
-            write("pragma (");
+            write("pragma");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             write(s.ident.toString());
             if (s.args && s.args.length)
             {
@@ -1557,7 +1576,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitSwitch(ASTCodegen.SwitchStatement s)
         {
-            write(s.isFinal ? "final switch (" : "switch (");
+            write(s.isFinal ? "final switch" : "switch");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             if (auto p = s.param)
             {
                 // Print condition assignment
@@ -1699,7 +1721,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitWith(ASTCodegen.WithStatement s)
         {
-            write("with (");
+            write("with");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             writeExpr(s.exp);
             write(")");
             newline();
@@ -1896,7 +1921,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (auto es = frequire.isExpStatement())
                 {
                     assert(es.exp && es.exp.op == EXP.assert_);
-                    write(" (");
+                    if (config.dfmt_space_after_keywords)
+                        write(' ');
+                    write('(');
                     writeExpr((cast(ASTCodegen.AssertExp) es.exp).e1);
                     write(')');
                     newline();
@@ -1919,7 +1946,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (auto es = fensure.ensure.isExpStatement())
                 {
                     assert(es.exp && es.exp.op == EXP.assert_);
-                    write(" (");
+                    if (config.dfmt_space_after_keywords)
+                        write(' ');
+                    write('(');
                     if (fensure.id)
                     {
                         write(fensure.id.toString());
@@ -2545,7 +2574,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         const s = linkageToString(linkage);
         if (s.length)
         {
-            write("extern (");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             write(s);
             write(')');
         }
@@ -2881,7 +2912,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitLinkDeclaration(ASTCodegen.LinkDeclaration d)
     {
-        write("extern (");
+        write("extern");
+        if (config.dfmt_space_after_keywords)
+            write(' ');
+        write('(');
         write(linkageToString(d.linkage));
         write(") ");
         visitAttribDeclaration(d);
@@ -2961,7 +2995,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitPragmaDeclaration(ASTCodegen.PragmaDeclaration d)
     {
-        write("pragma (");
+        write("pragma");
+        if (config.dfmt_space_after_keywords)
+            write(' ');
+        write('(');
         write(d.ident.toString());
         if (d.args && d.args.length)
         {
@@ -3013,7 +3050,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         void foreachWithoutBody(ASTCodegen.ForeachStatement s)
         {
             write(Token.toString(s.op));
-            write(" (");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             foreach (i, p; *s.parameters)
             {
                 if (i)
@@ -3035,7 +3074,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             /* s.op ( prm ; lwr .. upr )
              */
             write(Token.toString(s.op));
-            write(" (");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             if (s.prm.type)
                 writeTypeWithIdent(s.prm.type, s.prm.ident);
             else
@@ -3088,7 +3129,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         if (!constraint)
             return;
-        write(" if (");
+        write(" if");
+        if (config.dfmt_space_after_keywords)
+            write(' ');
+        write('(');
         writeExpr(constraint);
         write(')');
     }
@@ -3467,7 +3511,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (auto es = d.fbody.isExpStatement())
         {
             assert(es.exp && es.exp.op == EXP.assert_);
-            write(" (");
+            if (config.dfmt_space_after_keywords)
+                write(' ');
+            write('(');
             writeExpr((cast(ASTCodegen.AssertExp) es.exp).e1);
             write(");");
             newline();
@@ -3550,9 +3596,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitVersionCondition(ASTCodegen.VersionCondition c)
     {
-        write("version (");
+        write("version");
         if (c.ident)
         {
+            if (config.dfmt_space_after_keywords)
+                write(' ');
             write('(');
             write(c.ident.toString());
             write(')');
@@ -3561,7 +3609,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitStaticIfCondition(ASTCodegen.StaticIfCondition c)
     {
-        write("static if (");
+        write("static if");
+        if (config.dfmt_space_after_keywords)
+            write(' ');
+        write('(');
         writeExpr(c.exp);
         write(')');
     }

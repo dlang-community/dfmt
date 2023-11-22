@@ -66,8 +66,6 @@ struct Config
     ///
     OptionalBoolean dfmt_reflow_property_chains;
     ///
-    OptionalBoolean dfmt_space_after_statement_keyword;
-    ///
     OptionalBoolean dfmt_space_before_named_arg_colon;
 
     mixin StandardEditorConfigFields;
@@ -114,7 +112,7 @@ struct Config
         if (dfmt_soft_max_line_length > max_line_length)
         {
             stderr.writefln("Column hard limit (%d) must be greater than or equal to column soft limit (%d)",
-                    max_line_length, dfmt_soft_max_line_length);
+                max_line_length, dfmt_soft_max_line_length);
             return false;
         }
         return true;
