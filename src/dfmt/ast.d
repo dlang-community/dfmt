@@ -26,7 +26,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     uint depth;
     bool declString; // set while declaring alias for string,wstring or dstring
     bool isNewline; // used to indent before writing the line
-    bool insideCase; // true if the node a child of a CaseStatement
+    bool insideCase; // true if the node is a child of a CaseStatement
+    bool insideIfOrDo; // true if the node is a child of an IfStatement or DoStatement
 
     this(File.LockingTextWriter buf, Config* config)
     {
@@ -385,7 +386,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (i)
                     write(", ");
                 writeExprWithPrecedence(key, PREC.assign);
-                if (config.dfmt_space_before_aa_colon == OptionalBoolean.t)
+                if (config.dfmt_space_before_aa_colon)
                     write(' ');
                 write(": ");
                 auto value = (*e.values)[i];
@@ -1281,7 +1282,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             if (!insideCase)
             {
-                write('{');
+                if (config.dfmt_brace_style != BraceStyle.knr || s.statement.isCompoundStatement.statements.length != 1)
+                    write('{');
                 newline();
             }
             depth++;
@@ -1290,8 +1292,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             depth--;
             if (!insideCase)
             {
-                write('}');
-                newline();
+                if (config.dfmt_brace_style != BraceStyle.knr || s.statement.isCompoundStatement.statements.length != 1)
+                {
+                    write('}');
+                    if (!insideIfOrDo)
+                        newline();
+                }
             }
         }
 
@@ -1324,9 +1330,27 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         void visitDo(ASTCodegen.DoStatement s)
         {
             write("do");
-            newline();
-            if (s._body)
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
+            if (s._body.isScopeStatement)
+            {
+                insideIfOrDo = true;
                 writeStatement(s._body);
+                insideIfOrDo = false;
+            }
+            else
+            {
+                depth++;
+                writeStatement(s._body);
+                depth--;
+            }
+            if (config.dfmt_brace_style == BraceStyle.otbs)
+                write(' ');
+            else if (config.dfmt_brace_style != BraceStyle.knr || s._body
+                .isScopeStatement.statement.isCompoundStatement.statements.length > 1)
+                newline();
             write("while");
             if (config.dfmt_space_after_keywords)
                 write(' ');
@@ -1360,7 +1384,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 writeExpr(s.increment);
             }
             write(')');
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
             write('{');
             newline();
             depth++;
@@ -1390,7 +1417,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             write("; ");
             writeExpr(s.aggr);
             write(')');
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
         }
 
         void visitForeach(ASTCodegen.ForeachStatement s)
@@ -1421,7 +1451,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             write(" .. ");
             writeExpr(s.upr);
             write(')');
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
         }
 
         void visitForeachRange(ASTCodegen.ForeachRangeStatement s)
@@ -1477,10 +1510,15 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             }
             writeExpr(s.condition);
             write(')');
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
             if (s.ifbody.isScopeStatement())
             {
+                insideIfOrDo = true;
                 writeStatement(s.ifbody);
+                insideIfOrDo = false;
             }
             else
             {
@@ -1490,8 +1528,13 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             }
             if (s.elsebody)
             {
+                if (config.dfmt_brace_style == BraceStyle.otbs)
+                    write(' ');
+                else if (config.dfmt_brace_style != BraceStyle.knr ||
+                    s.ifbody.isScopeStatement.statement.isCompoundStatement.statements.length > 1)
+                    newline();
                 write("else");
-                if (!s.elsebody.isIfStatement())
+                if (!s.elsebody.isIfStatement() && config.dfmt_brace_style == BraceStyle.allman)
                 {
                     newline();
                 }
@@ -1510,12 +1553,19 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                     depth--;
                 }
             }
+            else
+            {
+                newline();
+            }
         }
 
         void visitConditional(ASTCodegen.ConditionalStatement s)
         {
             s.condition.accept(this);
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
             write('{');
             newline();
             depth++;
@@ -1527,7 +1577,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             if (s.elsebody)
             {
                 write("else");
-                newline();
+                if (config.dfmt_brace_style == BraceStyle.allman)
+                    newline();
+                else
+                    write(' ');
                 write('{');
                 depth++;
                 newline();
@@ -1553,7 +1606,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             write(')');
             if (s._body)
             {
-                newline();
+                if (config.dfmt_brace_style == BraceStyle.allman)
+                    newline();
+                else
+                    write(' ');
                 write('{');
                 newline();
                 depth++;
@@ -1595,7 +1651,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             }
             writeExpr(s.condition);
             write(')');
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
             if (s._body)
             {
                 if (!s._body.isScopeStatement())
@@ -1758,7 +1817,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                     writeTypeWithIdent(c.type, c.ident);
                     write(')');
                 }
-                newline();
+                if (config.dfmt_brace_style == BraceStyle.allman)
+                    newline();
+                else
+                    write(' ');
                 write('{');
                 newline();
                 depth++;
@@ -1773,7 +1835,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         void visitTryFinally(ASTCodegen.TryFinallyStatement s)
         {
             write("try");
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
             write('{');
             newline();
             depth++;
@@ -1888,7 +1953,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void writeFuncBody(ASTCodegen.FuncDeclaration f)
     {
-        newline();
+        if (config.dfmt_brace_style == BraceStyle.allman || config.dfmt_brace_style == BraceStyle
+            .knr)
+            newline();
+        else
+            write(' ');
         writeContracts(f);
         write('{');
         newline();
@@ -1977,7 +2046,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (requireDo)
         {
             write("do");
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman || config.dfmt_brace_style == BraceStyle
+                .knr)
+                newline();
+            else
+                write(' ');
         }
     }
 
@@ -2021,7 +2094,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (ex)
                 {
                     writeExpr(ex);
-                    if (config.dfmt_space_before_aa_colon == OptionalBoolean.t)
+                    if (config.dfmt_space_before_aa_colon)
                         write(' ');
                     write(": ");
                 }
@@ -2887,7 +2960,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         }
         else
         {
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
             write('{');
             newline();
             depth++;
@@ -2981,8 +3057,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     void visitAnonDeclaration(ASTCodegen.AnonDeclaration d)
     {
         write(d.isunion ? "union" : "struct");
-        newline();
-        write("{");
+        if (config.dfmt_brace_style == BraceStyle.allman)
+            newline();
+        else
+            write(' ');
+        write('{');
         newline();
         depth++;
         if (d.decl)
@@ -2991,7 +3070,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 de.accept(this);
         }
         depth--;
-        write("}");
+        write('}');
         newline();
     }
 
@@ -3017,7 +3096,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         d.condition.accept(this);
         if (d.decl || d.elsedecl)
         {
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
             write('{');
             newline();
             depth++;
@@ -3032,7 +3114,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             {
                 newline();
                 write("else");
-                newline();
+                if (config.dfmt_brace_style == BraceStyle.allman)
+                    newline();
+                else
+                    write(' ');
                 write('{');
                 newline();
                 depth++;
@@ -3088,7 +3173,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             write(" .. ");
             writeExpr(s.upr);
             write(')');
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
         }
 
         write("static ");
@@ -3181,7 +3269,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             visitBaseClasses(ad.isClassDeclaration());
             if (ad.members)
             {
-                newline();
+                if (config.dfmt_brace_style == BraceStyle.allman)
+                    newline();
+                else
+                    write(' ');
                 write('{');
                 newline();
                 depth++;
@@ -3272,7 +3363,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             newline();
             return;
         }
-        newline();
+        if (config.dfmt_brace_style == BraceStyle.allman)
+            newline();
+        else
+            write(' ');
         write('{');
         newline();
         depth++;
@@ -3294,7 +3388,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         write("extern (C++, ");
         write(d.ident.toString());
         write(')');
-        newline();
+        if (config.dfmt_brace_style == BraceStyle.allman)
+            newline();
+        else
+            write(' ');
         write('{');
         newline();
         depth++;
@@ -3317,7 +3414,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             newline();
             return;
         }
-        newline();
+        if (config.dfmt_brace_style == BraceStyle.allman)
+            newline();
+        else
+            write(' ');
         write('{');
         newline();
         depth++;
@@ -3339,7 +3439,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         visitBaseClasses(d);
         if (d.members)
         {
-            newline();
+            if (config.dfmt_brace_style == BraceStyle.allman)
+                newline();
+            else
+                write(' ');
             write('{');
             newline();
             depth++;
@@ -3587,9 +3690,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitDebugCondition(ASTCodegen.DebugCondition c)
     {
-        write("debug ");
+        write("debug");
         if (c.ident)
         {
+            if (config.dfmt_space_after_keywords)
+                write(' ');
             write('(');
             write(c.ident.toString());
             write(')');
