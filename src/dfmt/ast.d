@@ -1077,6 +1077,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                 if (names && i < names.length && (*names)[i])
                 {
                     write((*names)[i].toString());
+                    if (config.dfmt_space_before_named_arg_colon)
+                        write(' ');
                     write(": ");
                 }
                 if (!el)
