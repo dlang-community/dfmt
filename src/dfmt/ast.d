@@ -3224,12 +3224,38 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     {
         if (!constraint)
             return;
+
+        final switch (config.dfmt_template_constraint_style)
+        {
+        case TemplateConstraintStyle._unspecified:
+            // Fallthrough to the default case
+        case TemplateConstraintStyle.conditional_newline_indent:
+            // This will be updated later on
+            goto case;
+        case TemplateConstraintStyle.always_newline_indent:
+            newline();
+            depth++;
+            break;
+        case TemplateConstraintStyle.conditional_newline:
+            // This will be updated later on
+            goto case;
+        case TemplateConstraintStyle.always_newline:
+            newline();
+            break;
+        }
+
         write(" if");
         if (config.dfmt_space_after_keywords)
             write(' ');
         write('(');
         writeExpr(constraint);
         write(')');
+
+        if (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent ||
+             // This condition will be updated later on
+            config.dfmt_template_constraint_style == TemplateConstraintStyle
+                .conditional_newline_indent)
+            depth--;
     }
 
     override void visitBaseClasses(ASTCodegen.ClassDeclaration d)
