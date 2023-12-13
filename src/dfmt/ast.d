@@ -1896,7 +1896,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             write(s.ident.toString());
             write(':');
-            newline();
+            if (config.dfmt_compact_labeled_statements)
+                write(' ');
+            else
+                newline();
             if (s.statement)
                 writeStatement(s.statement);
         }

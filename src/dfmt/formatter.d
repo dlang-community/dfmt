@@ -33,9 +33,9 @@ bool format(string source_desc, ubyte[] buffer, File.LockingTextWriter output,
     Config* formatterConfig)
 {
     initDMD();
-    auto module_ = parseModule(source_desc);
+    auto module_ = parseModule(source_desc)[0];
     scope v = new FormatVisitor(output, formatterConfig);
-    v.visit(module_[0]);
+    v.visit(module_);
 
     return true;
 }
