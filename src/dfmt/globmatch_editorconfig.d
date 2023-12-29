@@ -3,7 +3,7 @@ module dfmt.globmatch_editorconfig;
 import std.path : CaseSensitive;
 import std.range : isForwardRange, ElementEncodingType;
 import std.traits : isSomeChar, isSomeString;
-import std.range.primitives :  empty, save, front, popFront;
+import std.range.primitives : empty, save, front, popFront;
 import std.traits : Unqual;
 import std.conv : to;
 import std.path : filenameCharCmp, isDirSeparator;
@@ -12,7 +12,7 @@ import std.path : filenameCharCmp, isDirSeparator;
 // * changes meaning to match all characters except '/'
 // ** added to take over the old meaning of *
 bool globMatchEditorConfig(CaseSensitive cs = CaseSensitive.osDefault, C, Range)(
-        Range path, const(C)[] pattern) @safe pure
+        Range path, const(C)[] pattern) @safe pure 
         if (isForwardRange!Range && isSomeChar!(ElementEncodingType!Range)
             && isSomeChar!C && is(Unqual!C == Unqual!(ElementEncodingType!Range)))
 in

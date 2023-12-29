@@ -160,8 +160,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             write(rrs);
             writeSpace = true;
             stc &= ~(
-                ASTCodegen.STC.out_ | ASTCodegen.STC.scope_ | ASTCodegen.STC.ref_ | ASTCodegen
-                    .STC.return_);
+                    ASTCodegen.STC.out_ | ASTCodegen.STC.scope_
+                    | ASTCodegen.STC.ref_ | ASTCodegen.STC.return_);
             break;
         }
 
@@ -312,8 +312,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
                     write(')');
                     if (target.ptrsize == 8)
                         goto case Tuns64;
-                    else if (target.ptrsize == 4 ||
-                        target.ptrsize == 2)
+                    else if (target.ptrsize == 4 || target.ptrsize == 2)
                         goto case Tuns32;
                     else
                         assert(0);
@@ -1084,10 +1083,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         }
     }
 
-    void writeArgs(
-        ASTCodegen.Expressions* expressions,
-        ASTCodegen.Expression basis = null,
-        ASTCodegen.Identifiers* names = null)
+    void writeArgs(ASTCodegen.Expressions* expressions,
+            ASTCodegen.Expression basis = null, ASTCodegen.Identifiers* names = null)
     {
         if (!expressions || !expressions.length)
             return;
@@ -1151,7 +1148,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
      * They must be parenthesized.
      */
         if (precedence[e.op] < pr || (pr == PREC.rel && precedence[e.op] == pr)
-            || (pr >= PREC.or && pr <= PREC.and && precedence[e.op] == PREC.rel))
+                || (pr >= PREC.or && pr <= PREC.and && precedence[e.op] == PREC.rel))
         {
             write('(');
             writeExpr(e);
@@ -1228,8 +1225,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitExp(ASTCodegen.ExpStatement s)
         {
-            if (s.exp && s.exp.op == EXP.declaration &&
-                (cast(ASTCodegen.DeclarationExp) s.exp).declaration)
+            if (s.exp && s.exp.op == EXP.declaration
+                    && (cast(ASTCodegen.DeclarationExp) s.exp).declaration)
             {
                 (cast(ASTCodegen.DeclarationExp) s.exp).declaration.accept(this);
                 return;
@@ -1308,7 +1305,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             if (!insideCase)
             {
-                if (config.dfmt_brace_style != BraceStyle.knr || s.statement.isCompoundStatement.statements.length != 1)
+                if (config.dfmt_brace_style != BraceStyle.knr
+                        || s.statement.isCompoundStatement.statements.length != 1)
                     write('{');
                 newline();
             }
@@ -1318,7 +1316,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             depth--;
             if (!insideCase)
             {
-                if (config.dfmt_brace_style != BraceStyle.knr || s.statement.isCompoundStatement.statements.length != 1)
+                if (config.dfmt_brace_style != BraceStyle.knr
+                        || s.statement.isCompoundStatement.statements.length != 1)
                 {
                     write('}');
                     if (!insideIfOrDo)
@@ -1374,8 +1373,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             }
             if (config.dfmt_brace_style == BraceStyle.otbs)
                 write(' ');
-            else if (config.dfmt_brace_style != BraceStyle.knr || s._body
-                .isScopeStatement.statement.isCompoundStatement.statements.length > 1)
+            else if (config.dfmt_brace_style != BraceStyle.knr
+                    || s._body.isScopeStatement.statement.isCompoundStatement.statements.length > 1)
                 newline();
             write("while");
             if (config.dfmt_space_after_keywords)
@@ -1556,8 +1555,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             {
                 if (config.dfmt_brace_style == BraceStyle.otbs)
                     write(' ');
-                else if (config.dfmt_brace_style != BraceStyle.knr ||
-                    s.ifbody.isScopeStatement.statement.isCompoundStatement.statements.length > 1)
+                else if (config.dfmt_brace_style != BraceStyle.knr
+                        || s.ifbody.isScopeStatement.statement.isCompoundStatement.statements.length
+                        > 1)
                     newline();
                 write("else");
                 if (!s.elsebody.isIfStatement() && config.dfmt_brace_style == BraceStyle.allman)
@@ -1938,14 +1938,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             while (t)
             {
                 write(Token.toString(t.value));
-                if (t.next &&
-                    t.value != TOK.min &&
-                    t.value != TOK.comma && t.next.value != TOK.comma &&
-                    t.value != TOK.leftBracket && t.next.value != TOK.leftBracket &&
-                    t.next.value != TOK.rightBracket &&
-                    t.value != TOK.leftParenthesis && t.next.value != TOK.leftParenthesis &&
-                    t.next.value != TOK.rightParenthesis &&
-                    t.value != TOK.dot && t.next.value != TOK.dot)
+                if (t.next && t.value != TOK.min && t.value != TOK.comma
+                        && t.next.value != TOK.comma && t.value != TOK.leftBracket
+                        && t.next.value != TOK.leftBracket && t.next.value != TOK.rightBracket
+                        && t.value != TOK.leftParenthesis && t.next.value != TOK.leftParenthesis
+                        && t.next.value != TOK.rightParenthesis
+                        && t.value != TOK.dot && t.next.value != TOK.dot)
                 {
                     write(' ');
                 }
@@ -1982,8 +1980,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void writeFuncBody(ASTCodegen.FuncDeclaration f)
     {
-        if (config.dfmt_brace_style == BraceStyle.allman || config.dfmt_brace_style == BraceStyle
-            .knr)
+        if (config.dfmt_brace_style == BraceStyle.allman || config.dfmt_brace_style
+                == BraceStyle.knr)
             newline();
         else
             write(' ');
@@ -2075,8 +2073,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (requireDo)
         {
             write("do");
-            if (config.dfmt_brace_style == BraceStyle.allman || config.dfmt_brace_style == BraceStyle
-                .knr)
+            if (config.dfmt_brace_style == BraceStyle.allman
+                    || config.dfmt_brace_style == BraceStyle.knr)
                 newline();
             else
                 write(' ');
@@ -2285,8 +2283,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         writeExprWithPrecedence(e, PREC.assign);
     }
 
-    void writeFuncIdentWithPrefix(TypeFunction t, const Identifier ident, ASTCodegen
-            .TemplateDeclaration td)
+    void writeFuncIdentWithPrefix(TypeFunction t, const Identifier ident,
+            ASTCodegen.TemplateDeclaration td)
     {
         if (t.inuse)
         {
@@ -2621,8 +2619,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         switch (t.ty)
         {
         default:
-            return t.isTypeBasic() ?
-                visitBasic(cast(TypeBasic) t) : visitType(t);
+            return t.isTypeBasic() ? visitBasic(cast(TypeBasic) t) : visitType(t);
 
         case Terror:
             return visitError(cast(TypeError) t);
@@ -2692,7 +2689,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             write('@');
 
-            bool isAnonymous = p.userAttribDecl.atts.length > 0 && !(*p.userAttribDecl.atts)[0].isCallExp();
+            bool isAnonymous = p.userAttribDecl.atts.length > 0
+                && !(*p.userAttribDecl.atts)[0].isCallExp();
             if (isAnonymous)
                 write('(');
 
@@ -2719,9 +2717,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             stc &= ~STC.shared_;
 
         writeStc(stc & (
-                STC.const_ | STC.immutable_ | STC.wild | STC.shared_ |
-                STC.return_ | STC.returninferred | STC.scope_ | STC.scopeinferred | STC.out_ | STC.ref_ | STC
-                .returnScope));
+                STC.const_ | STC.immutable_ | STC.wild | STC.shared_ | STC.return_
+                | STC.returninferred | STC.scope_ | STC.scopeinferred | STC.out_
+                | STC.ref_ | STC.returnScope));
 
         import core.stdc.string : strncmp;
 
@@ -2730,10 +2728,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             if (p.ident)
                 write(p.ident.toString());
         }
-        else if (p.type.ty == Tident &&
-            (cast(TypeIdentifier) p.type)
-                .ident.toString().length > 3 &&
-            strncmp((cast(TypeIdentifier) p.type)
+        else if (p.type.ty == Tident && (cast(TypeIdentifier) p.type)
+                .ident.toString().length > 3 && strncmp((cast(TypeIdentifier) p.type)
                 .ident.toChars(), "__T", 3) == 0)
         {
             // print parameter name, instead of undetermined type parameter
@@ -2800,12 +2796,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         with (ASTCodegen.Visibility.Kind)
         {
             immutable string[7] a = [
-                none: "none",
-                private_: "private",
-                package_: "package",
-                protected_: "protected",
-                public_: "public",
-                export_: "export"
+                none: "none", private_: "private", package_: "package",
+                protected_: "protected", public_: "public", export_: "export"
             ];
             return a[kind];
         }
@@ -2831,8 +2823,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             RootObject oarg = (*ti.tiargs)[0];
             if (Type t = isType(oarg))
             {
-                if ((t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0) && (
-                        (t.isTypeBasic() || t.ty == Tident) && (cast(TypeIdentifier) t).idents.length == 0))
+                if ((t.equals(Type.tstring) || t.equals(Type.twstring)
+                        || t.equals(Type.tdstring) || t.mod == 0) && ((t.isTypeBasic()
+                        || t.ty == Tident) && (cast(TypeIdentifier) t).idents.length == 0))
                 {
                     write(t.toString());
                     return;
@@ -2840,8 +2833,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             }
             else if (ASTCodegen.Expression e = isExpression(oarg))
             {
-                if (e.op == EXP.int64 || e.op == EXP.float64 || e.op == EXP.null_ || e.op == EXP.string_ || e.op == EXP
-                    .this_)
+                if (e.op == EXP.int64 || e.op == EXP.float64 || e.op == EXP.null_
+                        || e.op == EXP.string_ || e.op == EXP.this_)
                 {
                     write(e.toString());
                     return;
@@ -3279,8 +3272,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         write(')');
 
         if (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent
-            || config.dfmt_template_constraint_style
-            == TemplateConstraintStyle.conditional_newline_indent)
+                || config.dfmt_template_constraint_style
+                == TemplateConstraintStyle.conditional_newline_indent)
             depth--;
     }
 
@@ -3547,8 +3540,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         {
             import dmd.id : Id;
 
-            declString = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id
-                    .dstring);
+            declString = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id.dstring);
             write(d.ident.toString());
             write(" = ");
             writeStc(d.storage_class);

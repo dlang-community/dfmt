@@ -31,7 +31,7 @@ import std.stdio : File;
  * Returns: `true` if the formatting succeeded, `false` if any error
  */
 bool format(string source_desc, ubyte[] buffer, File.LockingTextWriter output,
-    Config* formatterConfig)
+        Config* formatterConfig)
 {
     initDMD();
     global.params.useUnitTests = true;

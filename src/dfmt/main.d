@@ -55,8 +55,7 @@ int main(string[] args)
         import std.exception : enforce;
 
         enforce!GetOptException(value == "true" || value == "false", "Invalid argument");
-        immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t
-            : OptionalBoolean.f;
+        immutable OptionalBoolean optVal = value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
         switch (option)
         {
         case "align_switch_statements":
@@ -226,7 +225,7 @@ int main(string[] args)
                 break;
         }
         immutable bool formatSuccess = format("stdin", buffer,
-            stdout.lockingTextWriter(), &config);
+                stdout.lockingTextWriter(), &config);
         return formatSuccess ? 0 : 1;
     }
     else
@@ -327,12 +326,10 @@ Options:
 
 Formatting Options:
     --align_switch_statements
-    --brace_style               `, optionsToString!(typeof(Config.dfmt_brace_style)),
-        `
+    --brace_style               `, optionsToString!(typeof(Config.dfmt_brace_style)), `
     --end_of_line               `, optionsToString!(typeof(Config.end_of_line)), `
     --indent_size
-    --indent_style, -t          `,
-        optionsToString!(typeof(Config.indent_style)), `
+    --indent_style, -t          `, optionsToString!(typeof(Config.indent_style)), `
     --keep_line_breaks
     --soft_max_line_length
     --max_line_length
@@ -349,8 +346,7 @@ Formatting Options:
     --space_before_named_arg_colon
     --single_indent
     --reflow_property_chains
-        `,
-        optionsToString!(typeof(Config.dfmt_template_constraint_style)));
+        `, optionsToString!(typeof(Config.dfmt_template_constraint_style)));
 }
 
 private string createFilePath(bool readFromStdin, string fileName)
