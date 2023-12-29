@@ -65,13 +65,12 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void indent()
     {
-        if (depth)
-        {
-            auto indent = config.indent_style == IndentStyle.space ? ' '.repeat()
-                .take(depth * 4) : '\t'.repeat().take(depth);
-            buf.put(indent.array);
-            length += indent.length;
-        }
+        if (!depth)
+            return;
+        auto indent = config.indent_style == IndentStyle.space ? ' '.repeat()
+            .take(depth * 4) : '\t'.repeat().take(depth);
+        buf.put(indent.array);
+        length += indent.length;
     }
 
     void newline()
@@ -82,8 +81,17 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         isNewline = true;
     }
 
-    void write(T)(T data)
-        if (is(T : char) || is(T : dchar))
+    void conditionalNewline(T)(T data)
+    {
+        // If the current length is crosses the soft limit OR
+        // if the current length + data length crosses the hard limit,
+        // insert a newline.
+        if (length > config.dfmt_soft_max_line_length
+                || (length + data.length) > config.max_line_length)
+            newline();
+    }
+
+    void write(T)(T data) if (is(T : char) || is(T : dchar))
     {
         if (isNewline)
         {
@@ -94,8 +102,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         length += 1;
     }
 
-    extern (D) void write(T)(T data)
-        if (!(is(T : char) || is(T : dchar)))
+    extern (D) void write(T)(T data) if (!(is(T : char) || is(T : dchar)))
     {
         if (isNewline)
         {
@@ -105,7 +112,6 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         buf.put(data);
         length += data.length;
     }
-
 
     /*******************************************
     * Helpers to write different AST nodes to buffer
@@ -3250,15 +3256,16 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         case TemplateConstraintStyle._unspecified:
             // Fallthrough to the default case
         case TemplateConstraintStyle.conditional_newline_indent:
-            // This will be updated later on
-            goto case;
+            conditionalNewline();
+            depth++;
+            break;
         case TemplateConstraintStyle.always_newline_indent:
             newline();
             depth++;
             break;
         case TemplateConstraintStyle.conditional_newline:
-            // This will be updated later on
-            goto case;
+            conditionalNewline();
+            break;
         case TemplateConstraintStyle.always_newline:
             newline();
             break;
@@ -3271,10 +3278,9 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         writeExpr(constraint);
         write(')');
 
-        if (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent ||
-             // This condition will be updated later on
-            config.dfmt_template_constraint_style == TemplateConstraintStyle
-                .conditional_newline_indent)
+        if (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent
+            || config.dfmt_template_constraint_style
+            == TemplateConstraintStyle.conditional_newline_indent)
             depth--;
     }
 
