@@ -14,6 +14,7 @@ import dmd.astcodegen;
 import dmd.transitivevisitor;
 import dmd.permissivevisitor;
 import dmd.frontend;
+import dmd.globals;
 import dfmt.ast;
 import dfmt.config;
 import std.array;
@@ -33,6 +34,7 @@ bool format(string source_desc, ubyte[] buffer, File.LockingTextWriter output,
     Config* formatterConfig)
 {
     initDMD();
+    global.params.useUnitTests = true;
     auto module_ = parseModule(source_desc)[0];
     scope v = new FormatVisitor(output, formatterConfig);
     v.visit(module_);
