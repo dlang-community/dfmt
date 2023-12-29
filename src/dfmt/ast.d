@@ -2144,6 +2144,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             write('}');
         }
 
+        void visitDefault(DefaultInitializer di)
+        {
+            write("{ }");
+        }
+
         mixin VisitInitializer!void visit;
         visit.VisitInitializer(inx);
     }
@@ -2164,8 +2169,6 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         }
         else if (auto e = isExpression(oarg))
         {
-            if (e.op == EXP.variable)
-                e = e.optimize(WANTvalue); // added to fix https://issues.dlang.org/show_bug.cgi?id=7375
             writeExprWithPrecedence(e, PREC.assign);
         }
         else if (ASTCodegen.Dsymbol s = isDsymbol(oarg))
@@ -2236,7 +2239,6 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         if (e.type == Type.tsize_t)
         {
             ASTCodegen.Expression ex = (e.op == EXP.cast_ ? (cast(ASTCodegen.CastExp) e).e1 : e);
-            ex = ex.optimize(WANTvalue);
             const ulong uval = ex.op == EXP.int64 ? ex.toInteger() : cast(ulong)-1;
             if (cast(long) uval >= 0)
             {

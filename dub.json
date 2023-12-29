@@ -4,7 +4,7 @@
     "targetType": "autodetect",
     "license": "BSL-1.0",
     "dependencies": {
-        "dmd": "~>2.106.0-beta.1"
+        "dmd": "~>2.107.0-beta.1"
     },
     "targetPath": "bin/",
     "targetName": "dfmt",
