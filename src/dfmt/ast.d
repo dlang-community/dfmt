@@ -23,7 +23,8 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
     File.LockingTextWriter buf;
     const Config* config;
     string eol;
-    uint depth;
+    uint depth; // the current indentation level
+    uint length; // the length of the current line of code
     bool declString; // set while declaring alias for string,wstring or dstring
     bool isNewline; // used to indent before writing the line
     bool insideCase; // true if the node is a child of a CaseStatement
@@ -69,17 +70,20 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             auto indent = config.indent_style == IndentStyle.space ? ' '.repeat()
                 .take(depth * 4) : '\t'.repeat().take(depth);
             buf.put(indent.array);
+            length += indent.length;
         }
     }
 
     void newline()
     {
         buf.put(eol);
+        length = 0;
         // Indicate that the next write should be indented
         isNewline = true;
     }
 
-    extern (D) void write(T)(T data)
+    void write(T)(T data)
+        if (is(T : char) || is(T : dchar))
     {
         if (isNewline)
         {
@@ -87,7 +91,21 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             isNewline = false;
         }
         buf.put(data);
+        length += 1;
     }
+
+    extern (D) void write(T)(T data)
+        if (!(is(T : char) || is(T : dchar)))
+    {
+        if (isNewline)
+        {
+            indent();
+            isNewline = false;
+        }
+        buf.put(data);
+        length += data.length;
+    }
+
 
     /*******************************************
     * Helpers to write different AST nodes to buffer
