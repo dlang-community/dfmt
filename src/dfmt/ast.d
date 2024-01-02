@@ -16,13 +16,15 @@ import dfmt.config;
 import dfmt.editorconfig;
 import std.range;
 import std.format : format;
-import std.stdio : writeln, File;
+import std.stdio : File;
 
 extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 {
     File.LockingTextWriter buf;
     const Config* config;
     string eol;
+    string tempBuf; // a string buffer to temporarily store data for line splitting
+    bool useTempBuf; // toggles the buffer being written to
     uint depth; // the current indentation level
     uint length; // the length of the current line of code
     bool declString; // set while declaring alias for string,wstring or dstring
@@ -81,14 +83,24 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         isNewline = true;
     }
 
-    void conditionalNewline(T)(T data)
+    // Writes a newline only if the data will exceed the maximum allowed line length
+    bool conditionalNewline()
     {
-        // If the current length is crosses the soft limit OR
+        // If the current length crosses the soft limit OR
         // if the current length + data length crosses the hard limit,
         // insert a newline.
         if (length > config.dfmt_soft_max_line_length
-                || (length + data.length) > config.max_line_length)
+            || (length + tempBuf.length) > config.max_line_length) {
             newline();
+            return true;
+        }
+        return false;
+    }
+
+    void writeTempBuf() {
+        useTempBuf = false;
+        write(tempBuf);
+        tempBuf = "";
     }
 
     void write(T)(T data) if (is(T : char) || is(T : dchar))
@@ -98,7 +110,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             indent();
             isNewline = false;
         }
-        buf.put(data);
+        if (useTempBuf)
+            tempBuf ~= data;
+        else
+            buf.put(data);
         length += 1;
     }
 
@@ -109,7 +124,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             indent();
             isNewline = false;
         }
-        buf.put(data);
+        if (useTempBuf)
+            tempBuf ~= data;
+        else
+            buf.put(data);
         length += data.length;
     }
 
@@ -232,8 +250,6 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
         void visitInteger(ASTCodegen.IntegerExp e)
         {
-            import core.stdc.stdio : sprintf;
-
             auto v = e.toInteger();
             if (e.type)
             {
@@ -3241,6 +3257,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
 
     void visitTemplateConstraint(ASTCodegen.Expression constraint)
     {
+
         if (!constraint)
             return;
 
@@ -3249,7 +3266,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         case TemplateConstraintStyle._unspecified:
             // Fallthrough to the default case
         case TemplateConstraintStyle.conditional_newline_indent:
-            conditionalNewline();
+            useTempBuf = true;
             depth++;
             break;
         case TemplateConstraintStyle.always_newline_indent:
@@ -3257,24 +3274,41 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             depth++;
             break;
         case TemplateConstraintStyle.conditional_newline:
-            conditionalNewline();
+            useTempBuf = true;
             break;
         case TemplateConstraintStyle.always_newline:
             newline();
             break;
         }
 
-        write(" if");
+        write("if");
         if (config.dfmt_space_after_keywords)
             write(' ');
         write('(');
         writeExpr(constraint);
         write(')');
 
-        if (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent
-                || config.dfmt_template_constraint_style
-                == TemplateConstraintStyle.conditional_newline_indent)
+        final switch (config.dfmt_template_constraint_style)
+        {
+        case TemplateConstraintStyle._unspecified:
+            // Fallthrough to the default case
+        case TemplateConstraintStyle.conditional_newline_indent:
+            if (!conditionalNewline())
+                buf.put(' ');
+            writeTempBuf();
             depth--;
+            break;
+        case TemplateConstraintStyle.always_newline_indent:
+            depth--;
+            break;
+        case TemplateConstraintStyle.conditional_newline:
+            if (!conditionalNewline())
+                buf.put(' ');
+            writeTempBuf();
+            break;
+        case TemplateConstraintStyle.always_newline:
+            break;
+        }
     }
 
     override void visitBaseClasses(ASTCodegen.ClassDeclaration d)
