@@ -16,9 +16,9 @@ when using the **--inplace** option.
 
 ### Building from source using Make
 * Clone the repository
-* Run `git submodule update --init --recursive` in the dfmt directory
-* To compile with DMD, run `make` in the dfmt directory. To compile with
-  LDC, run `make ldc` instead. The generated binary will be placed in `dfmt/bin/`.
+* Run ```git submodule update --init --recursive``` in the dfmt directory
+* To compile with DMD, run ```make``` in the dfmt directory. To compile with
+  LDC, run ```make ldc``` instead. The generated binary will be placed in ```dfmt/bin/```.
 
 ### Building from source using dub
 * Clone the repository
@@ -69,8 +69,8 @@ dfmt --inplace --space_after_cast=false --max_line_length=80 \
 ```
 
 ## Disabling formatting
-Formatting can be temporarily disabled by placing the comments `// dfmt off`
-and `// dfmt on` around code that you do not want formatted.
+Formatting can be temporarily disabled by placing the comments ```// dfmt off```
+and ```// dfmt on``` around code that you do not want formatted.
 
 ```d
 void main(string[] args)
@@ -113,7 +113,7 @@ dfmt_align_switch_statements | **`true`**, `false` | Align labels, cases, and de
 dfmt_outdent_attributes (Not yet implemented) | **`true`**, `false`| Decrease the indentation level of attributes.
 dfmt_split_operator_at_line_end | `true`, **`false`** | Place operators on the end of the previous line when splitting lines.
 dfmt_space_after_cast | **`true`**, `false` | Insert space after the closing paren of a `cast` expression.
-dfmt_space_after_keywords | **`true`**, `false` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`.
+dfmt_space_after_keywords (Not yet implemented) | **`true`**, `false` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`.
 dfmt_space_before_function_parameters | `true`, **`false`** | Insert space before the opening paren of a function parameter list.
 dfmt_selective_import_space | **`true`**, `false` | Insert space after the module name and before the `:` for selective imports.
 dfmt_compact_labeled_statements | **`true`**, `false` | Place labels on the same line as the labeled `switch`, `for`, `foreach`, or `while` statement.
@@ -124,6 +124,7 @@ dfmt_space_before_named_arg_colon | `true`, **`false`** | Adds a space after a n
 dfmt_keep_line_breaks | `true`, **`false`** | Keep existing line breaks if these don't violate other formatting rules.
 dfmt_single_indent | `true`, **`false`** | Set if the code in parens is indented by a single tab instead of two.
 dfmt_reflow_property_chains | **`true`**, `false` | Recalculate the splitting of property chains into multiple lines.
+dfmt_space_after_keywords | **`true`**, `false` | Insert space after keywords (if,while,foreach,for, etc.).
 
 ## Terminology
 * Braces - `{` and `}`
