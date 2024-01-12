@@ -1,9 +1,9 @@
-[submodule "libdparse"]
-	path = libdparse
-	url = https://github.com/dlang-community/libdparse.git
 [submodule "stdx-allocator"]
 	path = stdx-allocator
 	url = https://github.com/dlang-community/stdx-allocator
 [submodule "d-test-utils"]
 	path = d-test-utils
 	url = https://github.com/dlang-community/d-test-utils.git
+[submodule "dmd"]
+	path = dmd
+	url = https://github.com/dlang/dmd.git

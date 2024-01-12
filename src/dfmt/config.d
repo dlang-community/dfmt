@@ -66,8 +66,6 @@ struct Config
     ///
     OptionalBoolean dfmt_reflow_property_chains;
     ///
-    OptionalBoolean dfmt_space_after_statement_keyword;
-    ///
     OptionalBoolean dfmt_space_before_named_arg_colon;
 
     mixin StandardEditorConfigFields;

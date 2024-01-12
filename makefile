@@ -1,8 +1,36 @@
+DMD_ROOT_SRC := \
+	$(shell find dmd/compiler/src/dmd/common -name "*.d")\
+	$(shell find dmd/compiler/src/dmd/root -name "*.d")
+DMD_LEXER_SRC := \
+	dmd/compiler/src/dmd/console.d \
+	dmd/compiler/src/dmd/entity.d \
+	dmd/compiler/src/dmd/errors.d \
+	dmd/compiler/src/dmd/errorsink.d \
+	dmd/compiler/src/dmd/location.d \
+	dmd/compiler/src/dmd/file_manager.d \
+	dmd/compiler/src/dmd/globals.d \
+	dmd/compiler/src/dmd/id.d \
+	dmd/compiler/src/dmd/identifier.d \
+	dmd/compiler/src/dmd/lexer.d \
+	dmd/compiler/src/dmd/tokens.d \
+	dmd/compiler/src/dmd/utils.d \
+	$(DMD_ROOT_SRC)
+
+DMD_PARSER_SRC := \
+	dmd/compiler/src/dmd/astbase.d \
+	dmd/compiler/src/dmd/parse.d \
+	dmd/compiler/src/dmd/parsetimevisitor.d \
+	dmd/compiler/src/dmd/transitivevisitor.d \
+	dmd/compiler/src/dmd/permissivevisitor.d \
+	dmd/compiler/src/dmd/strictvisitor.d \
+	dmd/compiler/src/dmd/astenums.d \
+	$(DMD_LEXER_SRC)
+
 SRC := $(shell find src -name "*.d") \
-	$(shell find libdparse/src -name "*.d") \
-	$(shell find stdx-allocator/source -name "*.d")
-INCLUDE_PATHS := -Ilibdparse/src -Istdx-allocator/source -Isrc -Jbin
-DMD_COMMON_FLAGS := -dip25 -w $(INCLUDE_PATHS)
+	$(shell find stdx-allocator/source -name "*.d") \
+	$(DMD_PARSER_SRC)
+INCLUDE_PATHS := -Ilibdparse/src -Istdx-allocator/source -Isrc -Idmd/compiler/src -Jbin -Jdmd
+DMD_COMMON_FLAGS := -w $(INCLUDE_PATHS)
 DMD_DEBUG_FLAGS := -debug -g $(DMD_COMMON_FLAGS)
 DMD_FLAGS := -O -inline $(DMD_COMMON_FLAGS)
 DMD_TEST_FLAGS := -unittest -g $(DMD_COMMON_FLAGS)

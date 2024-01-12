@@ -123,8 +123,7 @@ EC getConfigFor(EC)(string path)
 {
     import std.stdio : File;
     import std.regex : regex, match;
-    import std.path : globMatch, dirName, baseName, pathSplitter, buildPath,
-        absolutePath;
+    import std.path : globMatch, dirName, baseName, pathSplitter, buildPath, absolutePath;
     import std.algorithm : reverse, map, filter;
     import std.array : array;
     import std.file : isDir;
@@ -141,7 +140,9 @@ EC getConfigFor(EC)(string path)
         EC[] sections = parseConfig!EC(buildPath(pathParts[0 .. i]));
         if (sections.length)
             configs ~= sections;
-        if (!sections.map!(a => a.root).filter!(a => a == OptionalBoolean.t).empty)
+        if (!sections.map!(a => a.root)
+                .filter!(a => a == OptionalBoolean.t)
+                .empty)
             break;
     }
     reverse(configs);
@@ -208,7 +209,7 @@ private EC[] parseConfig(EC)(string dir)
                             mixin(configDot) = propertyValue == "true" ? OptionalBoolean.t
                                 : OptionalBoolean.f;
                         else
-                                    mixin(configDot) = to!(FieldType)(propertyValue);
+                            mixin(configDot) = to!(FieldType)(propertyValue);
                     }
                 }
             }
