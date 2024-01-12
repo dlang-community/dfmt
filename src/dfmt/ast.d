@@ -90,14 +90,16 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         // if the current length + data length crosses the hard limit,
         // insert a newline.
         if (length > config.dfmt_soft_max_line_length
-            || (length + tempBuf.length) > config.max_line_length) {
+                || (length + tempBuf.length) > config.max_line_length)
+        {
             newline();
             return true;
         }
         return false;
     }
 
-    void writeTempBuf() {
+    void writeTempBuf()
+    {
         useTempBuf = false;
         write(tempBuf);
         tempBuf = "";
@@ -131,7 +133,7 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         length += data.length;
     }
 
-    /*******************************************
+    /***********************************************
     * Helpers to write different AST nodes to buffer
     */
     void writeStc(StorageClass stc)
@@ -204,10 +206,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         import dmd.root.ctfloat;
         import core.stdc.string : strlen;
 
-        /** sizeof(value)*3 is because each byte of mantissa is max
-            of 256 (3 characters). The string will be "-M.MMMMe-4932".
-            (ie, 8 chars more than mantissa). Plus one for trailing \0.
-            Plus one for rounding. */
+        /* sizeof(value)*3 is because each byte of mantissa is max
+           of 256 (3 characters). The string will be "-M.MMMMe-4932".
+           (ie, 8 chars more than mantissa). Plus one for trailing \0.
+           Plus one for rounding. */
         const(size_t) BUFFER_LEN = value.sizeof * 3 + 8 + 1 + 1;
         char[BUFFER_LEN] buffer = void;
         CTFloat.sprint(buffer.ptr, BUFFER_LEN, 'g', value);
@@ -658,12 +660,46 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             visit(cast(ASTCodegen.BinExp) e);
         }
 
+        static bool[EXP] operators = [
+            EXP.lessThan: true, EXP.greaterThan: true, EXP.lessOrEqual: true,
+            EXP.greaterOrEqual: true, EXP.equal: true, EXP.notEqual: true,
+            EXP.identity: true, EXP.notIdentity: true, EXP.index: true,
+            EXP.is_: true, EXP.leftShift: true, EXP.rightShift: true,
+            EXP.leftShiftAssign: true, EXP.rightShiftAssign: true,
+            EXP.unsignedRightShift: true, EXP.unsignedRightShiftAssign: true,
+            EXP.concatenate: true, EXP.concatenateAssign: true, // ~=
+            EXP.concatenateElemAssign: true,
+            EXP.concatenateDcharAssign: true, EXP.add: true, EXP.min: true,
+            EXP.addAssign: true, EXP.minAssign: true, EXP.mul: true, EXP.div: true,
+            EXP.mod: true, EXP.mulAssign: true, EXP.divAssign: true,
+            EXP.modAssign: true, EXP.and: true, EXP.or: true, EXP.xor: true,
+            EXP.andAssign: true, EXP.orAssign: true, EXP.xorAssign: true,
+            EXP.assign: true, EXP.not: true, EXP.tilde: true, EXP.plusPlus: true,
+            EXP.minusMinus: true, EXP.construct: true, EXP.blit: true,
+            EXP.dot: true, EXP.comma: true, EXP.question: true, EXP.andAnd: true,
+            EXP.orOr: true, EXP.prePlusPlus: true, EXP.preMinusMinus: true,
+        ];
+
         void visitBin(ASTCodegen.BinExp e)
         {
             writeExprWithPrecedence(e.e1, precedence[e.op]);
-            write(' ');
+            if (!config.dfmt_split_operator_at_line_end && e.op in operators && conditionalNewline())
+            {
+                // This block is left empty to ensure conditionalNewline()
+                // is called and not optimised away by the compiler while
+                // simplifying boolean expressions.
+            }
+            else
+                write(' ');
             write(EXPtoString(e.op));
-            write(' ');
+            if (config.dfmt_split_operator_at_line_end && e.op in operators && conditionalNewline())
+            {
+                // This block is left empty to ensure conditionalNewline()
+                // is called and not optimised away by the compiler while
+                // simplifying boolean expressions.
+            }
+            else
+                write(' ');
             writeExprWithPrecedence(e.e2, cast(PREC)(precedence[e.op] + 1));
         }
 
