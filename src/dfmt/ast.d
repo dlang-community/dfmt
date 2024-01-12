@@ -3304,10 +3304,14 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         case TemplateConstraintStyle.conditional_newline_indent:
             useTempBuf = true;
             depth++;
+            if (config.dfmt_single_template_constraint_indent)
+                depth++;
             break;
         case TemplateConstraintStyle.always_newline_indent:
             newline();
             depth++;
+            if (config.dfmt_single_template_constraint_indent)
+                depth++;
             break;
         case TemplateConstraintStyle.conditional_newline:
             useTempBuf = true;
@@ -3332,10 +3336,11 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
             if (!conditionalNewline())
                 buf.put(' ');
             writeTempBuf();
-            depth--;
-            break;
+            goto case;
         case TemplateConstraintStyle.always_newline_indent:
             depth--;
+            if (config.dfmt_single_template_constraint_indent)
+                depth--;
             break;
         case TemplateConstraintStyle.conditional_newline:
             if (!conditionalNewline())
