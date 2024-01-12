@@ -683,22 +683,10 @@ extern (C++) class FormatVisitor : SemanticTimeTransitiveVisitor
         void visitBin(ASTCodegen.BinExp e)
         {
             writeExprWithPrecedence(e.e1, precedence[e.op]);
-            if (!config.dfmt_split_operator_at_line_end && e.op in operators && conditionalNewline())
-            {
-                // This block is left empty to ensure conditionalNewline()
-                // is called and not optimised away by the compiler while
-                // simplifying boolean expressions.
-            }
-            else
+            if (!(!config.dfmt_split_operator_at_line_end && e.op in operators && conditionalNewline()))
                 write(' ');
             write(EXPtoString(e.op));
-            if (config.dfmt_split_operator_at_line_end && e.op in operators && conditionalNewline())
-            {
-                // This block is left empty to ensure conditionalNewline()
-                // is called and not optimised away by the compiler while
-                // simplifying boolean expressions.
-            }
-            else
+            if (!(config.dfmt_split_operator_at_line_end && e.op in operators && conditionalNewline()))
                 write(' ');
             writeExprWithPrecedence(e.e2, cast(PREC)(precedence[e.op] + 1));
         }
