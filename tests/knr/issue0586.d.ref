@@ -25,3 +25,10 @@ void main()
 
     temp(v1: () { S s = S(i: 5); return s.i; }, v2: 1);
 }
+
+void g()
+{
+    tmp(namedArg1: "abc abc abc abc abc abc abc abc abc abc abc abc abc abc",
+        namedArg2: "abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc",
+        namedArg3: "abc abc abc abc abc abc abc abc abc abc abc abc abc abc abc");
+}
