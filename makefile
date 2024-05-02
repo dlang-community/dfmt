@@ -1,9 +1,8 @@
 PREFIX = /usr/local
 
 SRC := $(shell find src -name "*.d") \
-	$(shell find libdparse/src -name "*.d") \
-	$(shell find stdx-allocator/source -name "*.d")
-IMPORTS := -Ilibdparse/src -Istdx-allocator/source -Isrc -Jbin
+	$(shell find libdparse/src -name "*.d")
+IMPORTS := -Ilibdparse/src -Isrc -Jbin
 
 DC ?= dmd
 LDC ?= ldc2
