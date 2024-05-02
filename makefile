@@ -40,7 +40,7 @@ test: debug
 	cd tests && ./test.d
 
 bin/dfmt-test: bin/githash.txt $(SRC)
-	$(DC) $(DMD_TEST_FLAGS) $^ -of$@
+	$(DC) $(DMD_TEST_FLAGS) $(filter %.d,$^) -of$@
 
 bin/dfmt: bin/githash.txt $(SRC)
 	$(DC) $(DMD_FLAGS) $(filter %.d,$^) -of$@
