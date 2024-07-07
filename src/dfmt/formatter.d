@@ -2330,14 +2330,15 @@ const pure @safe @nogc:
      + Params:
      +   n = Offset to index where search begins. Negative values search backwards.
      + Returns: 
-     +   Index of next token that isn't a comment or an index that is out of bounds.
+     +   Index of next token that isn't a comment or `size_t.max` if no such
+     +   token exists,
      +/
     size_t nextNonComment(int n = 1)
     {
         size_t i = index + n;
         while (n != 0 && i < tokens.length && tokens[i].type == tok!"comment")
             i = n > 0 ? i + 1 : i - 1;
-        return i;
+        return i < tokens.length ? i : size_t.max;
     }
 
     /// Bugs: not unicode correct
