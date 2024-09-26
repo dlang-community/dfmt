@@ -1804,6 +1804,12 @@ private:
                     assert(l2 != -1, "Recent '{' is not found despite being in struct initializer");
                     indentLevel = l2 + 1;
                 }
+                else if (canFind(astInformation.namedArgumentColonLocations, tokens[nextNonComment(1)].index))
+                {
+                    immutable l2 = indents.indentToMostRecent(tok!"(");
+                    assert(l2 != -1, "Recent '(' is not found despite being in named function argument");
+                    indentLevel = l2 + 1;
+                }
                 else if ((config.dfmt_compact_labeled_statements == OptionalBoolean.f
                         || !isBlockHeader(2) || peek2Is(tok!"if")) && !indents.topIs(tok!"]"))
                 {
@@ -2314,6 +2320,25 @@ const pure @safe @nogc:
                 + tokens[index - 1].text.representation.count('\n');
 
         return previousTokenEndLineNo < tokens[index].line;
+    }
+
+    /++ 
+     + Get the index of the next token that isn't a comment starting from
+     + current index + n.
+     + If n is negative, searches backwards.
+     + If n = 0, returns index.
+     + Params:
+     +   n = Offset to index where search begins. Negative values search backwards.
+     + Returns: 
+     +   Index of next token that isn't a comment or `size_t.max` if no such
+     +   token exists,
+     +/
+    size_t nextNonComment(int n = 1)
+    {
+        size_t i = index + n;
+        while (n != 0 && i < tokens.length && tokens[i].type == tok!"comment")
+            i = n > 0 ? i + 1 : i - 1;
+        return i < tokens.length ? i : size_t.max;
     }
 
     /// Bugs: not unicode correct
