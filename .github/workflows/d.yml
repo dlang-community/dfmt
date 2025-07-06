@@ -20,6 +20,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         dc: [dmd, ldc]
+        include:
+          - { os: ubuntu-latest, dc: gdc-14 }
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -27,8 +29,22 @@ jobs:
       - uses: dlang-community/setup-dlang@v2
         with:
           compiler: ${{ matrix.dc }}
+          dub: latest
+
+      - name: Setup gdc specific environment
+        if: ${{ startsWith(matrix.dc, 'gdc') }}
+        run: |
+          tee -a ${GITHUB_ENV} <<<"DC=${DMD}"
+          # Linking errors without -allinst
+          # No other easy way to pass this to dub, using DFLAGS in the
+          # environment disables unittests
+          cat <<-EOF | sudo tee -a /etc/dmd.conf
+          [Environment]
+          DFLAGS=-allinst
+          EOF
 
       - name: 'Build & Test'
+        shell: bash
         run: |
           # Build the project, with its main file included, without unittests
           dub build
@@ -37,4 +53,4 @@ jobs:
           # See https://dub.pm/package-format-json.html#configurations
           dub test
           # Run tests
-          cd tests && rdmd test
+          cd tests && "${DMD}" -run test.d
