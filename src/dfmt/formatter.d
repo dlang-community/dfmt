@@ -1783,6 +1783,8 @@ private:
 
         if (hasCurrent)
         {
+            const isNamedArg = index + 1 < tokens.length
+                && astInformation.namedArgumentColonLocations.canFindIndex(tokens[index + 1].index);
             if (currentIs(tok!"else"))
             {
                 immutable i = indents.indentToMostRecent(tok!"if");
@@ -1791,7 +1793,7 @@ private:
                 if (mostRecent != -1)
                     indentLevel = mostRecent;
             }
-            else if (currentIs(tok!"identifier") && peekIs(tok!":"))
+            else if (currentIs(tok!"identifier") && peekIs(tok!":") && !isNamedArg)
             {
                 if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
                     indents.popTempIndents();
