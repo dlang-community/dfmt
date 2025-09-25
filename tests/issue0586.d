@@ -29,3 +29,10 @@ void main()
 
     temp(v1: () { S s = S(i: 5); return s.i; }, v2: 1);
 }
+
+void test() {
+    return Struct(
+        foo: field.foo,
+        bar: field.bar,
+        baz: field.baz);
+}
