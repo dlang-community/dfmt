@@ -454,14 +454,25 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const FunctionCallExpression functionCall)
     {
-        // Check if function has any arguments.
-        if (functionCall.arguments.namedArgumentList is null)
+        visit(functionCall.arguments);
+        functionCall.accept(this);
+    }
+
+    override void visit(const NewExpression newCall)
+    {
+        visit(newCall.arguments);
+        newCall.accept(this);
+    }
+
+    private void visit(const Arguments arguments)
+    {
+        // Check if call has any arguments.
+        if (!arguments || arguments.namedArgumentList is null)
         {
-            functionCall.accept(this);
             return;
         }
 
-        foreach (item; functionCall.arguments.namedArgumentList.items)
+        foreach (item; arguments.namedArgumentList.items)
         {
             // Do nothing if not a named argument.
             if (item.name == tok!"")
@@ -479,8 +490,6 @@ final class FormatVisitor : ASTVisitor
                 }
             }
         }
-
-        functionCall.accept(this);
     }
 
 private:

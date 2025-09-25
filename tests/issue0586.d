@@ -35,4 +35,8 @@ void test() {
         foo: field.foo,
         bar: field.bar,
         baz: field.baz);
+    return new Class(
+        foo: field.foo,
+        bar: field.bar,
+        baz: field.baz);
 }
