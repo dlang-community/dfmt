@@ -39,4 +39,9 @@ void test() {
         foo: field.foo,
         bar: field.bar,
         baz: field.baz);
+    // anonymous class
+    return new class(
+        foo: field.foo,
+        bar: field.bar,
+        baz: field.baz) Class { };
 }

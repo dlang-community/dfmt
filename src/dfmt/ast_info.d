@@ -464,6 +464,12 @@ final class FormatVisitor : ASTVisitor
         newCall.accept(this);
     }
 
+    override void visit(const NewAnonClassExpression newAnonClassCall)
+    {
+        visit(newAnonClassCall.constructorArguments);
+        newAnonClassCall.accept(this);
+    }
+
     private void visit(const Arguments arguments)
     {
         // Check if call has any arguments.

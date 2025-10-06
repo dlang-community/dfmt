@@ -26,4 +26,7 @@ void main() {
 void test() {
     return Struct(foo: field.foo, bar: field.bar, baz: field.baz);
     return new Class(foo: field.foo, bar: field.bar, baz: field.baz);
+    // anonymous class
+    return new class(foo: field.foo, bar: field.bar, baz: field.baz) Class {
+    };
 }
