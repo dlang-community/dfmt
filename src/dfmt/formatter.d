@@ -246,6 +246,10 @@ private:
         }
         else if (currentIs(tok!"return"))
         {
+            // `return` can appear as a member function attribute (e.g. `@trusted return`),
+            // in which case it needs a leading space like other keywords handled in formatKeyword().
+            if (peekBackIs(tok!"identifier"))
+                writeSpace();
             writeToken();
             if (hasCurrent && (!currentIs(tok!";") && !currentIs(tok!")") && !currentIs(tok!"{")
                     && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"do")

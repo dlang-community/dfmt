@@ -1,0 +1,14 @@
+struct S
+{
+    void f() @trusted return
+    {
+    }
+
+    void g() @safe return
+    {
+    }
+
+    void h() @nogc @trusted return
+    {
+    }
+}
