@@ -305,7 +305,9 @@ private:
             else
                 formatBlockHeader();
         }
-        else if ((current.text == "body" || current == tok!"do") && peekBackIsFunctionDeclarationEnding())
+        else if ((current.text == "body" || current == tok!"do") && peekBackIsFunctionDeclarationEnding()
+                || current == tok!"do" && peekBackIs(tok!"identifier")
+                || current.text == "body" && peekBackIs(tok!"identifier") && peekIs(tok!"{"))
         {
             formatKeyword();
         }
