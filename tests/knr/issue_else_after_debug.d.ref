@@ -1,0 +1,87 @@
+// Test: else after debug indentation
+// Tests various combinations of version/debug/else chains
+
+// 1. Simple debug with else
+unittest {
+    debug {
+        x = 1;
+    } else {
+        y = 2;
+    }
+}
+
+// 2. Nested: version with debug/else
+unittest {
+    version (Windows) {
+        doWindows();
+    } else {
+        debug {
+            doDebug();
+        } else {
+            doRelease();
+        }
+    }
+}
+
+// 3. Nested: debug inside else with another else
+unittest {
+    if (condition) {
+        doSomething();
+    } else {
+        debug {
+            doDebug();
+        } else {
+            doRelease();
+        }
+    }
+}
+
+// 4. Static if with debug/else
+unittest {
+    static if (enabled) {
+        doEnabled();
+    } else {
+        debug {
+            doDebug();
+        } else {
+            doRelease();
+        }
+    }
+}
+
+// 5. Multiple nested levels
+unittest {
+    version (Windows) {
+        doWindows();
+    } else version (Linux) {
+        debug {
+            doLinuxDebug();
+        } else {
+            doLinuxRelease();
+        }
+    }
+}
+
+// 6. Debug with parens and else
+unittest {
+    debug (feature) {
+        doFeature();
+    } else {
+        doNormal();
+    }
+}
+
+// 7. Deep nesting: version/debug/else chain
+unittest {
+    version (A) {
+        doA();
+    } else version (B) {
+        doB();
+    } else {
+        debug {
+            doDebug();
+        } else {
+            doRelease();
+        }
+    }
+}

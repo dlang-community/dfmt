@@ -107,6 +107,9 @@ else
             case "space_after_keywords":
                 optConfig.dfmt_space_after_keywords = optVal;
                 break;
+            case "force_curly_braces":
+                optConfig.dfmt_force_curly_braces = optVal;
+                break;
             default:
                 assert(false, "Invalid command-line switch");
             }
@@ -141,7 +144,8 @@ else
                 "template_constraint_style", &optConfig.dfmt_template_constraint_style,
                 "keep_line_breaks", &handleBooleans,
                 "single_indent", &handleBooleans,
-                "reflow_property_chains", &handleBooleans);
+                "reflow_property_chains", &handleBooleans,
+                "force_curly_braces", &handleBooleans);
             // dfmt on
         }
         catch (GetOptException e)
@@ -356,6 +360,7 @@ Formatting Options:
     --space_before_named_arg_colon
     --single_indent
     --reflow_property_chains
+    --force_curly_braces
         `,
             optionsToString!(typeof(Config.dfmt_template_constraint_style)));
 }

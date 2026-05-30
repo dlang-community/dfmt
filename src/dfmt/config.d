@@ -69,6 +69,8 @@ struct Config
     OptionalBoolean dfmt_space_after_statement_keyword;
     ///
     OptionalBoolean dfmt_space_before_named_arg_colon;
+    ///
+    OptionalBoolean dfmt_force_curly_braces;
 
     mixin StandardEditorConfigFields;
 
@@ -101,6 +103,7 @@ struct Config
         dfmt_single_indent = OptionalBoolean.f;
         dfmt_reflow_property_chains = OptionalBoolean.t;
         dfmt_space_before_named_arg_colon = OptionalBoolean.f;
+        dfmt_force_curly_braces = OptionalBoolean.f;
     }
 
     /**

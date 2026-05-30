@@ -1,4 +1,3 @@
-
 //          Copyright Brian Schott 2015.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE.txt or copy at
@@ -51,6 +50,12 @@ bool format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
     auto tokens = app.data;
     if (!tokenRange.messages.empty)
         return false;
+
+    import dfmt.editorconfig : OptionalBoolean;
+
+    if (formatterConfig.dfmt_force_curly_braces == OptionalBoolean.t)
+        tokens = insertForcedBraces(tokens);
+
     auto depths = generateDepthInfo(tokens);
     auto tokenFormatter = TokenFormatter!OutputRange(buffer, tokens, depths,
             output, &astInformation, formatterConfig);
@@ -125,7 +130,7 @@ struct TokenFormatter(OutputRange)
                 assert(false, "config.end_of_line was unspecified");
             else
             {
-                assert (eol == eol._default);
+                assert(eol == eol._default);
                 this.eolString = eolStringFromInput;
             }
         }
@@ -233,10 +238,9 @@ private:
             if (hasCurrent)
             {
                 immutable t = tokens[index].type;
-                if (t == tok!"identifier" || isStringLiteral(t)
-                        || isNumberLiteral(t) || t == tok!"characterLiteral"
-                        // a!"b" function()
-                        || t == tok!"function" || t == tok!"delegate")
+                if (t == tok!"identifier" || isStringLiteral(t) || isNumberLiteral(t)
+                        || t == tok!"characterLiteral" // a!"b" function()
+                         || t == tok!"function" || t == tok!"delegate")
                     write(" ");
             }
         }
@@ -251,9 +255,9 @@ private:
             if (peekBackIs(tok!"identifier"))
                 writeSpace();
             writeToken();
-            if (hasCurrent && (!currentIs(tok!";") && !currentIs(tok!")") && !currentIs(tok!"{")
-                    && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"do")
-                    && tokens[index].text != "body"))
+            if (hasCurrent && (!currentIs(tok!";") && !currentIs(tok!")")
+                    && !currentIs(tok!"{") && !currentIs(tok!"in") && !currentIs(tok!"out")
+                    && !currentIs(tok!"do") && tokens[index].text != "body"))
                 write(" ");
         }
         else if (currentIs(tok!"with"))
@@ -261,13 +265,15 @@ private:
             if (indents.length == 0 || !indents.topIsOneOf(tok!"switch", tok!"with"))
                 indents.push(tok!"with");
             writeToken();
-            if (config.dfmt_space_after_keywords) {
+            if (config.dfmt_space_after_keywords)
+            {
                 write(" ");
             }
             if (hasCurrent && currentIs(tok!"("))
                 writeParens(false);
-            if (hasCurrent && !currentIs(tok!"switch") && !currentIs(tok!"with")
-                    && !currentIs(tok!"{") && !(currentIs(tok!"final") && peekIs(tok!"switch")))
+            if (hasCurrent && !currentIs(tok!"switch")
+                    && !currentIs(tok!"with") && !currentIs(tok!"{")
+                    && !(currentIs(tok!"final") && peekIs(tok!"switch")))
             {
                 newline();
             }
@@ -297,15 +303,16 @@ private:
                     writeToken();
             }
         }
-        else if (((isBlockHeader() || currentIs(tok!"version")) && peekIs(tok!"("))
-                || (currentIs(tok!"debug") && peekIs(tok!"{")))
+        else if (((isBlockHeader() || currentIs(tok!"version"))
+                && peekIs(tok!"(")) || (currentIs(tok!"debug") && peekIs(tok!"{")))
         {
             if (!assumeSorted(astInformation.constraintLocations).equalRange(current.index).empty)
                 formatConstraint();
             else
                 formatBlockHeader();
         }
-        else if ((current.text == "body" || current == tok!"do") && peekBackIsFunctionDeclarationEnding())
+        else if ((current.text == "body" || current == tok!"do")
+                && peekBackIsFunctionDeclarationEnding())
         {
             formatKeyword();
         }
@@ -342,9 +349,8 @@ private:
         {
             const thisIndex = current.index;
             formatKeyword();
-            if (config.dfmt_space_before_function_parameters
-                && (thisSpace || astInformation.constructorDestructorLocations
-                    .canFindIndex(thisIndex)))
+            if (config.dfmt_space_before_function_parameters && (thisSpace
+                    || astInformation.constructorDestructorLocations.canFindIndex(thisIndex)))
             {
                 write(" ");
                 thisSpace = false;
@@ -381,7 +387,7 @@ private:
                     || isNumberLiteral(tokens[index].type)
                     || (inAsm  && peekBack2Is(tok!";") && currentIs(tok!"["))
             )))
-            //dfmt on
+                          //dfmt on
             {
                 write(" ");
             }
@@ -398,6 +404,7 @@ private:
     void formatConstraint()
     {
         import dfmt.editorconfig : OB = OptionalBoolean;
+
         with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
         {
         case _unspecified:
@@ -416,8 +423,8 @@ private:
             immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
             if (l > config.dfmt_soft_max_line_length)
             {
-                config.dfmt_single_template_constraint_indent == OB.t ?
-                    pushWrapIndent() : pushWrapIndent(tok!"!");
+                config.dfmt_single_template_constraint_indent == OB.t
+                    ? pushWrapIndent() : pushWrapIndent(tok!"!");
                 newline();
             }
             else if (peekBackIs(tok!")") || peekBackIs(tok!"identifier"))
@@ -425,8 +432,8 @@ private:
             break;
         case always_newline_indent:
             {
-                config.dfmt_single_template_constraint_indent == OB.t ?
-                    pushWrapIndent() : pushWrapIndent(tok!"!");
+                config.dfmt_single_template_constraint_indent == OB.t
+                    ? pushWrapIndent() : pushWrapIndent(tok!"!");
                 newline();
             }
             break;
@@ -574,10 +581,8 @@ private:
                 else if (currentIs(tok!"{") && config.dfmt_brace_style == BraceStyle.allman)
                     break;
                 else if (t == tok!"import" && !currentIs(tok!"import")
-                        && !currentIs(tok!"}")
-                            && !((currentIs(tok!"public")
-                                || currentIs(tok!"private")
-                                || currentIs(tok!"static"))
+                        && !currentIs(tok!"}") && !((currentIs(tok!"public")
+                            || currentIs(tok!"private") || currentIs(tok!"static"))
                             && peekIs(tok!"import")) && !indents.topIsOneOf(tok!"if",
                             tok!"debug", tok!"version"))
                 {
@@ -604,8 +609,7 @@ private:
                 if (peekBack.line != current.line)
                 {
                     // The comment appears on its own line, keep it there.
-                    if (!peekBackIs(tok!"comment"))
-                        // Comments are already properly separated.
+                    if (!peekBackIs(tok!"comment")) // Comments are already properly separated.
                         newline();
                 }
                 formatStep();
@@ -694,7 +698,8 @@ private:
             detail.wrap = false;
             detail.temp = false;
 
-            detail.breakEveryItem = astInformation.assocArrayStartLocations.canFindIndex(tokens[index - 1].index);
+            detail.breakEveryItem = astInformation.assocArrayStartLocations.canFindIndex(
+                    tokens[index - 1].index);
             // array of (possibly associative) array, let's put each item on its own line
             if (!detail.breakEveryItem && currentIs(tok!"["))
                 detail.breakEveryItem = true;
@@ -730,7 +735,8 @@ private:
     {
         import std.algorithm.searching : canFind, until;
 
-        if (tokens[index .. $].until!(tok => tok.line != current.line).canFind!(x => x.type == tok!"]"))
+        if (tokens[index .. $].until!(tok => tok.line != current.line)
+                .canFind!(x => x.type == tok!"]"))
         {
             return;
         }
@@ -766,7 +772,7 @@ private:
             newline();
         }
         if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in")
-            || peekIs(tok!"out") || peekIs(tok!"do") || peekIsBody))
+                || peekIs(tok!"out") || peekIs(tok!"do") || peekIsBody))
         {
             writeToken();
         }
@@ -824,12 +830,9 @@ private:
             else
                 write(" ");
         }
-        else if (hasCurrent && (currentIs(tok!"@")
-                || isBasicType(tokens[index].type)
-                || currentIs(tok!"invariant")
-                || currentIs(tok!"extern")
-                || currentIs(tok!"identifier"))
-                && !currentIsIndentedTemplateConstraint())
+        else if (hasCurrent && (currentIs(tok!"@") || isBasicType(tokens[index].type)
+                || currentIs(tok!"invariant") || currentIs(tok!"extern")
+                || currentIs(tok!"identifier")) && !currentIsIndentedTemplateConstraint())
         {
             writeSpace();
         }
@@ -839,13 +842,15 @@ private:
     {
         import dfmt.editorconfig : OptionalBoolean;
         import std.algorithm : canFind, any;
+
         immutable bool isCase = astInformation.caseEndLocations.canFindIndex(current.index);
         immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(
                 current.line);
-        immutable bool isStructInitializer = astInformation.structInfoSortedByEndLocation
-            .canFind!(st => st.startLocation < current.index && current.index < st.endLocation);
+        immutable bool isStructInitializer = astInformation.structInfoSortedByEndLocation.canFind!(
+                st => st.startLocation < current.index && current.index < st.endLocation);
         immutable bool isTernary = astInformation.ternaryColonLocations.canFindIndex(current.index);
-        immutable bool isNamedArg = astInformation.namedArgumentColonLocations.canFindIndex(current.index);
+        immutable bool isNamedArg = astInformation.namedArgumentColonLocations.canFindIndex(
+                current.index);
 
         if (isCase || isAttribute)
         {
@@ -872,9 +877,9 @@ private:
             write(config.dfmt_space_before_named_arg_colon ? " : " : ": ");
             ++index;
         }
-        else if (peekBackIs(tok!"identifier")
-                && [tok!"{", tok!"}", tok!";", tok!":", tok!","]
-                .any!((ptrdiff_t token) => peekBack2Is(cast(IdType)token, true))
+        else if (peekBackIs(tok!"identifier") && [
+            tok!"{", tok!"}", tok!";", tok!":", tok!","
+        ].any!((ptrdiff_t token) => peekBack2Is(cast(IdType) token, true))
                 && (!isBlockHeader(1) || peekIs(tok!"if")))
         {
             writeToken();
@@ -938,7 +943,7 @@ private:
             writeToken();
             indents.popWrapIndents();
             linebreakHints = [];
-            while (indents.topIsOneOf(tok!"enum", tok!"try", tok!"catch", tok!"finally", tok!"debug"))
+            while (indents.topIsOneOf(tok!"enum", tok!"try", tok!"catch", tok!"finally"))
                 indents.pop();
             if (indents.topAre(tok!"static", tok!"else"))
             {
@@ -976,11 +981,11 @@ private:
             {
                 import std.algorithm.searching : find;
 
-                auto indentInfo = astInformation.indentInfoSortedByEndLocation
-                    .find!((a,b) => a.startLocation == b)(tIndex);
+                auto indentInfo = astInformation.indentInfoSortedByEndLocation.find!((a,
+                        b) => a.startLocation == b)(tIndex);
                 assert(indentInfo.length > 0);
-                cast()indentInfo[0].flags |= BraceIndentInfoFlags.tempIndent;
-                cast()indentInfo[0].beginIndentLevel = indents.indentLevel;
+                cast() indentInfo[0].flags |= BraceIndentInfoFlags.tempIndent;
+                cast() indentInfo[0].beginIndentLevel = indents.indentLevel;
 
                 indents.push(tok!"{");
                 newline();
@@ -1031,7 +1036,8 @@ private:
                     newline();
                 else if (config.dfmt_brace_style == BraceStyle.knr
                         && astInformation.funBodyLocations.canFindIndex(tIndex)
-                        && (peekBackIs(tok!")") || (!peekBackIs(tok!"do") && peekBack().text != "body")))
+                        && (peekBackIs(tok!")") || (!peekBackIs(tok!"do")
+                            && peekBack().text != "body")))
                     newline();
                 else if (!peekBackIsOneOf(true, tok!"{", tok!"}", tok!";"))
                     write(" ");
@@ -1048,7 +1054,7 @@ private:
     {
         void popToBeginIndent(BraceIndentInfo indentInfo)
         {
-            foreach(i; indentInfo.beginIndentLevel .. indents.indentLevel)
+            foreach (i; indentInfo.beginIndentLevel .. indents.indentLevel)
             {
                 indents.pop();
             }
@@ -1067,14 +1073,16 @@ private:
             // Account for possible function literals in this array which offset
             // the previously set index (pos). Fixes issue #432.
             size_t newPos = pos;
-            while(astInformation.indentInfoSortedByEndLocation[newPos].endLocation <
-                tokens[index].index)
+            while (
+                astInformation.indentInfoSortedByEndLocation[newPos].endLocation
+                    < tokens[index].index)
             {
                 newPos++;
             }
 
-            if (astInformation.indentInfoSortedByEndLocation[newPos].endLocation ==
-                tokens[index].index)
+            if (
+                astInformation.indentInfoSortedByEndLocation[newPos].endLocation
+                    == tokens[index].index)
             {
                 pos = newPos;
             }
@@ -1116,12 +1124,12 @@ private:
                 currentLineLength = 0;
                 justAddedExtraNewline = true;
             }
-            if (config.dfmt_brace_style.among(BraceStyle.otbs, BraceStyle.knr)
-                    && ((peekIs(tok!"else")
-                            && !indents.topAre(tok!"static", tok!"if")
-                            && !indents.topIs(tok!"foreach") && !indents.topIs(tok!"for")
-                            && !indents.topIs(tok!"while") && !indents.topIs(tok!"do"))
-                        || peekIs(tok!"catch") || peekIs(tok!"finally")))
+            if (config.dfmt_brace_style.among(BraceStyle.otbs,
+                    BraceStyle.knr) && ((peekIs(tok!"else") && !indents.topAre(tok!"static",
+                    tok!"if") && !indents.topIs(tok!"foreach")
+                    && !indents.topIs(tok!"for")
+                    && !indents.topIs(tok!"while") && !indents.topIs(tok!"do"))
+                    || peekIs(tok!"catch") || peekIs(tok!"finally")))
             {
                 write(" ");
                 index++;
@@ -1207,8 +1215,9 @@ private:
                 if (!currentIs(tok!"{") && !currentIs(tok!";"))
                     write(" ");
             }
-            else if (hasCurrent && !currentIs(tok!"{") && !currentIs(tok!";") && !currentIs(tok!"in") &&
-                !currentIs(tok!"out") && !currentIs(tok!"do") && current.text != "body")
+            else if (hasCurrent && !currentIs(tok!"{") && !currentIs(tok!";")
+                    && !currentIs(tok!"in") && !currentIs(tok!"out")
+                    && !currentIs(tok!"do") && current.text != "body")
             {
                 newline();
             }
@@ -1258,7 +1267,7 @@ private:
             //indents.dump();
             while (indents.topIsOneOf(tok!"foreach", tok!"for", tok!"while"))
                 indents.pop();
-            if (indents.topIsOneOf(tok!"if", tok!"version"))
+            if (indents.topIsOneOf(tok!"if", tok!"version", tok!"debug"))
                 indents.pop();
             indents.push(tok!"else");
             newline();
@@ -1286,7 +1295,8 @@ private:
                 writeParens(config.dfmt_space_after_cast == OptionalBoolean.t);
             break;
         case tok!"out":
-            if (!peekBackIsSlashSlash) {
+            if (!peekBackIsSlashSlash)
+            {
                 if (!peekBackIs(tok!"}")
                         && astInformation.contractLocations.canFindIndex(current.index))
                     newline();
@@ -1316,7 +1326,8 @@ private:
             break;
         case tok!"in":
             immutable isContract = astInformation.contractLocations.canFindIndex(current.index);
-            if (!peekBackIsSlashSlash) {
+            if (!peekBackIsSlashSlash)
+            {
                 if (isContract)
                 {
                     indents.popTempIndents();
@@ -1340,7 +1351,8 @@ private:
                     tok!"}", tok!"=", tok!"&&", tok!"||") && !peekBackIsKeyword())
                 write(" ");
             writeToken();
-            if (hasCurrent && !currentIs(tok!"(") && !currentIs(tok!"{") && !currentIs(tok!"comment"))
+            if (hasCurrent && !currentIs(tok!"(") && !currentIs(tok!"{")
+                    && !currentIs(tok!"comment"))
                 write(" ");
             break;
         case tok!"case":
@@ -1365,8 +1377,7 @@ private:
             break;
         case tok!"static":
             {
-                if (astInformation.staticConstructorDestructorLocations
-                    .canFindIndex(current.index))
+                if (astInformation.staticConstructorDestructorLocations.canFindIndex(current.index))
                 {
                     thisSpace = true;
                 }
@@ -1374,8 +1385,8 @@ private:
             goto default;
         case tok!"shared":
             {
-                if (astInformation.sharedStaticConstructorDestructorLocations
-                    .canFindIndex(current.index))
+                if (astInformation.sharedStaticConstructorDestructorLocations.canFindIndex(
+                        current.index))
                 {
                     thisSpace = true;
                 }
@@ -1415,11 +1426,10 @@ private:
 
     bool currentIsIndentedTemplateConstraint()
     {
-        return hasCurrent
-            && astInformation.constraintLocations.canFindIndex(current.index)
+        return hasCurrent && astInformation.constraintLocations.canFindIndex(current.index)
             && (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline
-                || config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent
-                || currentLineLength >= config.dfmt_soft_max_line_length);
+                    || config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent
+                    || currentLineLength >= config.dfmt_soft_max_line_length);
     }
 
     void formatOperator()
@@ -1508,9 +1518,9 @@ private:
         case tok!".":
             regenLineBreakHintsIfNecessary(index);
             immutable bool ufcsWrap = config.dfmt_reflow_property_chains == OptionalBoolean.t
-                    && astInformation.ufcsHintLocations.canFindIndex(current.index);
-            if (ufcsWrap || linebreakHints.canFind(index) || onNextLine
-                    || (linebreakHints.length == 0 && currentLineLength + nextTokenLength() > config.max_line_length))
+                && astInformation.ufcsHintLocations.canFindIndex(current.index);
+            if (ufcsWrap || linebreakHints.canFind(index) || onNextLine || (linebreakHints.length == 0
+                    && currentLineLength + nextTokenLength() > config.max_line_length))
             {
                 if (!indents.topIs(tok!"."))
                     indents.push(tok!".");
@@ -1584,8 +1594,7 @@ private:
                 {
                     write(" ");
                 }
-                if (rightOperandLine > operatorLine
-                        && !indents.topIs(tok!"enum"))
+                if (rightOperandLine > operatorLine && !indents.topIs(tok!"enum"))
                 {
                     pushWrapIndent();
                 }
@@ -1727,14 +1736,10 @@ private:
         // either the expression end index or the next mandatory line break
         // or a newline inside a string literal, whichever is first.
         auto r = assumeSorted(astInformation.ufcsHintLocations).upperBound(tokens[i].index);
-        immutable ufcsBreakLocation = r.empty
-            ? size_t.max
+        immutable ufcsBreakLocation = r.empty ? size_t.max
             : tokens[i .. $].countUntil!(t => t.index == r.front) + i;
-        immutable multilineStringLocation = tokens[i .. $]
-            .countUntil!(t => t.text.canFind('\n'));
-        immutable size_t j = min(
-                expressionEndIndex(i),
-                ufcsBreakLocation,
+        immutable multilineStringLocation = tokens[i .. $].countUntil!(t => t.text.canFind('\n'));
+        immutable size_t j = min(expressionEndIndex(i), ufcsBreakLocation,
                 multilineStringLocation == -1 ? size_t.max : multilineStringLocation + i + 1);
         // Use magical negative value for array literals and wrap indents
         immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel
@@ -1791,9 +1796,11 @@ private:
                 && astInformation.namedArgumentColonLocations.canFindIndex(tokens[index + 1].index);
             if (currentIs(tok!"else"))
             {
+                // Align 'else' with the corresponding conditional construct (if/version/debug)
                 immutable i = indents.indentToMostRecent(tok!"if");
                 immutable v = indents.indentToMostRecent(tok!"version");
-                immutable mostRecent = max(i, v);
+                immutable d = indents.indentToMostRecent(tok!"debug");
+                immutable mostRecent = max(i, v, d);
                 if (mostRecent != -1)
                     indentLevel = mostRecent;
             }
@@ -1804,8 +1811,9 @@ private:
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1 && config.dfmt_align_switch_statements == OptionalBoolean.t)
                     indentLevel = l;
-                else if (astInformation.structInfoSortedByEndLocation
-                    .canFind!(st => st.startLocation < current.index && current.index < st.endLocation)) {
+                else if (astInformation.structInfoSortedByEndLocation.canFind!(
+                        st => st.startLocation < current.index && current.index < st.endLocation))
+                {
                     immutable l2 = indents.indentToMostRecent(tok!"{");
                     assert(l2 != -1, "Recent '{' is not found despite being in struct initializer");
                     indentLevel = l2 + 1;
@@ -1822,13 +1830,12 @@ private:
             else if (currentIs(tok!"case") || currentIs(tok!"default"))
             {
 
-                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true)
-                    /**
+                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true) /**
                      * The following code is valid and should be indented flatly
                      * case A:
                      * case B:
                      */
-                    || peekBackIs(tok!":", true))
+                     || peekBackIs(tok!":", true))
                 {
                     indents.popTempIndents();
                     if (indents.topIs(tok!"case"))
@@ -1868,12 +1875,13 @@ private:
                 {
                     indents.pop();
                 }
-                else while (sBraceDepth == 0 && indents.topIsTemp()
-                        && ((!indents.topIsOneOf(tok!"else", tok!"if",
-                            tok!"static", tok!"version")) || !peekIs(tok!"else")))
-                {
-                    indents.pop();
-                }
+                else
+                    while (sBraceDepth == 0 && indents.topIsTemp()
+                            && ((!indents.topIsOneOf(tok!"else", tok!"if",
+                                tok!"static", tok!"version", tok!"debug")) || !peekIs(tok!"else")))
+                    {
+                        indents.pop();
+                    }
             }
             else if (currentIs(tok!"]"))
             {
@@ -1886,12 +1894,14 @@ private:
                 // "foreach" without removing them from the stack, since they
                 // still can be used later to indent "else".
                 auto savedIndents = IndentStack(config);
-                while (indents.length >= 0 && indents.topIsTemp) {
+                while (indents.length >= 0 && indents.topIsTemp)
+                {
                     savedIndents.push(indents.top, indents.topDetails);
                     indents.pop;
                 }
                 indentLevel = indents.indentLevel;
-                while (savedIndents.length > 0) {
+                while (savedIndents.length > 0)
+                {
                     indents.push(savedIndents.top, savedIndents.topDetails);
                     savedIndents.pop;
                 }
@@ -1935,10 +1945,10 @@ private:
 
     void writeToken()
     {
-        import std.range:retro;
-        import std.algorithm.searching:countUntil;
-        import std.algorithm.iteration:joiner;
-        import std.string:lineSplitter;
+        import std.range : retro;
+        import std.algorithm.searching : countUntil;
+        import std.algorithm.iteration : joiner;
+        import std.string : lineSplitter;
 
         if (current.text is null)
         {
@@ -1955,9 +1965,12 @@ private:
             case tok!"wstringLiteral":
             case tok!"dstringLiteral":
                 immutable o = current.text.retro().countUntil('\n');
-                if (o == -1) {
+                if (o == -1)
+                {
                     currentLineLength += current.text.length;
-                } else {
+                }
+                else
+                {
                     currentLineLength = cast(uint) o;
                 }
                 break;
@@ -2286,8 +2299,8 @@ const pure @safe @nogc:
     bool peekBackIsFunctionDeclarationEnding() nothrow
     {
         return peekBackIsOneOf(false, tok!")", tok!"const", tok!"immutable",
-            tok!"inout", tok!"shared", tok!"@", tok!"pure", tok!"nothrow",
-            tok!"return", tok!"scope");
+                tok!"inout", tok!"shared", tok!"@", tok!"pure",
+                tok!"nothrow", tok!"return", tok!"scope");
     }
 
     bool peekBackIsSlashSlash() nothrow
@@ -2317,7 +2330,7 @@ const pure @safe @nogc:
         // multi-line string), we can sum the number of the newlines in the
         // token and tokens[index - 1].line, the start line.
         const previousTokenEndLineNo = tokens[index - 1].line
-                + tokens[index - 1].text.representation.count('\n');
+            + tokens[index - 1].text.representation.count('\n');
 
         return previousTokenEndLineNo < tokens[index].line;
     }
@@ -2342,9 +2355,9 @@ const pure @safe @nogc:
     bool isBlockHeaderToken(const IdType t)
     {
         return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
-            || t == tok!"while" || t == tok!"if" || t == tok!"in"|| t == tok!"out"
-            || t == tok!"do" || t == tok!"catch" || t == tok!"with"
-            || t == tok!"synchronized" || t == tok!"scope" || t == tok!"debug";
+            || t == tok!"while" || t == tok!"if" || t == tok!"in"
+            || t == tok!"out" || t == tok!"do" || t == tok!"catch"
+            || t == tok!"with" || t == tok!"synchronized" || t == tok!"scope" || t == tok!"debug";
     }
 
     bool isBlockHeader(int i = 0) nothrow
@@ -2356,11 +2369,11 @@ const pure @safe @nogc:
 
         if (i + index + 3 < tokens.length)
         {
-            isExpressionContract = (t == tok!"in" && peekImplementation(tok!"(", i + 1, true))
-                || (t == tok!"out" && (peekImplementation(tok!"(", i + 1, true)
-                    && (peekImplementation(tok!";", i + 2, true)
+            isExpressionContract = (t == tok!"in" && peekImplementation(tok!"(", i + 1, true)) || (t == tok!"out"
+                    && (peekImplementation(tok!"(", i + 1, true)
+                        && (peekImplementation(tok!";", i + 2, true)
                         || (peekImplementation(tok!"identifier", i + 2, true)
-                            && peekImplementation(tok!";", i + 3, true)))));
+                        && peekImplementation(tok!";", i + 3, true)))));
         }
 
         return isBlockHeaderToken(t) && !isExpressionContract;
@@ -2373,9 +2386,554 @@ const pure @safe @nogc:
     }
 }
 
+/**
+ * Insert `{` and `}` tokens around single-statement bodies for block headers
+ * (if, else, for, foreach, while, do, etc.) when force_curly_braces is enabled.
+ *
+ * This preprocessing step runs on the token array before the formatter, so the
+ * formatter's existing brace-handling logic takes care of style and indentation.
+ */
+Token[] insertForcedBraces(const(Token)[] tokens)
+{
+    import std.array : appender, Appender;
+
+    // Collect insertion points: (index, true=open/false=close)
+    // We'll insert `{` before the token at `index`, or `}` after the token at `index-1`.
+    struct Insertion
+    {
+        size_t position; // insert BEFORE this token index
+        bool isOpen; // true = `{`, false = `}`
+    }
+
+    Appender!(Insertion[]) insertions;
+
+    // Helper: is this token type a block header keyword that takes parens?
+    static bool isParenBlockHeader(IdType t) pure nothrow @safe @nogc
+    {
+        return t == tok!"if" || t == tok!"for" || t == tok!"foreach"
+            || t == tok!"foreach_reverse" || t == tok!"while" || t == tok!"catch"
+            || t == tok!"with" || t == tok!"synchronized" || t == tok!"scope" || t == tok!"version";
+    }
+
+    // Skip past comments at position i, return new position
+    size_t skipComments(size_t i) nothrow @safe @nogc
+    {
+        while (i < tokens.length && tokens[i].type == tok!"comment")
+            i++;
+        return i;
+    }
+
+    // Include trailing comments that are on the same line as the previous token.
+    // Returns the position after any same-line comments.
+    size_t includeTrailingComments(size_t i) nothrow @safe @nogc
+    {
+        if (i == 0 || i > tokens.length)
+            return i;
+
+        // Get the line number of the previous token (likely the ;)
+        size_t prevLine = tokens[i - 1].line;
+
+        // Check if next token is a comment on the same line
+        while (i < tokens.length && tokens[i].type == tok!"comment" && tokens[i].line == prevLine)
+        {
+            i++;
+        }
+
+        return i;
+    }
+
+    // Skip past matched parentheses starting at open paren at position i.
+    // Returns position AFTER the closing paren, or tokens.length on error.
+    size_t skipParens(size_t i) nothrow @safe @nogc
+    {
+        if (i >= tokens.length || tokens[i].type != tok!"(")
+            return i;
+        int depth = 1;
+        i++;
+        while (i < tokens.length && depth > 0)
+        {
+            if (tokens[i].type == tok!"(")
+                depth++;
+            else if (tokens[i].type == tok!")")
+                depth--;
+            i++;
+        }
+        return i;
+    }
+
+    // Find the end of a single statement starting at position `i`.
+    // Returns the position AFTER the statement (i.e., after the `;` or closing `}`).
+    // For block headers, this recurses to find the full construct including else.
+    size_t findStatementEnd(size_t i)
+    {
+        i = skipComments(i);
+        if (i >= tokens.length)
+            return i;
+
+        auto t = tokens[i].type;
+
+        // If the statement starts with '{', find matching '}'
+        if (t == tok!"{")
+        {
+            int depth = 1;
+            i++;
+            while (i < tokens.length && depth > 0)
+            {
+                if (tokens[i].type == tok!"{")
+                    depth++;
+                else if (tokens[i].type == tok!"}")
+                    depth--;
+                i++;
+            }
+            return i;
+        }
+
+        // If the statement is a block header with parens (if, for, while, etc.)
+        if (isParenBlockHeader(t))
+        {
+            i++; // skip keyword
+            i = skipComments(i);
+            if (i < tokens.length && tokens[i].type == tok!"(")
+                i = skipParens(i);
+            i = skipComments(i);
+            // Now find the body
+            size_t bodyEnd = findStatementEnd(i);
+
+            // Special case for `if`: check for trailing `else`
+            if (t == tok!"if")
+            {
+                size_t afterBody = skipComments(bodyEnd);
+                if (afterBody < tokens.length && tokens[afterBody].type == tok!"else")
+                {
+                    afterBody++; // skip `else`
+                    afterBody = skipComments(afterBody);
+                    bodyEnd = findStatementEnd(afterBody);
+                }
+            }
+            return bodyEnd;
+        }
+
+        // `debug` can appear with or without parens
+        if (t == tok!"debug")
+        {
+            i++; // skip `debug`
+            i = skipComments(i);
+            if (i < tokens.length && tokens[i].type == tok!"(")
+                i = skipParens(i);
+            i = skipComments(i);
+            size_t bodyEnd = findStatementEnd(i);
+            // Check for trailing else
+            size_t afterBody = skipComments(bodyEnd);
+            if (afterBody < tokens.length && tokens[afterBody].type == tok!"else")
+            {
+                afterBody++;
+                afterBody = skipComments(afterBody);
+                bodyEnd = findStatementEnd(afterBody);
+            }
+            return bodyEnd;
+        }
+
+        // `do` ... `while` construct
+        if (t == tok!"do")
+        {
+            i++; // skip `do`
+            i = skipComments(i);
+            size_t bodyEnd = findStatementEnd(i);
+            bodyEnd = skipComments(bodyEnd);
+            // Expect `while`
+            if (bodyEnd < tokens.length && tokens[bodyEnd].type == tok!"while")
+            {
+                bodyEnd++; // skip `while`
+                bodyEnd = skipComments(bodyEnd);
+                if (bodyEnd < tokens.length && tokens[bodyEnd].type == tok!"(")
+                    bodyEnd = skipParens(bodyEnd);
+                // skip trailing `;`
+                bodyEnd = skipComments(bodyEnd);
+                if (bodyEnd < tokens.length && tokens[bodyEnd].type == tok!";")
+                    bodyEnd++;
+            }
+            return bodyEnd;
+        }
+
+        // `try` ... `catch` ... `finally` compound
+        if (t == tok!"try")
+        {
+            i++; // skip `try`
+            i = skipComments(i);
+            size_t bodyEnd = findStatementEnd(i); // try body
+            // Check for catch/finally chains
+            while (true)
+            {
+                size_t next = skipComments(bodyEnd);
+                if (next < tokens.length && tokens[next].type == tok!"catch")
+                {
+                    next++; // skip catch
+                    next = skipComments(next);
+                    if (next < tokens.length && tokens[next].type == tok!"(")
+                        next = skipParens(next);
+                    next = skipComments(next);
+                    bodyEnd = findStatementEnd(next); // catch body
+                }
+                else if (next < tokens.length && tokens[next].type == tok!"finally")
+                {
+                    next++; // skip finally
+                    next = skipComments(next);
+                    bodyEnd = findStatementEnd(next); // finally body
+                    break; // finally is always last
+                }
+                else
+                    break;
+            }
+            return bodyEnd;
+        }
+
+        // `finally` — just a body, no parens
+        if (t == tok!"finally")
+        {
+            i++; // skip `finally`
+            i = skipComments(i);
+            return findStatementEnd(i);
+        }
+
+        // `else` (standalone, not `else if`)
+        if (t == tok!"else")
+        {
+            i++; // skip `else`
+            i = skipComments(i);
+            return findStatementEnd(i);
+        }
+
+        // Regular statement: scan to `;` at depth 0
+        int depth = 0;
+        while (i < tokens.length)
+        {
+            if (tokens[i].type == tok!"(" || tokens[i].type == tok!"[" || tokens[i].type == tok!"{")
+                depth++;
+            else if (tokens[i].type == tok!")" || tokens[i].type == tok!"]"
+                    || tokens[i].type == tok!"}")
+            {
+                depth--;
+                if (depth < 0)
+                    break; // unmatched close - stop
+            }
+            else if (tokens[i].type == tok!";" && depth == 0)
+            {
+                i++; // include the semicolon
+                return includeTrailingComments(i);
+            }
+            i++;
+        }
+        return i;
+    }
+
+    // Find the end of just the "then" part of an if statement (not including else).
+    // This is needed because findStatementEnd for if includes the else.
+    size_t findThenBodyEnd(size_t i)
+    {
+        i = skipComments(i);
+        if (i >= tokens.length)
+            return i;
+
+        auto t = tokens[i].type;
+
+        // Braced body
+        if (t == tok!"{")
+        {
+            int depth = 1;
+            i++;
+            while (i < tokens.length && depth > 0)
+            {
+                if (tokens[i].type == tok!"{")
+                    depth++;
+                else if (tokens[i].type == tok!"}")
+                    depth--;
+                i++;
+            }
+            return i;
+        }
+
+        // If the then-body is itself a block header, we need the full construct
+        // but NOT its else (since that else belongs to the outer if)
+        // Actually, for nested if: `if (a) if (b) x; else y; else z;`
+        // the first else belongs to the inner if. We need to include it.
+        // So we use findStatementEnd which handles if+else as a unit.
+        if (isParenBlockHeader(t) || t == tok!"debug" || t == tok!"do"
+                || t == tok!"else" || t == tok!"try" || t == tok!"finally")
+        {
+            return findStatementEnd(i);
+        }
+
+        // Regular statement
+        int depth = 0;
+        while (i < tokens.length)
+        {
+            if (tokens[i].type == tok!"(" || tokens[i].type == tok!"[" || tokens[i].type == tok!"{")
+                depth++;
+            else if (tokens[i].type == tok!")" || tokens[i].type == tok!"]"
+                    || tokens[i].type == tok!"}")
+            {
+                depth--;
+                if (depth < 0)
+                    break;
+            }
+            else if (tokens[i].type == tok!";" && depth == 0)
+            {
+                i++;
+                return includeTrailingComments(i);
+            }
+            i++;
+        }
+        return i;
+    }
+
+    // Process a block header body at position `i` (after the condition/parens).
+    // If the body is not braced, record insertion points for `{` and `}`.
+    // Only wraps the immediate body, not any trailing `else` — the main loop
+    // handles `else` and inner block headers separately.
+    void processBody(size_t i, IdType headerType)
+    {
+        size_t bodyStart = skipComments(i);
+        if (bodyStart >= tokens.length)
+            return;
+
+        // Already braced or empty statement - no insertion needed
+        if (tokens[bodyStart].type == tok!"{" || tokens[bodyStart].type == tok!";")
+            return;
+
+        // For certain keywords after function declarations, don't insert braces
+        if (tokens[bodyStart].type == tok!"in"
+                || tokens[bodyStart].type == tok!"out" || tokens[bodyStart].type == tok!"do")
+            return;
+        if (bodyStart < tokens.length && tokens[bodyStart].text == "body")
+            return;
+
+        // For `if`/`debug`/`version` with `else`: wrap only the "then" body.
+        // The main loop will handle `else` when it encounters it.
+        if (headerType == tok!"if" || headerType == tok!"debug" || headerType == tok!"version")
+        {
+            size_t thenEnd = findThenBodyEnd(bodyStart);
+            insertions ~= Insertion(bodyStart, true);
+            insertions ~= Insertion(thenEnd, false);
+            return;
+        }
+
+        // For non-if block headers (for, foreach, while, etc.)
+        size_t stmtEnd = findStatementEnd(bodyStart);
+        insertions ~= Insertion(bodyStart, true);
+        insertions ~= Insertion(stmtEnd, false);
+    }
+
+    // Helper: extract the meaningful text from a comment token (strip // or /* */)
+    static string getDfmtCommentText(string commentText) pure @safe
+    {
+        import std.string : strip;
+
+        if (commentText.length >= 2 && commentText[0 .. 2] == "//")
+            return commentText[2 .. $].strip();
+        else if (commentText.length > 3)
+            return commentText[2 .. $ - 2].strip();
+        else if (commentText.length >= 2)
+            return commentText[2 .. $].strip();
+        return commentText;
+    }
+
+    // Main scan: walk through tokens and look for block headers.
+    // We process every token position; processBody only records insertions,
+    // it does NOT cause the main loop to skip tokens, so inner block headers
+    // (like nested if, foreach inside if body, etc.) are also processed.
+    size_t i = 0;
+    bool dfmtOff = false;
+    while (i < tokens.length)
+    {
+        auto t = tokens[i].type;
+
+        // Track `// dfmt off` / `// dfmt on` comment regions.
+        // When dfmtOff is true, skip all block header processing.
+        if (t == tok!"comment")
+        {
+            auto ct = getDfmtCommentText(tokens[i].text);
+            if (ct == "dfmt off")
+                dfmtOff = true;
+            else if (ct == "dfmt on")
+                dfmtOff = false;
+            i++;
+            continue;
+        }
+
+        if (dfmtOff)
+        {
+            i++;
+            continue;
+        }
+
+        // Block header with parens
+        if (isParenBlockHeader(t))
+        {
+            size_t afterKw = i + 1;
+            afterKw = skipComments(afterKw);
+            if (afterKw < tokens.length && tokens[afterKw].type == tok!"(")
+            {
+                size_t afterParens = skipParens(afterKw);
+                processBody(afterParens, t);
+            }
+            else if (t == tok!"synchronized")
+            {
+                // synchronized without parens: `synchronized stmt;`
+                processBody(afterKw, t);
+            }
+            i++;
+            continue;
+        }
+
+        // `debug` keyword — can appear with or without parens
+        if (t == tok!"debug")
+        {
+            size_t afterKw = i + 1;
+            afterKw = skipComments(afterKw);
+            if (afterKw < tokens.length && tokens[afterKw].type == tok!"(")
+            {
+                size_t afterParens = skipParens(afterKw);
+                processBody(afterParens, t);
+            }
+            else
+            {
+                // debug without parens: `debug stmt;`
+                processBody(afterKw, t);
+            }
+            i++;
+            continue;
+        }
+
+        // `do` keyword (not `do` in function body contracts)
+        if (t == tok!"do")
+        {
+            size_t bodyStart = skipComments(i + 1);
+            if (bodyStart < tokens.length && tokens[bodyStart].type != tok!"{"
+                    && tokens[bodyStart].type != tok!";")
+            {
+                // Find end of do body (just the single statement, not the while)
+                size_t stmtEnd = findThenBodyEnd(bodyStart);
+                insertions ~= Insertion(bodyStart, true);
+                insertions ~= Insertion(stmtEnd, false);
+            }
+            i++;
+            continue;
+        }
+
+        // `finally` keyword — never takes parens
+        if (t == tok!"finally")
+        {
+            size_t bodyStart = skipComments(i + 1);
+            if (bodyStart < tokens.length && tokens[bodyStart].type != tok!"{"
+                    && tokens[bodyStart].type != tok!";")
+            {
+                size_t stmtEnd = findStatementEnd(bodyStart);
+                insertions ~= Insertion(bodyStart, true);
+                insertions ~= Insertion(stmtEnd, false);
+            }
+            i++;
+            continue;
+        }
+
+        // `else` keyword
+        if (t == tok!"else")
+        {
+            size_t afterElse = skipComments(i + 1);
+            if (afterElse < tokens.length)
+            {
+                auto nextT = tokens[afterElse].type;
+                // else if / else version / else static if — skip, let inner handle it
+                if (nextT == tok!"if" || nextT == tok!"version" || (nextT == tok!"static"
+                        && afterElse + 1 < tokens.length && (tokens[afterElse + 1].type == tok!"if"
+                        || tokens[afterElse + 1].type == tok!"foreach"
+                        || tokens[afterElse + 1].type == tok!"foreach_reverse")))
+                {
+                    i++;
+                    continue;
+                }
+                // else with braced body - skip
+                if (nextT == tok!"{")
+                {
+                    i++;
+                    continue;
+                }
+                // else with braceless body - add braces
+                size_t elseBodyEnd = findStatementEnd(afterElse);
+                insertions ~= Insertion(afterElse, true);
+                insertions ~= Insertion(elseBodyEnd, false);
+            }
+            i++;
+            continue;
+        }
+
+        i++;
+    }
+
+    // If no insertions needed, return the original array
+    if (insertions.data.length == 0)
+        return cast(Token[]) tokens;
+
+    // Sort insertions by position (stable sort: opens before closes at same position)
+    import std.algorithm : sort;
+
+    auto ins = insertions.data;
+    sort!((a, b) {
+        if (a.position != b.position)
+            return a.position < b.position; // At the same position, open brace comes before close brace
+        // (shouldn't normally happen, but handle gracefully)
+        return a.isOpen && !b.isOpen;
+    })(ins);
+
+    // Build the new token array
+    auto result = appender!(Token[])();
+    result.reserve(tokens.length + ins.length);
+
+    size_t insIdx = 0;
+    for (size_t ti = 0; ti <= tokens.length; ti++)
+    {
+        // Insert any synthetic tokens at this position
+        while (insIdx < ins.length && ins[insIdx].position == ti)
+        {
+            Token synth;
+            synth.type = ins[insIdx].isOpen ? tok!"{" : tok!"}";
+            // Use size_t.max minus a counter for unique synthetic indices
+            // that won't match any AST info lookups
+            synth.index = size_t.max - insIdx;
+            // Copy line/column from the nearest real token for reasonable error messages
+            // For closing braces, use the previous token's line to avoid blank lines
+            // appearing before the brace (issue with double newlines)
+            if (ti < tokens.length)
+            {
+                if (!ins[insIdx].isOpen && ti > 0)
+                {
+                    synth.line = tokens[ti - 1].line;
+                    synth.column = tokens[ti - 1].column;
+                }
+                else
+                {
+                    synth.line = tokens[ti].line;
+                    synth.column = tokens[ti].column;
+                }
+            }
+            else if (tokens.length > 0)
+            {
+                synth.line = tokens[$ - 1].line;
+                synth.column = tokens[$ - 1].column;
+            }
+            result ~= synth;
+            insIdx++;
+        }
+        if (ti < tokens.length)
+            result ~= tokens[ti];
+    }
+
+    return result.data;
+}
+
 bool canFindIndex(const size_t[] items, size_t index, size_t* pos = null) pure @safe @nogc
 {
     import std.range : assumeSorted;
+
     if (!pos)
     {
         return !assumeSorted(items).equalRange(index).empty;

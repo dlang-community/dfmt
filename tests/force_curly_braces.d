@@ -1,0 +1,258 @@
+// Test: force_curly_braces option
+// Tests various braceless constructs that should get braces added
+
+// 1. Simple if without braces
+int test1(int x)
+{
+    if (x > 0)
+        return 1;
+    return 0;
+}
+
+// 2. if/else without braces
+int test2(int x)
+{
+    if (x > 0)
+        return 1;
+    else
+        return 0;
+}
+
+// 3. Nested if without braces
+void test3(int a, int b)
+{
+    if (a)
+        if (b)
+            doSomething();
+}
+
+// 4. if/else if/else chain
+int test4(int x)
+{
+    if (x > 0)
+        return 1;
+    else if (x < 0)
+        return -1;
+    else
+        return 0;
+}
+
+// 5. for loop without braces
+void test5()
+{
+    for (int i = 0; i < 10; i++)
+        doSomething();
+}
+
+// 6. foreach without braces
+void test6(int[] arr)
+{
+    foreach (x; arr)
+        doSomething();
+}
+
+// 7. while without braces
+void test7()
+{
+    while (condition())
+        doSomething();
+}
+
+// 8. Mixed: if braced, else not
+int test8(int x)
+{
+    if (x > 0)
+    {
+        return 1;
+    }
+    else
+        return 0;
+}
+
+// 9. Mixed: if not braced, else braced
+int test9(int x)
+{
+    if (x > 0)
+        return 1;
+    else
+    {
+        return 0;
+    }
+}
+
+// 10. Already fully braced (should be unchanged)
+int test10(int x)
+{
+    if (x > 0)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+// 11. Nested mixed: if with for body
+void test11(int[] arr)
+{
+    if (arr.length > 0)
+        foreach (x; arr)
+            doSomething();
+}
+
+// 12. while with if body
+void test12()
+{
+    while (condition())
+        if (check())
+            doSomething();
+}
+
+// 13. do-while without braces
+void test13()
+{
+    do
+        doSomething();
+    while (condition());
+}
+
+// 14. scope(exit) without braces
+void test14()
+{
+    scope (exit)
+        cleanup();
+    doWork();
+
+    scope int[] array = new int[](127);
+    scope T!() x = 5;
+}
+
+// 15. synchronized without braces
+void test15()
+{
+    synchronized doSomething();
+}
+
+// 16. debug without parens
+void test16()
+{
+    debug doSomething();
+}
+
+// 17. version/else
+void test17()
+{
+    version (Windows)
+        doWindows();
+    else
+        doPosix();
+}
+
+// 18. with statement
+void test18()
+{
+    with (someObj)
+        doSomething();
+}
+
+// 19. catch without braces
+void test19()
+{
+    try
+    {
+        doSomething();
+    }
+    catch (Exception e)
+        handleError();
+}
+
+// 20. debug with else
+void test20()
+{
+    debug doDebug();
+    else doRelease();
+}
+
+// 21. finally without braces
+void test21()
+{
+    try
+    {
+        doSomething();
+    }
+    catch (Exception e)
+    {
+        handleError();
+    }
+    finally
+        cleanup();
+}
+
+// 22. try/catch/finally all braceless as body of if
+void test22(bool flag)
+{
+    if (flag)
+        try
+        {
+            doSomething();
+        }
+        catch (Exception e)
+            handleError();
+}
+
+// 23. dfmt off region — braceless code should NOT get braces
+void test23()
+{
+    // dfmt off
+    if (x)
+        doSomething();
+    // dfmt on
+    if (y)
+        doSomethingElse();
+}
+
+// 24. else debug without parens
+void test24()
+{
+    version (Windows)
+        doWindows();
+    else
+        debug doDebugPosix();
+}
+
+// 25. version + unittest
+void test25()
+{
+    string command;
+    version (Posix)
+        command ~= " 2> /dev/null 1> /dev/null";
+
+    version (Posix)
+        command ~= " 2> /dev/null 1> /dev/null";
+
+    unittest
+    {
+        version (Posix)
+            command ~= " 2> /dev/null 1> /dev/null";
+    }
+}
+
+// 26. Trailing comments on if statement
+unittest
+{
+    if (imin.value > 0x10FFFFUL) // One
+        imin.value = 0x10FFFFUL; // Two
+}
+
+// 27. Complex version/else/debug/else chain
+unittest
+{
+    version (Windows)
+        __locale_decpoint = save;
+    else version (Foo)
+        __locale_decpoint = save;
+    else
+        debug __x = 3;
+        else foobar();
+}
