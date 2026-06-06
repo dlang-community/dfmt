@@ -329,7 +329,7 @@ https://github.com/dlang-community/dfmt
 Options:
     --help, -h          Print this help message
     --inplace, -i       Edit files in place
-    --config, -c    Path to directory to load .editorconfig file from.
+    --config, -c        Path to directory to load .editorconfig file from.
     --version           Print the version number and then exit
 
 Formatting Options:
