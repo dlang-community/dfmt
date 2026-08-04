@@ -19,6 +19,8 @@ enum BraceStyle
     stroustrup,
     /// $(LINK https://en.wikipedia.org/wiki/Indentation_style#K&R_style)
     knr,
+    /// $(LINK https://en.wikipedia.org/wiki/Indent_style#Variant:_Linux_kernel)
+    linux
 }
 
 enum TemplateConstraintStyle
