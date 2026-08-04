@@ -14,7 +14,7 @@ else
 
 int main()
 {
-    foreach (braceStyle; ["allman", "otbs", "knr"])
+    foreach (braceStyle; ["allman", "otbs", "knr", "linux"])
         foreach (entry; dirEntries(".", "*.d", SpanMode.shallow).filter!(e => e.baseName(".d") != "test"))
         {
             const source = entry.baseName;

@@ -1031,9 +1031,15 @@ private:
                 if (config.dfmt_brace_style == BraceStyle.allman
                         || peekBackIsOneOf(true, tok!"{", tok!"}"))
                     newline();
-                else if (config.dfmt_brace_style == BraceStyle.knr
+                else if (config.dfmt_brace_style == BraceStyle.linux
+                        && peekBackIs(tok!"unittest"))
+                    newline();
+                else if (config.dfmt_brace_style == BraceStyle.linux
+                        && astInformation.aggregateBodyLocations.canFindIndex(tIndex))
+                    newline();
+                else if (config.dfmt_brace_style.among(BraceStyle.knr, BraceStyle.linux)
                         && astInformation.funBodyLocations.canFindIndex(tIndex)
-                        && (peekBackIs(tok!")") || (!peekBackIs(tok!"do") && peekBack().text != "body")))
+                        && (peekBackIs(tok!")") || (!peekBackIs(tok!"do") && peekBack().text != "body" && peekBack().text != "unittest")))
                     newline();
                 else if (!peekBackIsOneOf(true, tok!"{", tok!"}", tok!";"))
                     write(" ");
@@ -1118,7 +1124,7 @@ private:
                 currentLineLength = 0;
                 justAddedExtraNewline = true;
             }
-            if (config.dfmt_brace_style.among(BraceStyle.otbs, BraceStyle.knr)
+            if (config.dfmt_brace_style.among(BraceStyle.otbs, BraceStyle.knr, BraceStyle.linux)
                     && ((peekIs(tok!"else")
                             && !indents.topAre(tok!"static", tok!"if")
                             && !indents.topIs(tok!"foreach") && !indents.topIs(tok!"for")

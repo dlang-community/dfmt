@@ -319,6 +319,7 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const EnumBody enumBody)
     {
+        astInformation.aggregateBodyLocations ~= enumBody.startLocation;
         astInformation.doubleNewlineLocations ~= enumBody.endLocation;
         enumBody.accept(this);
     }
