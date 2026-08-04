@@ -1,0 +1,46 @@
+struct S
+{
+    void f() @trusted return
+    {
+    }
+
+    void g() @safe return
+    {
+    }
+
+    void h() @nogc @trusted return
+    {
+    }
+
+    void i() @system return
+    {
+    }
+
+    void j() pure @safe return
+    {
+    }
+
+    void k() @nogc return
+    {
+    }
+
+    void l() @trusted
+    do {
+    }
+
+    void m() @safe
+    do {
+    }
+
+    void n() @nogc @system
+    do {
+    }
+
+    void o() pure @safe
+    do {
+    }
+
+    // Regression: 'body' as variable name must not be treated as contract keyword
+    @custom body = 3;
+    SomeStruct body = foo();
+}

@@ -1,0 +1,7 @@
+string BuildForwardCall()
+{
+    return `static if (is(typeof(mocked___.` ~ methodString ~ argsPassed ~ `)))
+            {
+                return (mocked___.` ~ methodString ~ argsPassed ~ `);
+            }`;
+}
