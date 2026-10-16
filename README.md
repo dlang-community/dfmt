@@ -110,10 +110,9 @@ Property Name | Allowed Values | Description
 dfmt_brace_style | **`allman`**, `otbs`, `stroustrup` or `knr` | [See Wikipedia](https://en.wikipedia.org/wiki/Brace_style)
 dfmt_soft_max_line_length | positive integers (**`80`**) | The formatting process will usually keep lines below this length, but they may be up to *max_line_length* columns long.
 dfmt_align_switch_statements | **`true`**, `false` | Align labels, cases, and defaults with their enclosing switch.
-dfmt_outdent_attributes (Not yet implemented) | **`true`**, `false`| Decrease the indentation level of attributes.
+dfmt_outdent_attributes | **`true`**, `false`| Decrease the indentation level of attributes.
 dfmt_split_operator_at_line_end | `true`, **`false`** | Place operators on the end of the previous line when splitting lines.
 dfmt_space_after_cast | **`true`**, `false` | Insert space after the closing paren of a `cast` expression.
-dfmt_space_after_keywords (Not yet implemented) | **`true`**, `false` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`.
 dfmt_space_before_function_parameters | `true`, **`false`** | Insert space before the opening paren of a function parameter list.
 dfmt_selective_import_space | **`true`**, `false` | Insert space after the module name and before the `:` for selective imports.
 dfmt_compact_labeled_statements | **`true`**, `false` | Place labels on the same line as the labeled `switch`, `for`, `foreach`, or `while` statement.
